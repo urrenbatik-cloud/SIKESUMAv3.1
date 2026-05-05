@@ -1,12 +1,7 @@
+typescriptimport { createClient } from '@supabase/supabase-js';
 
-import { createClient } from '@supabase/supabase-js';
+// Supabase Project: urrenbatik-cloud's Project (SIKESUMAv3.1)
+const supabaseUrl = 'https://qjijsftbytozcoyrtric.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaWpzZnRieXRvemNveXJ0cmljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA1NzU0NjcsImV4cCI6MjA4NjE1MTQ2N30.xhTQedwot78BMLoeiaSpBs6wGjb3zhZhnf6_jld14qA';
 
-const supabaseUrl = (window as any).process?.env?.SUPABASE_URL || '';
-const supabaseAnonKey = (window as any).process?.env?.SUPABASE_ANON_KEY || '';
-
-// Jika di lingkungan browser tanpa process.env, ambil dari window jika tersedia atau gunakan string kosong
-// Catatan: Di Vercel, variabel ini akan disuntikkan secara otomatis jika dikonfigurasi.
-export const supabase = createClient(
-  supabaseUrl || 'https://your-project-url.supabase.co',
-  supabaseAnonKey || 'your-anon-key'
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
