@@ -63,59 +63,150 @@ const App: React.FC = () => {
   const [jasaVerificationFiles, setJasaVerificationFiles] = useState<JasaVerificationFiles>({});
 
   // --- LOGIKA SYNC SUPABASE (BACKEND) ---
+  // Schema pattern: PURE envelope JSONB
+  //   pagu_sections: { id text PK, data: {rows, title}, created_at, ... }
+  //   bills:         { id text PK, data: <Bill fields>, created_at, ... }
+  //   patient_claims:{ id text PK, data: <PatientClaim fields>, created_at, ... }
+  //   doctors:       { id text PK, data: <Doctor fields>, created_at, ... }
+  //   employees:     { id text PK, data: <Employee fields>, created_at, ... }
+  //   system_settings:{ key text PK, value: <any JSONB>, updated_at }
   
   // 1. Muat data dari Supabase saat aplikasi pertama kali dibuka
   useEffect(() => {
     const loadData = async () => {
       setIsSyncing(true);
       try {
+        // PAGU: unwrap envelope. Schema tidak ada kolom 'year' — semua di p.data
+        // Asumsi: data di DB adalah single-year (current year). Mapping ke dataByYear[targetYear].
+        const targetYear = selectedYear === 'ALL' ? 2025 : selectedYear;
         const { data: pagu } = await supabase.from('pagu_sections').select('*');
         if (pagu && pagu.length > 0) {
-          const formattedPagu: any = {};
-          pagu.forEach(p => { formattedPagu[p.year] = p.rows; });
-          setDataByYear(formattedPagu);
+          const sections: PaguSection[] = pagu.map((p: any) => ({
+            id: p.id,
+            title: p.data?.title || '',
+            rows: p.data?.rows || [],
+          }));
+          setDataByYear({ [targetYear]: sections });
         }
 
+        // BILLS: unwrap envelope, preserve id
         const { data: bills } = await supabase.from('bills').select('*');
-        if (bills) setAllBills(bills.map(b => b.data));
+        if (bills && bills.length > 0) {
+          setAllBills(bills.map((b: any) => ({ ...(b.data || {}), id: b.id })));
+        }
 
+        // PATIENT CLAIMS: unwrap envelope, preserve id
         const { data: claims } = await supabase.from('patient_claims').select('*');
-        if (claims) setLogsList(claims.map(c => c.data));
+        if (claims && claims.length > 0) {
+          setLogsList(claims.map((c: any) => ({ ...(c.data || {}), id: c.id })));
+        }
 
+        // DOCTORS: load dari DB (kalau ada). Kalau kosong, keep DUMMY dari constants.
+        const { data: docs } = await supabase.from('doctors').select('*');
+        if (docs && docs.length > 0) {
+          setDoctorsList(docs.map((d: any) => ({ ...(d.data || {}), id: d.id })));
+        }
+
+        // EMPLOYEES: same pattern
+        const { data: emps } = await supabase.from('employees').select('*');
+        if (emps && emps.length > 0) {
+          setStaffList(emps.map((e: any) => ({ ...(e.data || {}), id: e.id })));
+        }
+
+        // SYSTEM SETTINGS: key/value (sudah benar di v3.1 original, tidak diubah)
         const { data: settings } = await supabase.from('system_settings').select('*');
         if (settings) {
-          settings.forEach(s => {
+          settings.forEach((s: any) => {
             if (s.key === 'jasa_map') setJasaAccountMap(s.value);
             if (s.key === 'bpjs_history') setBpjsSettingsHistory(s.value);
             if (s.key === 'pagu_lock') setIsPaguLocked(s.value);
           });
         }
         setLastSync(new Date().toLocaleTimeString());
+        console.log('✅ Data loaded from Supabase:', {
+          pagu: pagu?.length || 0,
+          bills: bills?.length || 0,
+          claims: claims?.length || 0,
+          doctors: docs?.length || 0,
+          employees: emps?.length || 0,
+        });
       } catch (err) {
-        console.error("Gagal memuat data dari database:", err);
+        console.error("❌ Gagal memuat data dari database:", err);
       } finally {
         setIsSyncing(false);
       }
     };
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 2. Fungsi Helper untuk Simpan (Bisa dipanggil manual atau otomatis)
+  // Pattern: untuk setiap row, pisahkan id dari business fields → upsert {id, data: rest}
   const syncToCloud = async () => {
     setIsSyncing(true);
     try {
-      // Simpan Pagu
-      for (const year in dataByYear) {
-        await supabase.from('pagu_sections').upsert({ id: `pagu-${year}`, year: parseInt(year), rows: dataByYear[year], title: `PAGU ${year}` });
+      const targetYear = selectedYear === 'ALL' ? 2025 : selectedYear;
+      const sectionsToSave = dataByYear[targetYear] || [];
+
+      // PAGU: per-section upsert dengan envelope JSONB
+      if (sectionsToSave.length > 0) {
+        const paguPayload = sectionsToSave.map(s => ({
+          id: s.id,
+          data: { title: s.title, rows: s.rows }
+        }));
+        const { error: paguErr } = await supabase.from('pagu_sections').upsert(paguPayload);
+        if (paguErr) throw paguErr;
       }
-      // Simpan Settings
+
+      // BILLS: envelope upsert
+      if (allBills.length > 0) {
+        const billsPayload = allBills.map(b => {
+          const { id, ...rest } = b;
+          return { id, data: rest };
+        });
+        const { error: billsErr } = await supabase.from('bills').upsert(billsPayload);
+        if (billsErr) throw billsErr;
+      }
+
+      // PATIENT CLAIMS: envelope upsert
+      if (logsList.length > 0) {
+        const claimsPayload = logsList.map(c => {
+          const { id, ...rest } = c;
+          return { id, data: rest };
+        });
+        const { error: claimsErr } = await supabase.from('patient_claims').upsert(claimsPayload);
+        if (claimsErr) throw claimsErr;
+      }
+
+      // DOCTORS: envelope upsert
+      if (doctorsList.length > 0) {
+        const doctorsPayload = doctorsList.map(d => {
+          const { id, ...rest } = d;
+          return { id, data: rest };
+        });
+        const { error: docsErr } = await supabase.from('doctors').upsert(doctorsPayload);
+        if (docsErr) throw docsErr;
+      }
+
+      // EMPLOYEES: envelope upsert
+      if (staffList.length > 0) {
+        const staffPayload = staffList.map(e => {
+          const { id, ...rest } = e;
+          return { id, data: rest };
+        });
+        const { error: empsErr } = await supabase.from('employees').upsert(staffPayload);
+        if (empsErr) throw empsErr;
+      }
+
+      // SYSTEM SETTINGS: key-value (tidak diubah)
       await supabase.from('system_settings').upsert({ key: 'jasa_map', value: jasaAccountMap });
       await supabase.from('system_settings').upsert({ key: 'bpjs_history', value: bpjsSettingsHistory });
       await supabase.from('system_settings').upsert({ key: 'pagu_lock', value: isPaguLocked });
       
       setLastSync(new Date().toLocaleTimeString());
+      console.log('✅ Sync to Supabase berhasil');
     } catch (err) {
-      console.error("Gagal sinkronisasi ke cloud:", err);
+      console.error("❌ Gagal sinkronisasi ke cloud:", err);
     } finally {
       setIsSyncing(false);
     }
