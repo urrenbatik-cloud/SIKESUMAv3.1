@@ -19,6 +19,7 @@ import {
   PatientClaim, Doctor, Employee, Bill, RevenueTarget, SpecialtyTarget, BPJSCalcSettings,
   MinimizedForm, JasaVerificationFiles
 } from './types';
+// Note: RevenueTarget + SpecialtyTarget types sudah di-import (line di atas) — ready untuk F1.1/F1.2 wire
 import { 
   INITIAL_PAGU_SECTIONS, INITIAL_RAB_NARRATIVE, INITIAL_RAB_CATEGORIES,
   YEARS, DUMMY_DOCTORS, DUMMY_EMPLOYEES, DUMMY_BILLS, DUMMY_PATIENTS, DEFAULT_BPJS_SETTINGS, 
@@ -61,6 +62,10 @@ const App: React.FC = () => {
   const [minimizedForms, setMinimizedForms] = useState<MinimizedForm[]>([]);
   const [activeFormFromMinimized, setActiveFormFromMinimized] = useState<MinimizedForm | null>(null);
   const [jasaVerificationFiles, setJasaVerificationFiles] = useState<JasaVerificationFiles>({});
+
+  // [F1.1/F1.2 v2] Revenue + Specialty Targets — wired ke Supabase (was DUMMY hardcoded)
+  const [revenueTargets, setRevenueTargets] = useState<RevenueTarget[]>(DUMMY_REVENUE_TARGETS);
+  const [specialtyTargets, setSpecialtyTargets] = useState<SpecialtyTarget[]>(DUMMY_SPECIALTY_TARGETS);
 
   // --- LOGIKA SYNC SUPABASE (BACKEND) ---
   // Schema pattern: PURE envelope JSONB
@@ -113,6 +118,18 @@ const App: React.FC = () => {
           setStaffList(emps.map((e: any) => ({ ...(e.data || {}), id: e.id })));
         }
 
+        // [F1.1 v2] REVENUE TARGETS: envelope unwrap
+        const { data: rt } = await supabase.from('revenue_targets').select('*');
+        if (rt && rt.length > 0) {
+          setRevenueTargets(rt.map((r: any) => ({ ...(r.data || {}), id: r.id })));
+        }
+
+        // [F1.2 v2] SPECIALTY TARGETS: envelope unwrap
+        const { data: st } = await supabase.from('specialty_targets').select('*');
+        if (st && st.length > 0) {
+          setSpecialtyTargets(st.map((s: any) => ({ ...(s.data || {}), id: s.id })));
+        }
+
         // SYSTEM SETTINGS: key/value (sudah benar di v3.1 original, tidak diubah)
         const { data: settings } = await supabase.from('system_settings').select('*');
         if (settings) {
@@ -129,6 +146,8 @@ const App: React.FC = () => {
           claims: claims?.length || 0,
           doctors: docs?.length || 0,
           employees: emps?.length || 0,
+          revenue_targets: rt?.length || 0,
+          specialty_targets: st?.length || 0,
         });
       } catch (err) {
         console.error("❌ Gagal memuat data dari database:", err);
@@ -196,6 +215,26 @@ const App: React.FC = () => {
         });
         const { error: empsErr } = await supabase.from('employees').upsert(staffPayload);
         if (empsErr) throw empsErr;
+      }
+
+      // [F1.1 v2] REVENUE TARGETS: envelope upsert
+      if (revenueTargets.length > 0) {
+        const rtPayload = revenueTargets.map(r => {
+          const { id, ...rest } = r;
+          return { id, data: rest };
+        });
+        const { error: rtErr } = await supabase.from('revenue_targets').upsert(rtPayload);
+        if (rtErr) throw rtErr;
+      }
+
+      // [F1.2 v2] SPECIALTY TARGETS: envelope upsert
+      if (specialtyTargets.length > 0) {
+        const stPayload = specialtyTargets.map(s => {
+          const { id, ...rest } = s;
+          return { id, data: rest };
+        });
+        const { error: stErr } = await supabase.from('specialty_targets').upsert(stPayload);
+        if (stErr) throw stErr;
       }
 
       // SYSTEM SETTINGS: key-value (tidak diubah)
@@ -419,7 +458,7 @@ const App: React.FC = () => {
                 <OperationalBilling activeTabType={activeTabType} subTab={subTab} bills={allBills} onBillsChange={setAllBills} globalYear={selectedYear} logs={logsList} bpjsSettingsHistory={bpjsSettingsHistory} doctors={doctorsList} staff={staffList} jasaAccountMap={jasaAccountMap} onJasaAccountMapChange={setJasaAccountMap} onMinimizeForm={f => setMinimizedForms([...minimizedForms, f])} reopenedForm={activeFormFromMinimized} onReopenedFormHandled={() => setActiveFormFromMinimized(null)} />
               )}
               {(mainTab === MainTab.PENDAPATAN || mainTab === MainTab.FINANCIAL_HEALTH) && (
-                <RevenueModule activeTabType={activeTabType} logs={logsList} targets={DUMMY_REVENUE_TARGETS} onTargetsChange={() => {}} specialtyTargets={DUMMY_SPECIALTY_TARGETS} onSpecialtyTargetsChange={() => {}} selectedYear={selectedYear} doctors={doctorsList} bills={allBills} rpdData={rpdSections} />
+                <RevenueModule activeTabType={activeTabType} logs={logsList} targets={revenueTargets} onTargetsChange={setRevenueTargets} specialtyTargets={specialtyTargets} onSpecialtyTargetsChange={setSpecialtyTargets} selectedYear={selectedYear} doctors={doctorsList} bills={allBills} rpdData={rpdSections} />
               )}
            </div>
         </div>
