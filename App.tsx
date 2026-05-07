@@ -20,6 +20,11 @@ import {
   MinimizedForm, JasaVerificationFiles
 } from './types';
 // Note: RevenueTarget + SpecialtyTarget types sudah di-import (line di atas) — ready untuk F1.1/F1.2 wire
+
+// [F2.1 v2] Helper: normalize payroll status key untuk avoid Watchpoint v1.0 #6 (zero-padded month)
+// Format: 'YYYY-MM-personId' — month padding ensures consistent sort + DB lookup
+const normalizeKey = (year: number, month: number, personId: string): string =>
+  `${year}-${String(month).padStart(2, '0')}-${personId}`;
 import { 
   INITIAL_PAGU_SECTIONS, INITIAL_RAB_NARRATIVE, INITIAL_RAB_CATEGORIES,
   YEARS, DUMMY_DOCTORS, DUMMY_EMPLOYEES, DUMMY_BILLS, DUMMY_PATIENTS, DEFAULT_BPJS_SETTINGS, 
@@ -81,17 +86,23 @@ const App: React.FC = () => {
     const loadData = async () => {
       setIsSyncing(true);
       try {
-        // PAGU: unwrap envelope. Schema tidak ada kolom 'year' — semua di p.data
-        // Asumsi: data di DB adalah single-year (current year). Mapping ke dataByYear[targetYear].
-        const targetYear = selectedYear === 'ALL' ? 2025 : selectedYear;
+        // [F2.0 v2] PAGU: partition by year via id pattern `pagu-{year}-{slug}`
+        // Falls back to selectedYear bucket untuk legacy ids tanpa year prefix.
         const { data: pagu } = await supabase.from('pagu_sections').select('*');
         if (pagu && pagu.length > 0) {
-          const sections: PaguSection[] = pagu.map((p: any) => ({
-            id: p.id,
-            title: p.data?.title || '',
-            rows: p.data?.rows || [],
-          }));
-          setDataByYear({ [targetYear]: sections });
+          const fallbackYear = selectedYear === 'ALL' ? 2025 : selectedYear;
+          const byYear: Record<number, PaguSection[]> = {};
+          pagu.forEach((p: any) => {
+            const match = p.id.match(/^pagu-(\d{4})-/);
+            const year = match ? parseInt(match[1], 10) : fallbackYear;
+            if (!byYear[year]) byYear[year] = [];
+            byYear[year].push({
+              id: p.id,
+              title: p.data?.title || '',
+              rows: p.data?.rows || [],
+            });
+          });
+          setDataByYear(byYear);
         }
 
         // BILLS: unwrap envelope, preserve id
@@ -130,6 +141,17 @@ const App: React.FC = () => {
           setSpecialtyTargets(st.map((s: any) => ({ ...(s.data || {}), id: s.id })));
         }
 
+        // [F2.1 v2] PAYROLL STATUSES: load Record<key, status>
+        // Key pattern: 'YYYY-MM-personId' (zero-padded month — Watchpoint v1.0 #6 fix)
+        const { data: ps } = await supabase.from('payroll_statuses').select('*');
+        if (ps && ps.length > 0) {
+          const psMap: Record<string, 'Lunas' | 'Belum Lunas'> = {};
+          ps.forEach((p: any) => {
+            psMap[p.id] = p.data?.status || 'Belum Lunas';
+          });
+          setPayrollStatuses(psMap);
+        }
+
         // SYSTEM SETTINGS: key/value (sudah benar di v3.1 original, tidak diubah)
         const { data: settings } = await supabase.from('system_settings').select('*');
         if (settings) {
@@ -148,6 +170,7 @@ const App: React.FC = () => {
           employees: emps?.length || 0,
           revenue_targets: rt?.length || 0,
           specialty_targets: st?.length || 0,
+          payroll_statuses: ps?.length || 0,
         });
       } catch (err) {
         console.error("❌ Gagal memuat data dari database:", err);
@@ -164,16 +187,22 @@ const App: React.FC = () => {
   const syncToCloud = async () => {
     setIsSyncing(true);
     try {
-      const targetYear = selectedYear === 'ALL' ? 2025 : selectedYear;
-      const sectionsToSave = dataByYear[targetYear] || [];
-
-      // PAGU: per-section upsert dengan envelope JSONB
-      if (sectionsToSave.length > 0) {
-        const paguPayload = sectionsToSave.map(s => ({
-          id: s.id,
-          data: { title: s.title, rows: s.rows }
-        }));
-        const { error: paguErr } = await supabase.from('pagu_sections').upsert(paguPayload);
+      // [F2.0 v2] PAGU: save SEMUA tahun dari dataByYear (bukan cuma current selected).
+      // ID pattern: pagu-{year}-{slug}. Legacy 'sec-*' ids akan di-prefix dengan year.
+      const allSections: { id: string; data: any }[] = [];
+      Object.entries(dataByYear).forEach(([yearStr, sections]) => {
+        const year = parseInt(yearStr, 10);
+        sections.forEach(s => {
+          const idMatch = s.id.match(/^pagu-(\d{4})-/);
+          const finalId = idMatch ? s.id : `pagu-${year}-${s.id.replace(/^sec-/, '')}`;
+          allSections.push({
+            id: finalId,
+            data: { title: s.title, rows: s.rows }
+          });
+        });
+      });
+      if (allSections.length > 0) {
+        const { error: paguErr } = await supabase.from('pagu_sections').upsert(allSections);
         if (paguErr) throw paguErr;
       }
 
@@ -235,6 +264,18 @@ const App: React.FC = () => {
         });
         const { error: stErr } = await supabase.from('specialty_targets').upsert(stPayload);
         if (stErr) throw stErr;
+      }
+
+      // [F2.1 v2] PAYROLL STATUSES: upsert Record<key, status>
+      // Key sudah zero-padded format dari PayrollSummary.tsx via normalizeKey helper.
+      const psEntries = Object.entries(payrollStatuses);
+      if (psEntries.length > 0) {
+        const psPayload = psEntries.map(([key, status]) => ({
+          id: key,
+          data: { status }
+        }));
+        const { error: psErr } = await supabase.from('payroll_statuses').upsert(psPayload);
+        if (psErr) throw psErr;
       }
 
       // SYSTEM SETTINGS: key-value (tidak diubah)
@@ -434,7 +475,7 @@ const App: React.FC = () => {
         <div className="max-w-[98%] mx-auto px-6 py-6 pb-32">
            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
               {activeTabType === TabType.PAGU && (
-                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `sec-${Date.now()}`, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} />
+                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} />
               )}
               {activeTabType === TabType.RAB && (
                 <RAB paguSections={paguSections} categories={rabCategories} onCategoriesChange={setRabCategories} selectedYear={currentRKKSYear} />
