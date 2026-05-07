@@ -4,6 +4,7 @@ import { PatientClaim, BPJSCalcSettings, Doctor, Employee, JasaVerificationFiles
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
 import { formatIDR } from './Formatters';
 import { supabase } from '../lib/supabase';
+import { toast } from './Toast';
 import { 
   Receipt, ArrowRight, Printer, Download, Info, CheckCircle2, Wallet, Coins, UserCog, Tags, 
   Upload, FileText, Trash2, File, Eye, Settings, ChevronDown, Loader2 
@@ -65,12 +66,14 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
     // [F2.2 v2] Client-side validation (size + MIME) sebelum upload
     for (const f of filesToUpload) {
       if (!ALLOWED_MIME.includes(f.type)) {
-        alert(`File "${f.name}" ditolak: tipe ${f.type || 'unknown'} tidak didukung.\n\nHanya PDF, PNG, JPEG yang dibolehkan.`);
+        // [F2.4 v2] Replace alert dengan toast.error untuk better UX
+        toast.error(`File "${f.name}" ditolak: tipe ${f.type || 'unknown'} tidak didukung. Hanya PDF, PNG, JPEG.`, 5000);
         e.target.value = '';
         return;
       }
       if (f.size > MAX_FILE_SIZE_BYTES) {
-        alert(`File "${f.name}" ditolak: ukuran ${(f.size / 1024 / 1024).toFixed(2)} MB melebihi batas ${MAX_FILE_SIZE_MB} MB.`);
+        // [F2.4 v2] Replace alert dengan toast.error
+        toast.error(`File "${f.name}" ditolak: ukuran ${(f.size / 1024 / 1024).toFixed(2)} MB melebihi batas ${MAX_FILE_SIZE_MB} MB.`, 5000);
         e.target.value = '';
         return;
       }
@@ -94,7 +97,8 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
 
         if (uploadErr) {
           console.error('❌ Upload gagal:', uploadErr);
-          alert(`Upload "${f.name}" gagal: ${uploadErr.message}`);
+          // [F2.4 v2] Replace alert dengan toast.error
+          toast.error(`Upload "${f.name}" gagal: ${uploadErr.message}`, 6000);
           continue;
         }
 
@@ -121,10 +125,14 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
           },
         });
         console.log(`✅ ${newFiles.length} file(s) uploaded to Storage`, { periodKey, category });
+        // [F2.4 v2] Toast success dengan specific count + reminder untuk sync
+        const fileLabel = newFiles.length === 1 ? newFiles[0].namaFile : `${newFiles.length} berkas`;
+        toast.success(`✅ ${fileLabel} berhasil di-upload. Klik tombol Sync untuk persist.`);
       }
     } catch (err: any) {
       console.error('❌ Upload exception:', err);
-      alert(`Upload gagal: ${err?.message || 'Unknown error'}`);
+      // [F2.4 v2] Replace alert dengan toast.error
+      toast.error(`Upload gagal: ${err?.message || 'Unknown error'}`, 6000);
     } finally {
       setUploadingFor(null);
       e.target.value = ''; // reset input untuk allow re-upload same filename
@@ -148,6 +156,8 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
           .remove([storagePath]);
         if (removeErr) {
           console.warn('⚠️ Storage delete failed (proceeding dengan state update):', removeErr);
+          // [F2.4 v2] Toast warning kalau Storage delete gagal (state tetap di-update)
+          toast.warning(`Storage delete gagal: ${removeErr.message}. State tetap di-update.`, 5000);
         } else {
           console.log('✅ File deleted from Storage:', storagePath);
         }
@@ -162,6 +172,8 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
         [category]: (currentFiles[category] || []).filter(f => f.id !== fileId),
       },
     });
+    // [F2.4 v2] Toast success info
+    toast.success(`✅ "${file.namaFile}" dihapus. Klik Sync untuk persist.`);
   };
 
   const grandTotal = recapData.tksFlat + recapData.jasaNakes + recapData.jasaPengelola;
