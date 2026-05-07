@@ -56,7 +56,18 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
 
-  // States
+  // ==========================================================================
+  // STATE — Backed by Supabase (DB-driven) dengan DUMMY initial fallback
+  // ==========================================================================
+  // [F3.1 v2] DUMMY constants pattern decision (per Sequence 4):
+  //   Initial state pakai DUMMY_* sebagai fallback sebelum loadData complete.
+  //   Mencegah UI flicker (kosong → DB data) dan memberikan offline UX kalau
+  //   Supabase tidak reachable. Setelah loadData success, state akan replaced
+  //   dengan DB data. DUMMY constants di-bundle ke production build (~few KB).
+  //
+  //   Alternative future: kalau Phase 3 mau remove DUMMY (production sterile mode),
+  //   replace dengan `useState<T[]>([])` + add loading skeleton di UI.
+  // ==========================================================================
   const [dataByYear, setDataByYear] = useState<Record<number, PaguSection[]>>({ 2025: INITIAL_PAGU_SECTIONS });
   const [allBills, setAllBills] = useState<Bill[]>(DUMMY_BILLS);
   const [logsList, setLogsList] = useState<PatientClaim[]>(DUMMY_PATIENTS); 
@@ -73,16 +84,45 @@ const App: React.FC = () => {
   const [revenueTargets, setRevenueTargets] = useState<RevenueTarget[]>(DUMMY_REVENUE_TARGETS);
   const [specialtyTargets, setSpecialtyTargets] = useState<SpecialtyTarget[]>(DUMMY_SPECIALTY_TARGETS);
 
-  // --- LOGIKA SYNC SUPABASE (BACKEND) ---
-  // Schema pattern: PURE envelope JSONB
-  //   pagu_sections: { id text PK, data: {rows, title}, created_at, ... }
-  //   bills:         { id text PK, data: <Bill fields>, created_at, ... }
-  //   patient_claims:{ id text PK, data: <PatientClaim fields>, created_at, ... }
-  //   doctors:       { id text PK, data: <Doctor fields>, created_at, ... }
-  //   employees:     { id text PK, data: <Employee fields>, created_at, ... }
-  //   system_settings:{ key text PK, value: <any JSONB>, updated_at }
-  
-  // 1. Muat data dari Supabase saat aplikasi pertama kali dibuka
+  // ==========================================================================
+  // SYNC LOGIC — Supabase (Backend Pipeline)
+  // ==========================================================================
+  // Schema convention: SEMUA 9 tabel transactional pakai pure envelope JSONB:
+  //   { id text PK, data jsonb NOT NULL, created_at, updated_at, created_by, updated_by }
+  //
+  // System settings table = key-value:
+  //   { key text PK, value jsonb, updated_at }
+  //
+  // Storage bucket 'jasa-verification' = file binaries (10 MB limit, PDF/PNG/JPEG)
+  //   Path: {periodKey}/{category}/{uuid}-{filename}
+  //
+  // Multi-year handling (F2.0): pagu_sections id pattern `pagu-{year}-{slug}`.
+  // Zero-padded keys (F2.1, F2.2): payroll_statuses + jasa_verification_files.
+  // ==========================================================================
+
+  /**
+   * loadData — Hydrate state dari Supabase saat app mount.
+   *
+   * @summary Granular per-entity loading dengan partial failure resilience.
+   *   Setiap entity (pagu_sections, bills, claims, doctors, employees,
+   *   revenue_targets, specialty_targets, payroll_statuses,
+   *   jasa_verification_files, system_settings) di-load dalam try-catch sendiri.
+   *   Kalau 1 entity gagal, others tetap di-load. Errors aggregated ke
+   *   toast.warning di akhir.
+   *
+   * @sideEffect setDataByYear, setAllBills, setLogsList, setDoctorsList,
+   *   setStaffList, setRevenueTargets, setSpecialtyTargets, setPayrollStatuses,
+   *   setJasaVerificationFiles, setJasaAccountMap, setBpjsSettingsHistory,
+   *   setIsPaguLocked, setLastSync, setIsSyncing.
+   * @sideEffect Calls toast.warning() kalau ada partial load failures.
+   * @sideEffect Logs counts via console.log, warnings via console.warn.
+   *
+   * @schemaDrift Defensive: missing id, non-array rows, null data fields
+   *   semua di-handle dengan fallback graceful.
+   *
+   * @see syncToCloud — inverse operation (state → DB)
+   * @see lib/supabase.ts — envelope JSONB helpers + client init
+   */
   useEffect(() => {
     const loadData = async () => {
       setIsSyncing(true);
@@ -278,6 +318,31 @@ const App: React.FC = () => {
 
   // 2. Fungsi Helper untuk Simpan (Bisa dipanggil manual atau otomatis)
   // Pattern: untuk setiap row, pisahkan id dari business fields → upsert {id, data: rest}
+  /**
+   * syncToCloud — Persist current state ke Supabase via upsert pattern.
+   *
+   * @summary Fail-fast pattern — kalau 1 entity fails, abort dengan specific
+   *   entity context di toast.error. Use `currentEntity` tracker variable untuk
+   *   trace exactly which entity failed (e.g., "pagu_sections", "bills",
+   *   "system_settings (bpjs_history)").
+   *
+   * @sideEffect Upserts ke 9 transactional tables + 3 system_settings KV:
+   *   - pagu_sections (multi-year, save SEMUA tahun)
+   *   - bills, patient_claims (envelope unwrap)
+   *   - doctors, employees (master data)
+   *   - revenue_targets, specialty_targets (year-aware)
+   *   - payroll_statuses (zero-padded keys)
+   *   - jasa_verification_files (skip empty + auto-DELETE ghost rows)
+   *   - system_settings: jasa_map, bpjs_history, pagu_lock
+   * @sideEffect setIsSyncing, setLastSync.
+   * @sideEffect Calls toast.success() on full success, toast.error() with
+   *   specific entity context on failure.
+   *
+   * @ghostCleanup F2.2 v2.1: jasa_verification_files periods dengan semua
+   *   3 categories empty di-DELETE supaya DB tidak punya orphan rows.
+   *
+   * @see loadData — inverse operation (DB → state)
+   */
   const syncToCloud = async () => {
     setIsSyncing(true);
     // [F2.4 v2] Track which entity di-process untuk specific error context di toast
