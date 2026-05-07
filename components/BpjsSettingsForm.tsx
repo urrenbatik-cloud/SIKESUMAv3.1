@@ -10,8 +10,23 @@ interface BpjsSettingsFormProps {
 }
 
 const BpjsSettingsForm: React.FC<BpjsSettingsFormProps> = ({ history, onChange }) => {
-  const [editMonth, setEditMonth] = useState(new Date().getMonth() + 1);
-  const [editYear, setEditYear] = useState(new Date().getFullYear());
+  // [F3.6 v2] Item 3: Default ke latest period yang ada di history (bukan current date).
+  //   Sebelumnya: defaults to current month/year (e.g., Mei 2026) yang biasanya kosong di seed.
+  //   Sekarang: defaults to most recent period in history (e.g., 2025-07 jika seed terbaru ada di sana).
+  //   User dapat tetap navigate ke periode lain via dropdown.
+  const getInitialPeriod = (): { year: number; month: number } => {
+    const keys = Object.keys(history).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+    if (keys.length > 0) {
+      const latest = keys[keys.length - 1];
+      const [yearStr, monthStr] = latest.split('-');
+      return { year: parseInt(yearStr, 10), month: parseInt(monthStr, 10) };
+    }
+    // Fallback: current date kalau history kosong
+    return { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+  };
+  const initialPeriod = getInitialPeriod();
+  const [editMonth, setEditMonth] = useState(initialPeriod.month);
+  const [editYear, setEditYear] = useState(initialPeriod.year);
   
   const currentKey = `${editYear}-${editMonth.toString().padStart(2, '0')}`;
   
