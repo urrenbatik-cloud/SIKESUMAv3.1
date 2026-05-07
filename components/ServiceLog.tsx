@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { PatientClaim, Doctor, PatientCategory, TindakanItem, TabType, MinimizedForm } from '../types';
-import { formatIDR } from './Formatters';
+import { formatIDR, formatPeriode } from './Formatters';
 import { Plus, Search, Edit3, Trash2, X, Stethoscope, Info, AlertTriangle, Users, Minimize2 } from 'lucide-react';
 
 interface ServiceLogProps {
@@ -123,7 +123,8 @@ const ServiceLog: React.FC<ServiceLogProps> = ({ logs, onLogsChange, doctors, gl
     <div className="bg-white rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
       <div className="p-8 border-b border-slate-100 flex flex-wrap justify-between items-center bg-slate-50/50 gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Audit Berkas Medis {globalMonth}/{globalYear}</h2>
+          {/* [F3.6 v2] Item 2: Use formatPeriode untuk Indonesian month name */}
+          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Audit Berkas Medis {formatPeriode(globalMonth, globalYear)}</h2>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Entry Pasien Per Kategori Khusus (Context: {isYanmasumContext ? 'Non-BPJS' : 'BPJS'})</p>
         </div>
         <div className="flex gap-3 no-print">
@@ -187,7 +188,8 @@ const ServiceLog: React.FC<ServiceLogProps> = ({ logs, onLogsChange, doctors, gl
             <div className="p-10 border-b flex justify-between items-center bg-white flex-shrink-0">
                <div>
                   <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{editingId ? 'Edit' : 'Input'} Berkas Pasien</h3>
-                  <p className="text-[10px] font-bold text-blue-600 uppercase">RS Tk.IV Batin Tikal - Periode {globalMonth}/{globalYear}</p>
+                  {/* [F3.6 v2] Item 2: Use formatPeriode untuk Indonesian month name */}
+                  <p className="text-[10px] font-bold text-blue-600 uppercase">RS Tk.IV Batin Tikal - Periode {formatPeriode(globalMonth, globalYear)}</p>
                </div>
                <div className="flex gap-3">
                   <button onClick={handleMinimize} className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all" title="Minimize Form"><Minimize2 size={20} /></button>
