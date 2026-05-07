@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { PatientClaim, Doctor, Employee, BPJSCalcSettings } from '../types';
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
-import { formatIDR, calculatePPH21 } from './Formatters';
+import { formatIDR, calculatePPH21, formatPeriode } from './Formatters';
 import { 
   LayoutList, Download, Search, Users, Landmark, Wallet, Coins, 
   ArrowRightLeft, UserCog, Edit2, Check, Info, FileText, 
@@ -173,7 +173,8 @@ const PayrollSummary: React.FC<PayrollSummaryProps> = ({ logs, doctors, staff, b
           <div className="bg-emerald-600 p-4 rounded-3xl text-white shadow-lg"><LayoutList size={32} /></div>
           <div>
             <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Audit Jasa & Daftar Gaji</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validasi Pencairan Jasa Periode {globalMonth}/{globalYear}</p>
+            {/* [F3.6 v2] Item 2: Use formatPeriode untuk Indonesian month name (e.g., "Mei 2025" instead of "5/2025") */}
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validasi Pencairan Jasa Periode {formatPeriode(globalMonth, globalYear)}</p>
           </div>
         </div>
         <div className="flex gap-4">
