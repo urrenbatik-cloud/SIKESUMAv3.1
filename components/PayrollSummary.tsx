@@ -116,7 +116,10 @@ const PayrollSummary: React.FC<PayrollSummaryProps> = ({ logs, doctors, staff, b
       const gross = tksBase + docTransport + bpjsEarn + yanEarn;
       const defaultTax = p.status === 'TKS' ? 0 : calculatePPH21(gross);
       const tax = taxOverrides[p.id] !== undefined ? taxOverrides[p.id] : defaultTax;
-      const statusKey = `${globalYear}-${globalMonth}-${p.id}`;
+      // [F2.1 v2] Watchpoint v1.0 #6 fix: zero-padded month untuk consistent key + DB lookup
+      // Old: `${globalYear}-${globalMonth}-${p.id}` → '2025-1-dr-001' (inconsistent)
+      // New: zero-padded → '2025-01-dr-001' (sortable, DB-friendly)
+      const statusKey = `${globalYear}-${String(globalMonth).padStart(2, '0')}-${p.id}`;
       const status = payrollStatuses[statusKey] || 'Belum Lunas';
 
       return {
