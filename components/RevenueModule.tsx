@@ -54,7 +54,9 @@ const RevenueModule: React.FC<RevenueModuleProps> = ({
   }, [logs, localFilter]);
 
   const filteredRevenueStats = useMemo(() => {
-    const displayCategories = ['BPJS_DINAS', 'BPJS_UMUM', 'YANMASUM', 'JASA_RAHARJA'];
+    // [F3.6 v2] Item 1: Include semua 5 PatientCategory (was 4 — BPJS_PLUS_JR di-rollup ke BPJS_UMUM).
+    //   Now each kategori dapat card sendiri untuk visibility lebih baik.
+    const displayCategories = ['BPJS_DINAS', 'BPJS_UMUM', 'BPJS_PLUS_JR', 'YANMASUM', 'JASA_RAHARJA'];
     const stats: any = {};
     
     displayCategories.forEach(cat => {
@@ -68,10 +70,8 @@ const RevenueModule: React.FC<RevenueModuleProps> = ({
       if (localFilter.mode === 'MONTHLY') { displayTargetNominal /= 12; displayTargetPasien /= 12; }
       else if (localFilter.mode === 'DAILY') { displayTargetNominal /= 365; displayTargetPasien /= 365; }
 
-      const categoryLogs = temporalLogs.filter(l => {
-        if (cat === 'BPJS_UMUM') return l.kategoriPasien === 'BPJS_UMUM' || l.kategoriPasien === 'BPJS_PLUS_JR';
-        return l.kategoriPasien === cat;
-      });
+      // [F3.6 v2] Item 1: BPJS_PLUS_JR sekarang punya card sendiri, no longer rollup ke BPJS_UMUM
+      const categoryLogs = temporalLogs.filter(l => l.kategoriPasien === cat);
 
       const realization = categoryLogs.reduce((sum, l) => sum + l.nilaiKlaim, 0);
       stats[cat] = { 
@@ -202,8 +202,11 @@ const RevenueModule: React.FC<RevenueModuleProps> = ({
                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-2"><Scale size={16} className="text-blue-500" /> Realisasi PNBP (Sisi Penerimaan)</h3>
                  <div className="space-y-8 flex-1 flex flex-col justify-center">
                     <ProgressWithInfo label="BPJS Dinas" val={filteredRevenueStats.stats.BPJS_DINAS.realization} target={filteredRevenueStats.stats.BPJS_DINAS.targetNominal} color="bg-blue-600" />
-                    <ProgressWithInfo label="BPJS Umum (+Plus JR)" val={filteredRevenueStats.stats.BPJS_UMUM.realization} target={filteredRevenueStats.stats.BPJS_UMUM.targetNominal} color="bg-indigo-600" />
+                    {/* [F3.6 v2] Item 1: BPJS Umum sekarang separate dari BPJS_PLUS_JR (was rolled-up) */}
+                    <ProgressWithInfo label="BPJS Umum" val={filteredRevenueStats.stats.BPJS_UMUM.realization} target={filteredRevenueStats.stats.BPJS_UMUM.targetNominal} color="bg-indigo-600" />
+                    <ProgressWithInfo label="BPJS+JR" val={filteredRevenueStats.stats.BPJS_PLUS_JR.realization} target={filteredRevenueStats.stats.BPJS_PLUS_JR.targetNominal} color="bg-violet-600" />
                     <ProgressWithInfo label="Yanmasum" val={filteredRevenueStats.stats.YANMASUM.realization} target={filteredRevenueStats.stats.YANMASUM.targetNominal} color="bg-emerald-600" />
+                    <ProgressWithInfo label="Jasa Raharja" val={filteredRevenueStats.stats.JASA_RAHARJA.realization} target={filteredRevenueStats.stats.JASA_RAHARJA.targetNominal} color="bg-rose-600" />
                  </div>
               </div>
               <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-xl">
@@ -235,11 +238,15 @@ const RevenueModule: React.FC<RevenueModuleProps> = ({
 
       {activeTabType === TabType.REV_DASHBOARD && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 no-print">
+          {/* [F3.6 v2] Item 1: Sekarang 6 cards (1 Total + 5 PatientCategory). 
+              Responsive grid: 1 col mobile, 3 cols tablet, 6 cols desktop wide. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-6 no-print">
             <RevenueCard title="Realisasi RS" real={filteredRevenueStats.totalReal} target={filteredRevenueStats.totalTarget} icon={<Coins className="text-amber-500" size={24} />} color="amber" />
             <RevenueCard title="BPJS Dinas" real={filteredRevenueStats.stats.BPJS_DINAS.realization} target={filteredRevenueStats.stats.BPJS_DINAS.targetNominal} icon={<ShieldCheck className="text-emerald-500" size={24} />} color="emerald" />
             <RevenueCard title="BPJS Umum" real={filteredRevenueStats.stats.BPJS_UMUM.realization} target={filteredRevenueStats.stats.BPJS_UMUM.targetNominal} icon={<Activity className="text-blue-500" size={24} />} color="blue" />
+            <RevenueCard title="BPJS+JR" real={filteredRevenueStats.stats.BPJS_PLUS_JR.realization} target={filteredRevenueStats.stats.BPJS_PLUS_JR.targetNominal} icon={<ShieldCheck className="text-violet-500" size={24} />} color="violet" />
             <RevenueCard title="Yanmasum" real={filteredRevenueStats.stats.YANMASUM.realization} target={filteredRevenueStats.stats.YANMASUM.targetNominal} icon={<Wallet className="text-indigo-500" size={24} />} color="indigo" />
+            <RevenueCard title="Jasa Raharja" real={filteredRevenueStats.stats.JASA_RAHARJA.realization} target={filteredRevenueStats.stats.JASA_RAHARJA.targetNominal} icon={<Activity className="text-rose-500" size={24} />} color="rose" />
           </div>
           <div className="bg-white rounded-[3rem] shadow-xl border border-slate-200 overflow-hidden">
              <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
@@ -307,8 +314,23 @@ const ProgressWithInfo = ({ label, val, target, color }: any) => {
 
 const RevenueCard = ({ title, real, target, icon, color }: any) => {
   const pct = target > 0 ? (real / target) * 100 : 0;
-  const colors: any = { amber: "bg-amber-50 border-amber-100 text-amber-600", blue: "bg-blue-50 border-blue-100 text-blue-600", emerald: "bg-emerald-50 border-emerald-100 text-emerald-600", indigo: "bg-indigo-50 border-indigo-100 text-indigo-600" };
-  const progressColor: any = { amber: "bg-amber-500", blue: "bg-blue-600", emerald: "bg-emerald-600", indigo: "bg-indigo-600" };
+  // [F3.6 v2] Item 1: Added violet + rose colors untuk BPJS_PLUS_JR + JASA_RAHARJA cards
+  const colors: any = { 
+    amber: "bg-amber-50 border-amber-100 text-amber-600", 
+    blue: "bg-blue-50 border-blue-100 text-blue-600", 
+    emerald: "bg-emerald-50 border-emerald-100 text-emerald-600", 
+    indigo: "bg-indigo-50 border-indigo-100 text-indigo-600",
+    violet: "bg-violet-50 border-violet-100 text-violet-600",
+    rose: "bg-rose-50 border-rose-100 text-rose-600",
+  };
+  const progressColor: any = { 
+    amber: "bg-amber-500", 
+    blue: "bg-blue-600", 
+    emerald: "bg-emerald-600", 
+    indigo: "bg-indigo-600",
+    violet: "bg-violet-600",
+    rose: "bg-rose-600",
+  };
   return (
     <div className={`p-6 rounded-[2.5rem] border-2 shadow-sm ${colors[color]} flex flex-col gap-4 group hover:shadow-md transition-all`}>
       <div className="flex justify-between items-start"><div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100">{icon}</div><div className="text-right"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p><p className="text-lg font-black text-slate-900 font-mono">{pct.toFixed(1)}%</p></div></div>
