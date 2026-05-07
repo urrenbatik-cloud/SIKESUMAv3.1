@@ -32,6 +32,7 @@ import {
 } from './constants';
 import { calculatePatientFees, getEffectiveSettings } from './utils/feeCalculation';
 import { supabase } from './lib/supabase';
+import { ToastContainer, toast } from './components/Toast';
 
 const MainTabButton = ({ active, onClick, label, icon }: any) => (
   <button onClick={onClick} className={`flex items-center gap-3 px-8 py-6 border-b-4 transition-all whitespace-nowrap ${active ? 'border-emerald-500 text-emerald-600 bg-emerald-50/30' : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
@@ -85,115 +86,191 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       setIsSyncing(true);
+
+      // [F2.4 v2] Granular per-entity loading: kalau 1 entity gagal,
+      //   entity lain tetap di-load. Aggregate errors ke toast warning di akhir.
+      const errors: string[] = [];
+      const counts: Record<string, number> = {
+        pagu: 0, bills: 0, claims: 0, doctors: 0, employees: 0,
+        revenue_targets: 0, specialty_targets: 0, payroll_statuses: 0,
+        jasa_verification_files: 0,
+      };
+
+      // [F2.0 v2] PAGU: partition by year via id pattern `pagu-{year}-{slug}`
       try {
-        // [F2.0 v2] PAGU: partition by year via id pattern `pagu-{year}-{slug}`
-        // Falls back to selectedYear bucket untuk legacy ids tanpa year prefix.
-        const { data: pagu } = await supabase.from('pagu_sections').select('*');
+        const { data: pagu, error } = await supabase.from('pagu_sections').select('*');
+        if (error) throw error;
         if (pagu && pagu.length > 0) {
           const fallbackYear = selectedYear === 'ALL' ? 2025 : selectedYear;
           const byYear: Record<number, PaguSection[]> = {};
           pagu.forEach((p: any) => {
+            // [F2.4 v2] Schema drift detection
+            if (!p?.id || typeof p.id !== 'string') {
+              console.warn('⚠️ pagu_sections row missing id, skipped:', p);
+              return;
+            }
             const match = p.id.match(/^pagu-(\d{4})-/);
             const year = match ? parseInt(match[1], 10) : fallbackYear;
             if (!byYear[year]) byYear[year] = [];
             byYear[year].push({
               id: p.id,
               title: p.data?.title || '',
-              rows: p.data?.rows || [],
+              rows: Array.isArray(p.data?.rows) ? p.data.rows : [],
             });
           });
           setDataByYear(byYear);
+          counts.pagu = pagu.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load pagu_sections failed:', err?.message || err);
+        errors.push('pagu_sections');
+      }
 
-        // BILLS: unwrap envelope, preserve id
-        const { data: bills } = await supabase.from('bills').select('*');
+      // BILLS: unwrap envelope, preserve id
+      try {
+        const { data: bills, error } = await supabase.from('bills').select('*');
+        if (error) throw error;
         if (bills && bills.length > 0) {
-          setAllBills(bills.map((b: any) => ({ ...(b.data || {}), id: b.id })));
+          setAllBills(bills.map((b: any) => ({ ...(b?.data || {}), id: b?.id })));
+          counts.bills = bills.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load bills failed:', err?.message || err);
+        errors.push('bills');
+      }
 
-        // PATIENT CLAIMS: unwrap envelope, preserve id
-        const { data: claims } = await supabase.from('patient_claims').select('*');
+      // PATIENT CLAIMS: unwrap envelope, preserve id
+      try {
+        const { data: claims, error } = await supabase.from('patient_claims').select('*');
+        if (error) throw error;
         if (claims && claims.length > 0) {
-          setLogsList(claims.map((c: any) => ({ ...(c.data || {}), id: c.id })));
+          setLogsList(claims.map((c: any) => ({ ...(c?.data || {}), id: c?.id })));
+          counts.claims = claims.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load patient_claims failed:', err?.message || err);
+        errors.push('patient_claims');
+      }
 
-        // DOCTORS: load dari DB (kalau ada). Kalau kosong, keep DUMMY dari constants.
-        const { data: docs } = await supabase.from('doctors').select('*');
+      // DOCTORS: load dari DB (kalau ada). Kalau kosong, keep DUMMY dari constants.
+      try {
+        const { data: docs, error } = await supabase.from('doctors').select('*');
+        if (error) throw error;
         if (docs && docs.length > 0) {
-          setDoctorsList(docs.map((d: any) => ({ ...(d.data || {}), id: d.id })));
+          setDoctorsList(docs.map((d: any) => ({ ...(d?.data || {}), id: d?.id })));
+          counts.doctors = docs.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load doctors failed:', err?.message || err);
+        errors.push('doctors');
+      }
 
-        // EMPLOYEES: same pattern
-        const { data: emps } = await supabase.from('employees').select('*');
+      // EMPLOYEES: same pattern
+      try {
+        const { data: emps, error } = await supabase.from('employees').select('*');
+        if (error) throw error;
         if (emps && emps.length > 0) {
-          setStaffList(emps.map((e: any) => ({ ...(e.data || {}), id: e.id })));
+          setStaffList(emps.map((e: any) => ({ ...(e?.data || {}), id: e?.id })));
+          counts.employees = emps.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load employees failed:', err?.message || err);
+        errors.push('employees');
+      }
 
-        // [F1.1 v2] REVENUE TARGETS: envelope unwrap
-        const { data: rt } = await supabase.from('revenue_targets').select('*');
+      // [F1.1 v2] REVENUE TARGETS: envelope unwrap
+      try {
+        const { data: rt, error } = await supabase.from('revenue_targets').select('*');
+        if (error) throw error;
         if (rt && rt.length > 0) {
-          setRevenueTargets(rt.map((r: any) => ({ ...(r.data || {}), id: r.id })));
+          setRevenueTargets(rt.map((r: any) => ({ ...(r?.data || {}), id: r?.id })));
+          counts.revenue_targets = rt.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load revenue_targets failed:', err?.message || err);
+        errors.push('revenue_targets');
+      }
 
-        // [F1.2 v2] SPECIALTY TARGETS: envelope unwrap
-        const { data: st } = await supabase.from('specialty_targets').select('*');
+      // [F1.2 v2] SPECIALTY TARGETS: envelope unwrap
+      try {
+        const { data: st, error } = await supabase.from('specialty_targets').select('*');
+        if (error) throw error;
         if (st && st.length > 0) {
-          setSpecialtyTargets(st.map((s: any) => ({ ...(s.data || {}), id: s.id })));
+          setSpecialtyTargets(st.map((s: any) => ({ ...(s?.data || {}), id: s?.id })));
+          counts.specialty_targets = st.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load specialty_targets failed:', err?.message || err);
+        errors.push('specialty_targets');
+      }
 
-        // [F2.1 v2] PAYROLL STATUSES: load Record<key, status>
-        // Key pattern: 'YYYY-MM-personId' (zero-padded month — Watchpoint v1.0 #6 fix)
-        const { data: ps } = await supabase.from('payroll_statuses').select('*');
+      // [F2.1 v2] PAYROLL STATUSES: load Record<key, status>
+      try {
+        const { data: ps, error } = await supabase.from('payroll_statuses').select('*');
+        if (error) throw error;
         if (ps && ps.length > 0) {
           const psMap: Record<string, 'Lunas' | 'Belum Lunas'> = {};
           ps.forEach((p: any) => {
-            psMap[p.id] = p.data?.status || 'Belum Lunas';
+            if (p?.id) psMap[p.id] = p.data?.status || 'Belum Lunas';
           });
           setPayrollStatuses(psMap);
+          counts.payroll_statuses = ps.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load payroll_statuses failed:', err?.message || err);
+        errors.push('payroll_statuses');
+      }
 
-        // [F2.2 v2] JASA VERIFICATION FILES: 1 row per period, data = { tks, nakes, pengelola }
-        // ID pattern: 'jvf-YYYY-MM' → strip prefix to get periodKey 'YYYY-MM' (zero-padded)
-        const { data: jvf } = await supabase.from('jasa_verification_files').select('*');
+      // [F2.2 v2] JASA VERIFICATION FILES: 1 row per period
+      try {
+        const { data: jvf, error } = await supabase.from('jasa_verification_files').select('*');
+        if (error) throw error;
         if (jvf && jvf.length > 0) {
           const jvfMap: JasaVerificationFiles = {};
           jvf.forEach((j: any) => {
+            if (!j?.id) return;
             const periodKey = j.id.replace(/^jvf-/, '');
             jvfMap[periodKey] = {
-              tks: j.data?.tks || [],
-              nakes: j.data?.nakes || [],
-              pengelola: j.data?.pengelola || [],
+              tks: Array.isArray(j.data?.tks) ? j.data.tks : [],
+              nakes: Array.isArray(j.data?.nakes) ? j.data.nakes : [],
+              pengelola: Array.isArray(j.data?.pengelola) ? j.data.pengelola : [],
             };
           });
           setJasaVerificationFiles(jvfMap);
+          counts.jasa_verification_files = jvf.length;
         }
+      } catch (err: any) {
+        console.warn('⚠️ Load jasa_verification_files failed:', err?.message || err);
+        errors.push('jasa_verification_files');
+      }
 
-        // SYSTEM SETTINGS: key/value (sudah benar di v3.1 original, tidak diubah)
-        const { data: settings } = await supabase.from('system_settings').select('*');
+      // SYSTEM SETTINGS: key/value
+      try {
+        const { data: settings, error } = await supabase.from('system_settings').select('*');
+        if (error) throw error;
         if (settings) {
           settings.forEach((s: any) => {
-            if (s.key === 'jasa_map') setJasaAccountMap(s.value);
-            if (s.key === 'bpjs_history') setBpjsSettingsHistory(s.value);
-            if (s.key === 'pagu_lock') setIsPaguLocked(s.value);
+            if (!s?.key) return;
+            if (s.key === 'jasa_map' && s.value) setJasaAccountMap(s.value);
+            if (s.key === 'bpjs_history' && s.value) setBpjsSettingsHistory(s.value);
+            if (s.key === 'pagu_lock' && typeof s.value === 'boolean') setIsPaguLocked(s.value);
           });
         }
-        setLastSync(new Date().toLocaleTimeString());
-        console.log('✅ Data loaded from Supabase:', {
-          pagu: pagu?.length || 0,
-          bills: bills?.length || 0,
-          claims: claims?.length || 0,
-          doctors: docs?.length || 0,
-          employees: emps?.length || 0,
-          revenue_targets: rt?.length || 0,
-          specialty_targets: st?.length || 0,
-          payroll_statuses: ps?.length || 0,
-          jasa_verification_files: jvf?.length || 0,
-        });
-      } catch (err) {
-        console.error("❌ Gagal memuat data dari database:", err);
-      } finally {
-        setIsSyncing(false);
+      } catch (err: any) {
+        console.warn('⚠️ Load system_settings failed:', err?.message || err);
+        errors.push('system_settings');
       }
+
+      setLastSync(new Date().toLocaleTimeString());
+      console.log('✅ Data loaded from Supabase:', counts);
+
+      // [F2.4 v2] Toast feedback: warning kalau ada partial failures
+      if (errors.length > 0) {
+        toast.warning(`Beberapa data gagal dimuat: ${errors.join(', ')}. Lihat console untuk detail.`, 6000);
+      }
+      // Note: tidak ada toast.success di load — too noisy on every refresh.
+
+      setIsSyncing(false);
     };
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -203,9 +280,12 @@ const App: React.FC = () => {
   // Pattern: untuk setiap row, pisahkan id dari business fields → upsert {id, data: rest}
   const syncToCloud = async () => {
     setIsSyncing(true);
+    // [F2.4 v2] Track which entity di-process untuk specific error context di toast
+    let currentEntity = '';
     try {
       // [F2.0 v2] PAGU: save SEMUA tahun dari dataByYear (bukan cuma current selected).
       // ID pattern: pagu-{year}-{slug}. Legacy 'sec-*' ids akan di-prefix dengan year.
+      currentEntity = 'pagu_sections';
       const allSections: { id: string; data: any }[] = [];
       Object.entries(dataByYear).forEach(([yearStr, sections]) => {
         const year = parseInt(yearStr, 10);
@@ -224,6 +304,7 @@ const App: React.FC = () => {
       }
 
       // BILLS: envelope upsert
+      currentEntity = 'bills';
       if (allBills.length > 0) {
         const billsPayload = allBills.map(b => {
           const { id, ...rest } = b;
@@ -234,6 +315,7 @@ const App: React.FC = () => {
       }
 
       // PATIENT CLAIMS: envelope upsert
+      currentEntity = 'patient_claims';
       if (logsList.length > 0) {
         const claimsPayload = logsList.map(c => {
           const { id, ...rest } = c;
@@ -244,6 +326,7 @@ const App: React.FC = () => {
       }
 
       // DOCTORS: envelope upsert
+      currentEntity = 'doctors';
       if (doctorsList.length > 0) {
         const doctorsPayload = doctorsList.map(d => {
           const { id, ...rest } = d;
@@ -254,6 +337,7 @@ const App: React.FC = () => {
       }
 
       // EMPLOYEES: envelope upsert
+      currentEntity = 'employees';
       if (staffList.length > 0) {
         const staffPayload = staffList.map(e => {
           const { id, ...rest } = e;
@@ -264,6 +348,7 @@ const App: React.FC = () => {
       }
 
       // [F1.1 v2] REVENUE TARGETS: envelope upsert
+      currentEntity = 'revenue_targets';
       if (revenueTargets.length > 0) {
         const rtPayload = revenueTargets.map(r => {
           const { id, ...rest } = r;
@@ -274,6 +359,7 @@ const App: React.FC = () => {
       }
 
       // [F1.2 v2] SPECIALTY TARGETS: envelope upsert
+      currentEntity = 'specialty_targets';
       if (specialtyTargets.length > 0) {
         const stPayload = specialtyTargets.map(s => {
           const { id, ...rest } = s;
@@ -285,6 +371,7 @@ const App: React.FC = () => {
 
       // [F2.1 v2] PAYROLL STATUSES: upsert Record<key, status>
       // Key sudah zero-padded format dari PayrollSummary.tsx via normalizeKey helper.
+      currentEntity = 'payroll_statuses';
       const psEntries = Object.entries(payrollStatuses);
       if (psEntries.length > 0) {
         const psPayload = psEntries.map(([key, status]) => ({
@@ -300,6 +387,7 @@ const App: React.FC = () => {
       // Note: actual file binary di Supabase Storage bucket 'jasa-verification'.
       // Tabel ini hanya simpan metadata (id, namaFile, tipe, size, url).
       // [F2.2 v2.1] Skip empty periods (semua 3 categories empty) untuk prevent ghost rows.
+      currentEntity = 'jasa_verification_files';
       const jvfEntries = Object.entries(jasaVerificationFiles).filter(([_, files]) => 
         (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) > 0
       );
@@ -312,7 +400,6 @@ const App: React.FC = () => {
         if (jvfErr) throw jvfErr;
       }
       // [F2.2 v2.1] Cleanup ghost rows: DELETE periods yang sekarang empty di state
-      //   (e.g., user delete semua files di periode tertentu → row di-cleanup)
       const emptyPeriodKeys = Object.entries(jasaVerificationFiles)
         .filter(([_, files]) => 
           (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) === 0
@@ -326,15 +413,23 @@ const App: React.FC = () => {
         if (jvfDelErr) console.warn('⚠️ jvf empty cleanup warning:', jvfDelErr);
       }
 
-      // SYSTEM SETTINGS: key-value (tidak diubah)
+      // SYSTEM SETTINGS: key-value
+      currentEntity = 'system_settings (jasa_map)';
       await supabase.from('system_settings').upsert({ key: 'jasa_map', value: jasaAccountMap });
+      currentEntity = 'system_settings (bpjs_history)';
       await supabase.from('system_settings').upsert({ key: 'bpjs_history', value: bpjsSettingsHistory });
+      currentEntity = 'system_settings (pagu_lock)';
       await supabase.from('system_settings').upsert({ key: 'pagu_lock', value: isPaguLocked });
       
       setLastSync(new Date().toLocaleTimeString());
       console.log('✅ Sync to Supabase berhasil');
-    } catch (err) {
-      console.error("❌ Gagal sinkronisasi ke cloud:", err);
+      // [F2.4 v2] Replace silent success → user-visible toast
+      toast.success('✅ Sinkronisasi ke cloud berhasil');
+    } catch (err: any) {
+      const errMsg = err?.message || 'Unknown error';
+      console.error(`❌ Gagal sinkronisasi ke cloud (entity: ${currentEntity}):`, err);
+      // [F2.4 v2] Toast error dengan specific entity context
+      toast.error(`Sync gagal di ${currentEntity}: ${errMsg}`, 6000);
     } finally {
       setIsSyncing(false);
     }
@@ -443,6 +538,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col overflow-hidden">
+      {/* [F2.4 v2] Toast UI — render once at root, listens for toast.* calls anywhere in app */}
+      <ToastContainer />
       <header className="bg-slate-900 border-b border-slate-800 h-24 flex-shrink-0 z-50 shadow-2xl no-print">
         <div className="max-w-[98%] mx-auto px-6 h-full flex justify-between items-center">
           <div className="flex items-center gap-6">
