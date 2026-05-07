@@ -152,6 +152,22 @@ const App: React.FC = () => {
           setPayrollStatuses(psMap);
         }
 
+        // [F2.2 v2] JASA VERIFICATION FILES: 1 row per period, data = { tks, nakes, pengelola }
+        // ID pattern: 'jvf-YYYY-MM' → strip prefix to get periodKey 'YYYY-MM' (zero-padded)
+        const { data: jvf } = await supabase.from('jasa_verification_files').select('*');
+        if (jvf && jvf.length > 0) {
+          const jvfMap: JasaVerificationFiles = {};
+          jvf.forEach((j: any) => {
+            const periodKey = j.id.replace(/^jvf-/, '');
+            jvfMap[periodKey] = {
+              tks: j.data?.tks || [],
+              nakes: j.data?.nakes || [],
+              pengelola: j.data?.pengelola || [],
+            };
+          });
+          setJasaVerificationFiles(jvfMap);
+        }
+
         // SYSTEM SETTINGS: key/value (sudah benar di v3.1 original, tidak diubah)
         const { data: settings } = await supabase.from('system_settings').select('*');
         if (settings) {
@@ -171,6 +187,7 @@ const App: React.FC = () => {
           revenue_targets: rt?.length || 0,
           specialty_targets: st?.length || 0,
           payroll_statuses: ps?.length || 0,
+          jasa_verification_files: jvf?.length || 0,
         });
       } catch (err) {
         console.error("❌ Gagal memuat data dari database:", err);
@@ -276,6 +293,20 @@ const App: React.FC = () => {
         }));
         const { error: psErr } = await supabase.from('payroll_statuses').upsert(psPayload);
         if (psErr) throw psErr;
+      }
+
+      // [F2.2 v2] JASA VERIFICATION FILES: 1 row per period.
+      // ID pattern: 'jvf-YYYY-MM' (zero-padded). Data = { tks: ProcurementFile[], nakes: ..., pengelola: ... }
+      // Note: actual file binary di Supabase Storage bucket 'jasa-verification'.
+      // Tabel ini hanya simpan metadata (id, namaFile, tipe, size, url).
+      const jvfEntries = Object.entries(jasaVerificationFiles);
+      if (jvfEntries.length > 0) {
+        const jvfPayload = jvfEntries.map(([periodKey, files]) => ({
+          id: `jvf-${periodKey}`,
+          data: files
+        }));
+        const { error: jvfErr } = await supabase.from('jasa_verification_files').upsert(jvfPayload);
+        if (jvfErr) throw jvfErr;
       }
 
       // SYSTEM SETTINGS: key-value (tidak diubah)
