@@ -301,7 +301,8 @@ const PayrollSummary: React.FC<PayrollSummaryProps> = ({ logs, doctors, staff, b
                      <p className="text-[12px] font-black uppercase tracking-tight">RUMAH SAKIT TK.IV 02.07.03 BATIN TIKAL</p>
                      <p className="text-[10px] font-bold uppercase text-slate-500">Jl. Batin Tikal No. 10, Bangka Belitung</p>
                      <p className="text-[14px] font-black uppercase mt-4 underline decoration-2">SLIP GAJI JASA PELAYANAN</p>
-                     <p className="text-[10px] font-bold">PERIODE: {globalMonth}/{globalYear}</p>
+                     {/* [F3.6 v2] Item 2: SlipGaji modal periode juga pakai formatPeriode */}
+                     <p className="text-[10px] font-bold">PERIODE: {formatPeriode(globalMonth, globalYear)}</p>
                   </div>
 
                   <div className="grid grid-cols-2 text-[10px] mb-6 gap-y-1">
