@@ -299,7 +299,10 @@ const App: React.FC = () => {
       // ID pattern: 'jvf-YYYY-MM' (zero-padded). Data = { tks: ProcurementFile[], nakes: ..., pengelola: ... }
       // Note: actual file binary di Supabase Storage bucket 'jasa-verification'.
       // Tabel ini hanya simpan metadata (id, namaFile, tipe, size, url).
-      const jvfEntries = Object.entries(jasaVerificationFiles);
+      // [F2.2 v2.1] Skip empty periods (semua 3 categories empty) untuk prevent ghost rows.
+      const jvfEntries = Object.entries(jasaVerificationFiles).filter(([_, files]) => 
+        (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) > 0
+      );
       if (jvfEntries.length > 0) {
         const jvfPayload = jvfEntries.map(([periodKey, files]) => ({
           id: `jvf-${periodKey}`,
@@ -307,6 +310,20 @@ const App: React.FC = () => {
         }));
         const { error: jvfErr } = await supabase.from('jasa_verification_files').upsert(jvfPayload);
         if (jvfErr) throw jvfErr;
+      }
+      // [F2.2 v2.1] Cleanup ghost rows: DELETE periods yang sekarang empty di state
+      //   (e.g., user delete semua files di periode tertentu → row di-cleanup)
+      const emptyPeriodKeys = Object.entries(jasaVerificationFiles)
+        .filter(([_, files]) => 
+          (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) === 0
+        )
+        .map(([periodKey]) => `jvf-${periodKey}`);
+      if (emptyPeriodKeys.length > 0) {
+        const { error: jvfDelErr } = await supabase
+          .from('jasa_verification_files')
+          .delete()
+          .in('id', emptyPeriodKeys);
+        if (jvfDelErr) console.warn('⚠️ jvf empty cleanup warning:', jvfDelErr);
       }
 
       // SYSTEM SETTINGS: key-value (tidak diubah)
