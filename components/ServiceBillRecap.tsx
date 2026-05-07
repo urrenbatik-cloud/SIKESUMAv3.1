@@ -3,10 +3,17 @@ import React, { useMemo, useState } from 'react';
 import { PatientClaim, BPJSCalcSettings, Doctor, Employee, JasaVerificationFiles, ProcurementFile } from '../types';
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
 import { formatIDR } from './Formatters';
+import { supabase } from '../lib/supabase';
 import { 
   Receipt, ArrowRight, Printer, Download, Info, CheckCircle2, Wallet, Coins, UserCog, Tags, 
-  Upload, FileText, Trash2, File, Eye, Settings, ChevronDown 
+  Upload, FileText, Trash2, File, Eye, Settings, ChevronDown, Loader2 
 } from 'lucide-react';
+
+// [F2.2 v2] Storage constants — must match F2_2_STORAGE_SETUP.sql config
+const STORAGE_BUCKET = 'jasa-verification';
+const ALLOWED_MIME = ['application/pdf', 'image/png', 'image/jpeg'];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE_MB = 10;
 
 interface ServiceBillRecapProps {
   logs: PatientClaim[];
@@ -27,8 +34,11 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
   jasaAccountMap, onJasaAccountMapChange
 }) => {
   const [showAccountSettings, setShowAccountSettings] = useState(false);
-  const periodKey = `${globalYear}-${globalMonth}`;
+  // [F2.2 v2] Watchpoint v1.0 #6 #2 fix: zero-padded periodKey (Mei 2025 → '2025-05' not '2025-5')
+  const periodKey = `${globalYear}-${String(globalMonth).padStart(2, '0')}`;
   const currentFiles = jasaVerificationFiles[periodKey] || { tks: [], nakes: [], pengelola: [] };
+  // [F2.2 v2] Upload state untuk loading indicator per category
+  const [uploadingFor, setUploadingFor] = useState<'tks' | 'nakes' | 'pengelola' | null>(null);
 
   const recapData = useMemo(() => {
     const periodLogs = logs.filter(l => l.tahun === globalYear && l.bulan === globalMonth && l.status === 'Verifikasi');
@@ -46,32 +56,111 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
     return total;
   }, [logs, bpjsSettingsHistory, globalMonth, globalYear, doctors, staff]);
 
-  const handleFileUpload = (category: 'tks' | 'nakes' | 'pengelola', e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles: ProcurementFile[] = (Array.from(e.target.files) as File[]).map(f => ({
-        id: `jasa-file-${Date.now()}-${Math.random()}`,
-        namaFile: f.name,
-        tipe: f.type,
-        size: (f.size / 1024).toFixed(1) + ' KB',
-        url: URL.createObjectURL(f)
-      }));
-      onJasaVerificationFilesChange({
-        ...jasaVerificationFiles,
-        [periodKey]: {
-          ...currentFiles,
-          [category]: [...(currentFiles[category] || []), ...newFiles]
+  // [F2.2 v2] Refactor: upload ke Supabase Storage bucket 'jasa-verification' (was URL.createObjectURL blob)
+  // Folder structure: {periodKey}/{category}/{fileId}-{safeFilename}
+  const handleFileUpload = async (category: 'tks' | 'nakes' | 'pengelola', e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const filesToUpload = Array.from(e.target.files) as File[];
+
+    // [F2.2 v2] Client-side validation (size + MIME) sebelum upload
+    for (const f of filesToUpload) {
+      if (!ALLOWED_MIME.includes(f.type)) {
+        alert(`File "${f.name}" ditolak: tipe ${f.type || 'unknown'} tidak didukung.\n\nHanya PDF, PNG, JPEG yang dibolehkan.`);
+        e.target.value = '';
+        return;
+      }
+      if (f.size > MAX_FILE_SIZE_BYTES) {
+        alert(`File "${f.name}" ditolak: ukuran ${(f.size / 1024 / 1024).toFixed(2)} MB melebihi batas ${MAX_FILE_SIZE_MB} MB.`);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    setUploadingFor(category);
+    try {
+      const newFiles: ProcurementFile[] = [];
+      for (const f of filesToUpload) {
+        const fileId = `jasa-file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        // Sanitize filename: keep only alphanumeric, dot, dash, underscore
+        const safeFilename = f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storagePath = `${periodKey}/${category}/${fileId}-${safeFilename}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, f, {
+            contentType: f.type,
+            upsert: false,
+          });
+
+        if (uploadErr) {
+          console.error('❌ Upload gagal:', uploadErr);
+          alert(`Upload "${f.name}" gagal: ${uploadErr.message}`);
+          continue;
         }
-      });
+
+        // Get public URL (bucket is public, no signed URL needed for Phase 2)
+        const { data: urlData } = supabase.storage
+          .from(STORAGE_BUCKET)
+          .getPublicUrl(storagePath);
+
+        newFiles.push({
+          id: fileId,
+          namaFile: f.name,
+          tipe: f.type,
+          size: (f.size / 1024).toFixed(1) + ' KB',
+          url: urlData.publicUrl,
+        });
+      }
+
+      if (newFiles.length > 0) {
+        onJasaVerificationFilesChange({
+          ...jasaVerificationFiles,
+          [periodKey]: {
+            ...currentFiles,
+            [category]: [...(currentFiles[category] || []), ...newFiles],
+          },
+        });
+        console.log(`✅ ${newFiles.length} file(s) uploaded to Storage`, { periodKey, category });
+      }
+    } catch (err: any) {
+      console.error('❌ Upload exception:', err);
+      alert(`Upload gagal: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setUploadingFor(null);
+      e.target.value = ''; // reset input untuk allow re-upload same filename
     }
   };
 
-  const deleteFile = (category: 'tks' | 'nakes' | 'pengelola', fileId: string) => {
+  // [F2.2 v2] Delete dari Storage bucket + state
+  // URL pattern: https://{project}.supabase.co/storage/v1/object/public/jasa-verification/{path}
+  const deleteFile = async (category: 'tks' | 'nakes' | 'pengelola', fileId: string) => {
+    const file = (currentFiles[category] || []).find(f => f.id === fileId);
+    if (!file) return;
+
+    // Try delete from Storage bucket (best-effort — proceed dengan state update kalau gagal)
+    if (file.url) {
+      const marker = `/${STORAGE_BUCKET}/`;
+      const idx = file.url.indexOf(marker);
+      if (idx !== -1) {
+        const storagePath = decodeURIComponent(file.url.substring(idx + marker.length));
+        const { error: removeErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .remove([storagePath]);
+        if (removeErr) {
+          console.warn('⚠️ Storage delete failed (proceeding dengan state update):', removeErr);
+        } else {
+          console.log('✅ File deleted from Storage:', storagePath);
+        }
+      }
+    }
+
+    // Update state regardless (consistent UX even kalau Storage delete fails)
     onJasaVerificationFilesChange({
       ...jasaVerificationFiles,
       [periodKey]: {
         ...currentFiles,
-        [category]: (currentFiles[category] || []).filter(f => f.id !== fileId)
-      }
+        [category]: (currentFiles[category] || []).filter(f => f.id !== fileId),
+      },
     });
   };
 
@@ -120,15 +209,15 @@ const ServiceBillRecap: React.FC<ServiceBillRecapProps> = ({
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="space-y-4">
                 <RecapCard title="Honor Tenaga Lepas (TKS)" desc="Gaji Pokok Flat Seluruh Pegawai TKS" value={recapData.tksFlat} icon={<Wallet size={28} />} color="slate" account={jasaAccountMap.tks} />
-                <FileUploadSection category="tks" files={currentFiles.tks} onUpload={(e) => handleFileUpload('tks', e)} onDelete={(id) => deleteFile('tks', id)} />
+                <FileUploadSection category="tks" files={currentFiles.tks} onUpload={(e: any) => handleFileUpload('tks', e)} onDelete={(id: any) => deleteFile('tks', id)} isUploading={uploadingFor === 'tks'} />
               </div>
               <div className="space-y-4">
                 <RecapCard title="Honor Tenaga Kesehatan" desc="Transport Dokter + Jasa Medis" value={recapData.jasaNakes} icon={<Coins size={28} />} color="blue" account={jasaAccountMap.nakes} />
-                <FileUploadSection category="nakes" files={currentFiles.nakes} onUpload={(e) => handleFileUpload('nakes', e)} onDelete={(id) => deleteFile('nakes', id)} />
+                <FileUploadSection category="nakes" files={currentFiles.nakes} onUpload={(e: any) => handleFileUpload('nakes', e)} onDelete={(id: any) => deleteFile('nakes', id)} isUploading={uploadingFor === 'nakes'} />
               </div>
               <div className="space-y-4">
                 <RecapCard title="Honor Pengelola" desc="Manajemen, Casemix, & Tim Verifikasi" value={recapData.jasaPengelola} icon={<UserCog size={28} />} color="emerald" account={jasaAccountMap.pengelola} />
-                <FileUploadSection category="pengelola" files={currentFiles.pengelola} onUpload={(e) => handleFileUpload('pengelola', e)} onDelete={(id) => deleteFile('pengelola', id)} />
+                <FileUploadSection category="pengelola" files={currentFiles.pengelola} onUpload={(e: any) => handleFileUpload('pengelola', e)} onDelete={(id: any) => deleteFile('pengelola', id)} isUploading={uploadingFor === 'pengelola'} />
               </div>
            </div>
 
@@ -161,14 +250,21 @@ const AccountInput = ({ label, value, onChange }: any) => (
   </div>
 );
 
-const FileUploadSection = ({ category, files, onUpload, onDelete }: any) => (
+const FileUploadSection = ({ category, files, onUpload, onDelete, isUploading }: any) => (
   <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-6 space-y-4 no-print">
      <div className="flex justify-between items-center px-1">
         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Berkas Verifikasi</span>
-        <label className="cursor-pointer p-2 bg-white rounded-xl text-blue-600 shadow-sm border border-blue-50 hover:bg-blue-50 transition-all">
-           <Upload size={14}/>
-           <input type="file" multiple onChange={onUpload} className="hidden" />
-        </label>
+        {isUploading ? (
+          <div className="p-2 bg-blue-50 rounded-xl text-blue-600 shadow-sm border border-blue-100 flex items-center gap-1">
+            <Loader2 size={14} className="animate-spin"/>
+            <span className="text-[8px] font-black uppercase tracking-widest">Uploading...</span>
+          </div>
+        ) : (
+          <label className="cursor-pointer p-2 bg-white rounded-xl text-blue-600 shadow-sm border border-blue-50 hover:bg-blue-50 transition-all">
+             <Upload size={14}/>
+             <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={onUpload} className="hidden" />
+          </label>
+        )}
      </div>
      <div className="space-y-2 max-h-[160px] overflow-y-auto scrollbar-hide">
         {files.length > 0 ? files.map((f: any) => (
