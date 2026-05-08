@@ -275,6 +275,158 @@ export const ROADMAP: RoadmapItem[] = [
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
+  // STEP 5 — DECISION SUPPORT MODULE (8-9 Mei 2026)
+  // ════════════════════════════════════════════════════════════════════════
+
+  {
+    id:    'log-2026-05-09-phase-5-4-deviation-dashboard',
+    date:  '2026-05-09',
+    phase: 'Step 5 / Phase 5.4',
+    title: 'Phase 5.4 — Deviation Dashboard LIVE (Pure SVG Charts)',
+    type:  'feature',
+    author: 'AI Assistant Session B',
+    description:
+`Deviation Dashboard shipped sebagai sub-tab baru "4.2 Deviasi & Tinjauan" di Tab 4 (Pelaporan & LRA). Sie Renbang sekarang bisa visualisasi deviasi RPD vs Realisasi per kategori per bulan dengan color-coding by reasoning category.
+
+**2 Pure SVG Charts (0 KB external deps):**
+- Stacked Bar Chart: 4 kategori stacked per bulan, bar height = realisasi, dashed overlay = RPD plan. Warna hybrid — reasoning category color kalau ada audit entry, fallback muted category base color.
+- Line Chart: 4 lines (% deviasi per kategori), zero-line prominent, positive = overspend, negative = underspend.
+
+**Drill-down modal** (click bar/point): header + realisasi breakdown per bill + RPD plan + reasoning context dari audit entries terkait.
+
+**Sub-tab navigation** di Tab 4: types.ts +2 SubTab enum (LAPORAN_LRA, DEVIASI_TINJAUAN). App.tsx handleMainTabChange default ke LAPORAN_LRA, handleSubTabChange routes both to FINANCIAL_HEALTH. Sub-tab button bar conditionally rendered.
+
+**Pure compute utility** \`utils/deviationMetrics.ts\` (381 LOC): computeDeviationMetrics, buildCategoryCodeMap, aggregateBillsByMonth, extractRpdMonthly, matchAuditToDeviation, pickDominantCategory.
+
+**Build:** 979 KB bundle (+23 KB vs Phase 5.3 baseline, +2.4%). 0 new TS errors.`,
+    files: [
+      'components/DeviationDashboard.tsx (NEW, 851 LOC)',
+      'utils/deviationMetrics.ts (NEW, 381 LOC)',
+      'App.tsx (+42 LOC: import, subtab nav, conditional render)',
+      'types.ts (+3 LOC: SubTab.LAPORAN_LRA, SubTab.DEVIASI_TINJAUAN)',
+    ],
+    decisions: [
+      '§S5.4-D1 A: Sub-tab di Tab 4 (Pelaporan & LRA)',
+      '§S5.4-D2 A: Pure SVG (no recharts/chart.js — 0 KB bundle impact)',
+      '§S5.4-D3: Stacked Bar + Line Chart combo',
+      '§S5.4-D4: 4-section drill-down modal',
+      '§S5.4-D5 A: Year filter respect main app dropdown',
+      '§S5.4-D6 A: Hybrid color coding (reasoning category + fallback muted)',
+      '§S5.4-D7: 3-file deliverable (dashboard + metrics + App.tsx patches)',
+    ],
+    related: ['log-2026-05-09-phase-5-3-tinjauan-audit', 'log-2026-05-08-phase-5-2-dummy-2024'],
+  },
+
+  {
+    id:    'log-2026-05-09-phase-5-3-tinjauan-audit',
+    date:  '2026-05-09',
+    phase: 'Step 5 / Phase 5.3',
+    title: 'Phase 5.3 — Tinjauan Audit UI LIVE (Review + Reasoning Editor)',
+    type:  'feature',
+    author: 'AI Assistant Session B',
+    description:
+`Tinjauan Audit UI shipped. Sie Renbang sekarang bisa klik row audit_log → modal terbuka dengan form: reasoning (min 10 chars), kategori (6 opsi), dynamicsFactor (opsional), reviewerNotes (opsional, internal-only).
+
+**Visual indicators:** Status column dengan colored dot (amber=unreviewed, emerald=reviewed). Inline reasoning badge + dynamicsFactor preview saat reviewed. 3 summary chips clickable untuk filter shortcut (🟡 Belum / 🟢 Direview / 📊 Total).
+
+**Semantic split:** reasoning = external-facing (laporan BPK/Karumkit), reviewerNotes = internal Sie Renbang commentary (audit-of-audit). Modal UI menampilkan 2 section terpisah: "📝 Penjelasan Publik" dan "🔒 Catatan Internal".
+
+**Validation gate:** Tombol "Simpan Tinjauan" disabled sampai reasoning ≥10 chars + kategori dipilih. Un-review allowed dengan 2-step confirm dialog (reasoning preserved, review metadata cleared).
+
+**Tab rename:** "Riwayat Aktivitas" → "Tinjauan Audit". Default filter Status="Belum Direview" untuk drives backfill workflow.
+
+**Smoke test 7/7 PASS** against 32 entries 2024 (16 reviewed + 15 unreviewed + 2 extra from recent activity).`,
+    files: [
+      'components/AuditEntryEditModal.tsx (NEW, 422 LOC)',
+      'components/AuditLogViewer.tsx (+203 LOC: chips, filters, status column, modal trigger)',
+      'components/SettingsModule.tsx (+1 LOC: tab label rename)',
+      'constants/audit.ts (+49 LOC: REASONING_MIN_LENGTH, isReasoningValid, getCategoryBadgeClasses)',
+      'lib/audit.ts (+78 LOC: markAuditEntryUnreviewed, getCurrentReviewer signature)',
+    ],
+    decisions: [
+      '§S5.3-D1 A: Extend AuditLogViewer (re-use scaffolding)',
+      '§S5.3-D2 A+B: Status column dot + clickable summary chips combined',
+      '§S5.3-D3 A: Modal-based edit (mobile-friendly)',
+      '§S5.3-D4: +reviewerNotes 7th field — semantic split public vs internal',
+      '§S5.3-D5: State-only filter (URL hash deferred)',
+      '§S5.3-D6: AuditEntryEditModal child component factored out',
+      '§S5.3-T1 A: Validation reasoning ≥10 + category required',
+      '§S5.3-T2 A: Un-review with confirm, reasoning preserved',
+      '§S5.3-T5 A: Default filter "Belum Direview" — backfill workflow',
+    ],
+    related: ['log-2026-05-08-phase-5-2-dummy-2024', 'log-2026-05-08-phase-5-1-reasoning-foundation'],
+  },
+
+  {
+    id:    'log-2026-05-08-phase-5-2-dummy-2024',
+    date:  '2026-05-08',
+    phase: 'Step 5 / Phase 5.2',
+    title: 'Phase 5.2 — 2024 Dummy Data Generation SEALED (4 Scenarios, 90 Records)',
+    type:  'schema',
+    author: 'AI Assistant Session B',
+    description:
+`2024 dummy data seeded via SQL bulk INSERT ke Supabase SQL Editor. 4 skenario realistis untuk RS Tk.IV Batin Tikal:
+
+**Q1 Normal** (Jan-Mar): Semua pos ~RPD, deviasi <5%. Bekkes 63.5M→67M→70M. 0 audit entries reviewed.
+**Q2 Wabah DBD** (Apr-Jun): Bekkes spike +42%→+72%→+27%. 8/10 audit entries reviewed, category kebutuhan_darurat.
+**Q3 Inflasi** (Jul-Sep): Semua pos gradual +10-15%. Bekkes 75M→78M→80M. 5/8 reviewed, category harga_pasar.
+**Q4 Underspend** (Oct-Dec): Bekkes supplier delay, descending 35M→25M→15M. 3/6 reviewed, category lainnya.
+
+**Budget:** Total Pagu Rp 4.0 Miliar (Pegawai 2M + Bekkes 800jt + Lainnya 400jt + Pemeliharaan 800jt).
+**Records:** 4 pagu + 4 RAB + 4 RPD + 48 bills + 30 audit = 90 total. All idempotent (ON CONFLICT DO NOTHING).
+**Reasoning split:** 16 reviewed (53%) / 14 unreviewed — sesuai "Mixed 60%" strategy target.
+
+**POST-SEED verification §7a-§7g: 7/7 PASS.** Bekkes trajectory confirmed: Normal→Spike→Inflasi→Underspend.
+**App smoke test: PASS** — switch ke tahun 2024, 4 pagu categories tampil, total Rp 4.0 Miliar.
+
+Companion cleanup SQL tersedia untuk re-generate atau switch ke real 2024 data.`,
+    files: [
+      'PHASE_5_2_PLAN.md (plan document — project knowledge)',
+      'phase_5_2_seed_2024_scenarios.sql (executed via Supabase SQL Editor)',
+      'phase_5_2_cleanup_2024.sql (companion cleanup)',
+    ],
+    decisions: [
+      '§D-5.2-1 A: SQL bulk INSERT script (pragmatic, replayable)',
+      '§D-5.2-2: ~150 records scope (actual: 90 records)',
+      '§D-5.2-3: Mixed 60% reviewed strategy (actual: 53%)',
+      '§D-5.2-4: Cleanup SQL companion script',
+      '§D-5.2-5: 3 deliverables (plan + seed + cleanup)',
+    ],
+    related: ['log-2026-05-08-phase-5-1-reasoning-foundation'],
+  },
+
+  {
+    id:    'log-2026-05-08-phase-5-1-reasoning-foundation',
+    date:  '2026-05-08',
+    phase: 'Step 5 / Phase 5.1',
+    title: 'Phase 5.1 — Reasoning Capture Foundation SEALED (Schema + 6 Helpers)',
+    type:  'feature',
+    author: 'AI Assistant Session B',
+    description:
+`Reasoning capture foundation shipped. audit_log sekarang support 7 additional fields untuk midterm pagu revision workflow:
+
+**6+1 Fields:** reasoning (WHY), reasoningCategory (6 taxonomy tags), dynamicsFactor (external factor), isReviewed/reviewedAt/reviewedBy (review tracking), reviewerNotes (internal commentary, added Phase 5.3).
+
+**6 Initial Categories:** kebutuhan_darurat (red), pertumbuhan_pasien (blue), perubahan_kebijakan (purple), harga_pasar (amber), salah_input (gray), lainnya (gray). Extensible via system_settings key 'reasoning_categories'.
+
+**5 Helpers:** markAuditEntryReviewed (merge+persist), markAuditEntryUnreviewed (reset review, keep reasoning), getCurrentReviewer (from Komunikasi localStorage, fallback "Sie Renbang"), fetchReasoningCategories (from DB, fallback INITIAL), getReasoningCategoryMeta (label+color lookup).
+
+**Backward compat:** Existing entries pre-5.1 punya new fields = undefined (no migration needed, JSONB flexible). New entries created with fields = null, populated via Phase 5.3 Tinjauan Audit UI.
+
+**Verified:** 13 audit_log keys confirmed intact (7 baseline + 6 S5.1). isReviewed stored as boolean string per design.`,
+    files: [
+      'lib/audit.ts (+178 LOC: AuditEntryData extension, 4 helpers)',
+      'constants/audit.ts (+80 LOC: INITIAL_REASONING_CATEGORIES, getReasoningCategoryMeta, ReasoningCategory type)',
+    ],
+    decisions: [
+      '§D-5.1-1: Reasoning fields embedded in data JSONB (not separate table)',
+      '§D-5.1-2: 6 initial categories, extensible via system_settings',
+      '§D-5.1-3: UI placement defer to Phase 5.3 (Opsi C)',
+    ],
+    related: ['log-2026-05-08-b1-launch'],
+  },
+
+  // ════════════════════════════════════════════════════════════════════════
   // SESSION B B.1 — S3.3 RAB+RPD PERSIST + S3.6 PROFIL RS EDITABLE (8 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
 
