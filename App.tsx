@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, ShoppingBag, Box, FileText,
   ShieldCheck, Layers, Calendar, Coins, HeartPulse, ShoppingCart, 
@@ -32,6 +32,14 @@ import {
 } from './constants';
 import { calculatePatientFees, getEffectiveSettings } from './utils/feeCalculation';
 import { supabase } from './lib/supabase';
+// [S3.2] Audit log foundation — sync-time logging via diff helpers
+import {
+  diffCollectionForAudit,
+  diffObjectForAudit,
+  logAuditEntries,
+  type AuditEntryInput,
+  type ItemWithId,
+} from './lib/audit';
 import { ToastContainer, toast } from './components/Toast';
 
 const MainTabButton = ({ active, onClick, label, icon }: any) => (
@@ -85,6 +93,48 @@ const App: React.FC = () => {
   const [specialtyTargets, setSpecialtyTargets] = useState<SpecialtyTarget[]>(DUMMY_SPECIALTY_TARGETS);
 
   // ==========================================================================
+  // [S3.2] AUDIT LOG — sync-time prevSnapshot baseline (Decision §F #9)
+  // ==========================================================================
+  // useRef (bukan useState): hindari re-render saat update; single source of
+  // truth untuk diff baseline. Populated:
+  //   - di akhir loadData (DB → state hydration baseline)
+  //   - per-entity setelah successful upsert di syncToCloud (next-cycle baseline)
+  //
+  // Shape mirror state shape, kecuali:
+  //   - `pagu` di-flatten dari Record<year, PaguSection[]> ke flat PaguSection[]
+  //     (id pattern `pagu-{year}-{slug}` sudah unique cross-year, jadi flat OK)
+  //   - `payrollStatuses` dan `jasaFiles` di-convert dari Record ke array of
+  //     ItemWithId untuk diffCollectionForAudit compatibility
+  // ==========================================================================
+  const prevSnapshotRef = useRef<{
+    pagu:               PaguSection[];
+    bills:              Bill[];
+    claims:             PatientClaim[];
+    doctors:            Doctor[];
+    employees:          Employee[];
+    revenueTargets:     RevenueTarget[];
+    specialtyTargets:   SpecialtyTarget[];
+    payrollStatuses:    Array<{ id: string; status: string }>;
+    jasaFiles:          Array<{ id: string; tks: unknown[]; nakes: unknown[]; pengelola: unknown[] }>;
+    bpjsHistory:        Record<string, BPJSCalcSettings>;
+    jasaMap:            Record<string, string>;
+    paguLock:           { locked: boolean };
+  }>({
+    pagu:             [],
+    bills:            [],
+    claims:           [],
+    doctors:          [],
+    employees:        [],
+    revenueTargets:   [],
+    specialtyTargets: [],
+    payrollStatuses:  [],
+    jasaFiles:        [],
+    bpjsHistory:      {},
+    jasaMap:          { tks: '', nakes: '', pengelola: '' },
+    paguLock:         { locked: false },
+  });
+
+  // ==========================================================================
   // SYNC LOGIC — Supabase (Backend Pipeline)
   // ==========================================================================
   // Schema convention: SEMUA 9 tabel transactional pakai pure envelope JSONB:
@@ -136,6 +186,25 @@ const App: React.FC = () => {
         jasa_verification_files: 0,
       };
 
+      // [S3.2] Snapshot accumulators — di-populate per entity success branch,
+      //   lalu di-write ke prevSnapshotRef.current di akhir loadData (sebagai
+      //   diff baseline untuk syncToCloud Decision §F #9 sync-time logging).
+      //   Initialized ke CURRENT STATE (bisa DUMMY) supaya kalau DB empty,
+      //   snapshot tidak kosong dan diff cycle benar saat user pertama kali
+      //   edit + sync (tidak emit "DUMMY ditambahkan" sebagai bulk_create palsu).
+      let snapshotPagu:             PaguSection[]                          = (Object.values(dataByYear) as PaguSection[][]).flat();
+      let snapshotBills:            Bill[]                                 = allBills;
+      let snapshotClaims:           PatientClaim[]                         = logsList;
+      let snapshotDoctors:          Doctor[]                               = doctorsList;
+      let snapshotEmployees:        Employee[]                             = staffList;
+      let snapshotRevenueTargets:   RevenueTarget[]                        = revenueTargets;
+      let snapshotSpecialtyTargets: SpecialtyTarget[]                      = specialtyTargets;
+      let snapshotPayrollStatuses:  Array<{ id: string; status: string }>  = (Object.entries(payrollStatuses) as Array<[string, string]>).map(([id, status]) => ({ id, status }));
+      let snapshotJasaFiles:        Array<{ id: string; tks: unknown[]; nakes: unknown[]; pengelola: unknown[] }> = Object.entries(jasaVerificationFiles).map(([id, f]) => { const ff = (f ?? {}) as { tks?: unknown[]; nakes?: unknown[]; pengelola?: unknown[] }; return { id, tks: ff.tks ?? [], nakes: ff.nakes ?? [], pengelola: ff.pengelola ?? [] }; });
+      let snapshotBpjsHistory:      Record<string, BPJSCalcSettings>       = bpjsSettingsHistory;
+      let snapshotJasaMap:          Record<string, string>                 = jasaAccountMap;
+      let snapshotPaguLock:         { locked: boolean }                    = { locked: isPaguLocked };
+
       // [F2.0 v2] PAGU: partition by year via id pattern `pagu-{year}-{slug}`
       try {
         const { data: pagu, error } = await supabase.from('pagu_sections').select('*');
@@ -160,6 +229,8 @@ const App: React.FC = () => {
           });
           setDataByYear(byYear);
           counts.pagu = pagu.length;
+          // [S3.2] Capture snapshot — flatten cross-year (id sudah unique)
+          snapshotPagu = Object.values(byYear).flat();
         }
       } catch (err: any) {
         console.warn('⚠️ Load pagu_sections failed:', err?.message || err);
@@ -171,8 +242,10 @@ const App: React.FC = () => {
         const { data: bills, error } = await supabase.from('bills').select('*');
         if (error) throw error;
         if (bills && bills.length > 0) {
-          setAllBills(bills.map((b: any) => ({ ...(b?.data || {}), id: b?.id })));
+          const unwrapped: Bill[] = bills.map((b: any) => ({ ...(b?.data || {}), id: b?.id }));
+          setAllBills(unwrapped);
           counts.bills = bills.length;
+          snapshotBills = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load bills failed:', err?.message || err);
@@ -184,8 +257,10 @@ const App: React.FC = () => {
         const { data: claims, error } = await supabase.from('patient_claims').select('*');
         if (error) throw error;
         if (claims && claims.length > 0) {
-          setLogsList(claims.map((c: any) => ({ ...(c?.data || {}), id: c?.id })));
+          const unwrapped: PatientClaim[] = claims.map((c: any) => ({ ...(c?.data || {}), id: c?.id }));
+          setLogsList(unwrapped);
           counts.claims = claims.length;
+          snapshotClaims = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load patient_claims failed:', err?.message || err);
@@ -197,8 +272,10 @@ const App: React.FC = () => {
         const { data: docs, error } = await supabase.from('doctors').select('*');
         if (error) throw error;
         if (docs && docs.length > 0) {
-          setDoctorsList(docs.map((d: any) => ({ ...(d?.data || {}), id: d?.id })));
+          const unwrapped: Doctor[] = docs.map((d: any) => ({ ...(d?.data || {}), id: d?.id }));
+          setDoctorsList(unwrapped);
           counts.doctors = docs.length;
+          snapshotDoctors = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load doctors failed:', err?.message || err);
@@ -210,8 +287,10 @@ const App: React.FC = () => {
         const { data: emps, error } = await supabase.from('employees').select('*');
         if (error) throw error;
         if (emps && emps.length > 0) {
-          setStaffList(emps.map((e: any) => ({ ...(e?.data || {}), id: e?.id })));
+          const unwrapped: Employee[] = emps.map((e: any) => ({ ...(e?.data || {}), id: e?.id }));
+          setStaffList(unwrapped);
           counts.employees = emps.length;
+          snapshotEmployees = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load employees failed:', err?.message || err);
@@ -223,8 +302,10 @@ const App: React.FC = () => {
         const { data: rt, error } = await supabase.from('revenue_targets').select('*');
         if (error) throw error;
         if (rt && rt.length > 0) {
-          setRevenueTargets(rt.map((r: any) => ({ ...(r?.data || {}), id: r?.id })));
+          const unwrapped: RevenueTarget[] = rt.map((r: any) => ({ ...(r?.data || {}), id: r?.id }));
+          setRevenueTargets(unwrapped);
           counts.revenue_targets = rt.length;
+          snapshotRevenueTargets = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load revenue_targets failed:', err?.message || err);
@@ -236,8 +317,10 @@ const App: React.FC = () => {
         const { data: st, error } = await supabase.from('specialty_targets').select('*');
         if (error) throw error;
         if (st && st.length > 0) {
-          setSpecialtyTargets(st.map((s: any) => ({ ...(s?.data || {}), id: s?.id })));
+          const unwrapped: SpecialtyTarget[] = st.map((s: any) => ({ ...(s?.data || {}), id: s?.id }));
+          setSpecialtyTargets(unwrapped);
           counts.specialty_targets = st.length;
+          snapshotSpecialtyTargets = unwrapped; // [S3.2]
         }
       } catch (err: any) {
         console.warn('⚠️ Load specialty_targets failed:', err?.message || err);
@@ -255,6 +338,8 @@ const App: React.FC = () => {
           });
           setPayrollStatuses(psMap);
           counts.payroll_statuses = ps.length;
+          // [S3.2] Convert Record → Array<ItemWithId> untuk diff compatibility
+          snapshotPayrollStatuses = Object.entries(psMap).map(([id, status]) => ({ id, status }));
         }
       } catch (err: any) {
         console.warn('⚠️ Load payroll_statuses failed:', err?.message || err);
@@ -278,6 +363,8 @@ const App: React.FC = () => {
           });
           setJasaVerificationFiles(jvfMap);
           counts.jasa_verification_files = jvf.length;
+          // [S3.2] Convert Record → Array<ItemWithId> untuk diff compatibility
+          snapshotJasaFiles = Object.entries(jvfMap).map(([id, f]) => ({ id, tks: f.tks, nakes: f.nakes, pengelola: f.pengelola }));
         }
       } catch (err: any) {
         console.warn('⚠️ Load jasa_verification_files failed:', err?.message || err);
@@ -291,9 +378,18 @@ const App: React.FC = () => {
         if (settings) {
           settings.forEach((s: any) => {
             if (!s?.key) return;
-            if (s.key === 'jasa_map' && s.value) setJasaAccountMap(s.value);
-            if (s.key === 'bpjs_history' && s.value) setBpjsSettingsHistory(s.value);
-            if (s.key === 'pagu_lock' && typeof s.value === 'boolean') setIsPaguLocked(s.value);
+            if (s.key === 'jasa_map' && s.value) {
+              setJasaAccountMap(s.value);
+              snapshotJasaMap = s.value; // [S3.2]
+            }
+            if (s.key === 'bpjs_history' && s.value) {
+              setBpjsSettingsHistory(s.value);
+              snapshotBpjsHistory = s.value; // [S3.2]
+            }
+            if (s.key === 'pagu_lock' && typeof s.value === 'boolean') {
+              setIsPaguLocked(s.value);
+              snapshotPaguLock = { locked: s.value }; // [S3.2]
+            }
           });
         }
       } catch (err: any) {
@@ -309,6 +405,24 @@ const App: React.FC = () => {
         toast.warning(`Beberapa data gagal dimuat: ${errors.join(', ')}. Lihat console untuk detail.`, 6000);
       }
       // Note: tidak ada toast.success di load — too noisy on every refresh.
+
+      // [S3.2] Capture snapshot baseline untuk diff cycle next syncToCloud.
+      // Per-entity yang gagal load akan keep current-state value (DUMMY atau
+      // last-known-good) — diff cycle benar saat user akhirnya re-edit.
+      prevSnapshotRef.current = {
+        pagu:             snapshotPagu,
+        bills:            snapshotBills,
+        claims:           snapshotClaims,
+        doctors:          snapshotDoctors,
+        employees:        snapshotEmployees,
+        revenueTargets:   snapshotRevenueTargets,
+        specialtyTargets: snapshotSpecialtyTargets,
+        payrollStatuses:  snapshotPayrollStatuses,
+        jasaFiles:        snapshotJasaFiles,
+        bpjsHistory:      snapshotBpjsHistory,
+        jasaMap:          snapshotJasaMap,
+        paguLock:         snapshotPaguLock,
+      };
 
       setIsSyncing(false);
     };
@@ -347,6 +461,12 @@ const App: React.FC = () => {
     setIsSyncing(true);
     // [F2.4 v2] Track which entity di-process untuk specific error context di toast
     let currentEntity = '';
+    // [S3.2] Buffer audit entries from per-entity diff calls; flushed di
+    //   finally block sebagai single bulk insert (Decision §F #9 sync-time
+    //   logging, single roundtrip per syncToCloud call). Kalau syncToCloud
+    //   gagal di tengah, audit untuk entity yang sudah commit tetap di-flush
+    //   (best-effort fidelity dengan DB state aktual).
+    const auditBuffer: AuditEntryInput[] = [];
     try {
       // [F2.0 v2] PAGU: save SEMUA tahun dari dataByYear (bukan cuma current selected).
       // ID pattern: pagu-{year}-{slug}. Legacy 'sec-*' ids akan di-prefix dengan year.
@@ -366,6 +486,13 @@ const App: React.FC = () => {
       if (allSections.length > 0) {
         const { error: paguErr } = await supabase.from('pagu_sections').upsert(allSections);
         if (paguErr) throw paguErr;
+        // [S3.2] Audit emit — diff dari last snapshot ke current flat state
+        const paguFlat: PaguSection[] = (Object.values(dataByYear) as PaguSection[][]).flat();
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.pagu, paguFlat, 'section',
+          (s) => 'Pagu ' + (s.title || s.id),
+        ));
+        prevSnapshotRef.current.pagu = paguFlat;
       }
 
       // BILLS: envelope upsert
@@ -377,6 +504,12 @@ const App: React.FC = () => {
         });
         const { error: billsErr } = await supabase.from('bills').upsert(billsPayload);
         if (billsErr) throw billsErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.bills, allBills, 'bill',
+          (b) => 'Tagihan ' + ((b as any).label || (b as any).description || (b as any).id),
+        ));
+        prevSnapshotRef.current.bills = allBills;
       }
 
       // PATIENT CLAIMS: envelope upsert
@@ -388,6 +521,12 @@ const App: React.FC = () => {
         });
         const { error: claimsErr } = await supabase.from('patient_claims').upsert(claimsPayload);
         if (claimsErr) throw claimsErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.claims, logsList, 'claim',
+          (c) => 'Klaim ' + ((c as any).noKlaim || (c as any).namaPasien || (c as any).id),
+        ));
+        prevSnapshotRef.current.claims = logsList;
       }
 
       // DOCTORS: envelope upsert
@@ -399,6 +538,12 @@ const App: React.FC = () => {
         });
         const { error: docsErr } = await supabase.from('doctors').upsert(doctorsPayload);
         if (docsErr) throw docsErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.doctors, doctorsList, 'doctor',
+          (d) => 'Dr. ' + ((d as any).nama || (d as any).id),
+        ));
+        prevSnapshotRef.current.doctors = doctorsList;
       }
 
       // EMPLOYEES: envelope upsert
@@ -410,6 +555,12 @@ const App: React.FC = () => {
         });
         const { error: empsErr } = await supabase.from('employees').upsert(staffPayload);
         if (empsErr) throw empsErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.employees, staffList, 'employee',
+          (e) => 'Staf ' + ((e as any).nama || (e as any).id),
+        ));
+        prevSnapshotRef.current.employees = staffList;
       }
 
       // [F1.1 v2] REVENUE TARGETS: envelope upsert
@@ -421,6 +572,12 @@ const App: React.FC = () => {
         });
         const { error: rtErr } = await supabase.from('revenue_targets').upsert(rtPayload);
         if (rtErr) throw rtErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.revenueTargets, revenueTargets, 'revenueTarget',
+          (r) => 'Target ' + ((r as any).label || (r as any).id),
+        ));
+        prevSnapshotRef.current.revenueTargets = revenueTargets;
       }
 
       // [F1.2 v2] SPECIALTY TARGETS: envelope upsert
@@ -432,6 +589,12 @@ const App: React.FC = () => {
         });
         const { error: stErr } = await supabase.from('specialty_targets').upsert(stPayload);
         if (stErr) throw stErr;
+        // [S3.2] Audit emit
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.specialtyTargets, specialtyTargets, 'specialtyTarget',
+          (s) => 'Target Spes. ' + ((s as any).specialty || (s as any).id),
+        ));
+        prevSnapshotRef.current.specialtyTargets = specialtyTargets;
       }
 
       // [F2.1 v2] PAYROLL STATUSES: upsert Record<key, status>
@@ -445,6 +608,13 @@ const App: React.FC = () => {
         }));
         const { error: psErr } = await supabase.from('payroll_statuses').upsert(psPayload);
         if (psErr) throw psErr;
+        // [S3.2] Audit emit — convert Record → Array<ItemWithId> untuk diffCollectionForAudit
+        const psArray: ItemWithId[] = psEntries.map(([id, status]) => ({ id, status }));
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.payrollStatuses, psArray, 'payrollStatus',
+          (p) => 'Status ' + p.id,
+        ));
+        prevSnapshotRef.current.payrollStatuses = psArray as Array<{ id: string; status: string }>;
       }
 
       // [F2.2 v2] JASA VERIFICATION FILES: 1 row per period.
@@ -477,14 +647,48 @@ const App: React.FC = () => {
           .in('id', emptyPeriodKeys);
         if (jvfDelErr) console.warn('⚠️ jvf empty cleanup warning:', jvfDelErr);
       }
+      // [S3.2] Audit emit — current state filtered to non-empty (matches what
+      //   actually exists in DB pasca-upsert + ghost-cleanup).
+      const jvfArrayForAudit = jvfEntries.map(([periodKey, files]) => {
+        const ff = (files ?? {}) as { tks?: unknown[]; nakes?: unknown[]; pengelola?: unknown[] };
+        return {
+          id:        periodKey,
+          tks:       ff.tks ?? [],
+          nakes:     ff.nakes ?? [],
+          pengelola: ff.pengelola ?? [],
+        };
+      });
+      auditBuffer.push(...diffCollectionForAudit(
+        prevSnapshotRef.current.jasaFiles, jvfArrayForAudit, 'jasaFile',
+        (j) => 'File Jasa periode ' + j.id,
+      ));
+      prevSnapshotRef.current.jasaFiles = jvfArrayForAudit;
 
       // SYSTEM SETTINGS: key-value
       currentEntity = 'system_settings (jasa_map)';
       await supabase.from('system_settings').upsert({ key: 'jasa_map', value: jasaAccountMap });
+      // [S3.2] Audit emit — diffObjectForAudit (single config object)
+      auditBuffer.push(...diffObjectForAudit(
+        prevSnapshotRef.current.jasaMap, jasaAccountMap, 'jasaConfig',
+      ));
+      prevSnapshotRef.current.jasaMap = jasaAccountMap;
+
       currentEntity = 'system_settings (bpjs_history)';
       await supabase.from('system_settings').upsert({ key: 'bpjs_history', value: bpjsSettingsHistory });
+      // [S3.2] Audit emit
+      auditBuffer.push(...diffObjectForAudit(
+        prevSnapshotRef.current.bpjsHistory, bpjsSettingsHistory, 'bpjsConfig',
+      ));
+      prevSnapshotRef.current.bpjsHistory = bpjsSettingsHistory;
+
       currentEntity = 'system_settings (pagu_lock)';
       await supabase.from('system_settings').upsert({ key: 'pagu_lock', value: isPaguLocked });
+      // [S3.2] Audit emit — wrap boolean dalam object untuk diffObjectForAudit compatibility
+      const paguLockNext = { locked: isPaguLocked };
+      auditBuffer.push(...diffObjectForAudit(
+        prevSnapshotRef.current.paguLock, paguLockNext, 'paguLock',
+      ));
+      prevSnapshotRef.current.paguLock = paguLockNext;
       
       setLastSync(new Date().toLocaleTimeString());
       console.log('✅ Sync to Supabase berhasil');
@@ -496,6 +700,13 @@ const App: React.FC = () => {
       // [F2.4 v2] Toast error dengan specific entity context
       toast.error(`Sync gagal di ${currentEntity}: ${errMsg}`, 6000);
     } finally {
+      // [S3.2] Best-effort audit flush. Errors di logAuditEntries di-swallow
+      //   internal (return 0), tidak akan throw — aman di finally walau sync
+      //   gagal di tengah. Decision §F #8: silent (no toast spam) — audit
+      //   sukses tidak emit toast karena terlalu noisy untuk per-CRUD events.
+      if (auditBuffer.length > 0) {
+        await logAuditEntries(auditBuffer);
+      }
       setIsSyncing(false);
     }
   };
