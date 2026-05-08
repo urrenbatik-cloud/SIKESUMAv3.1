@@ -158,6 +158,8 @@ const App: React.FC = () => {
     bpjsHistory:        Record<string, BPJSCalcSettings>;
     jasaMap:            Record<string, string>;
     paguLock:           { locked: boolean };
+    rabs:               RABCategory[];
+    rpds:               RPDSection[];
   }>({
     pagu:             [],
     bills:            [],
@@ -171,6 +173,8 @@ const App: React.FC = () => {
     bpjsHistory:      {},
     jasaMap:          { tks: '', nakes: '', pengelola: '' },
     paguLock:         { locked: false },
+    rabs:             [],
+    rpds:             [],
   });
 
   // ==========================================================================
@@ -243,6 +247,8 @@ const App: React.FC = () => {
       let snapshotBpjsHistory:      Record<string, BPJSCalcSettings>       = bpjsSettingsHistory;
       let snapshotJasaMap:          Record<string, string>                 = jasaAccountMap;
       let snapshotPaguLock:         { locked: boolean }                    = { locked: isPaguLocked };
+      let snapshotRabs:             RABCategory[]                          = rabCategories;
+      let snapshotRpds:             RPDSection[]                           = rpdSections;
 
       // [F2.0 v2] PAGU: partition by year via id pattern `pagu-{year}-{slug}`
       try {
@@ -274,6 +280,51 @@ const App: React.FC = () => {
       } catch (err: any) {
         console.warn('⚠️ Load pagu_sections failed:', err?.message || err);
         errors.push('pagu_sections');
+      }
+
+      // [S3.3] RABS: envelope unwrap. ID pattern `rab-{linkedPaguSectionId}` = `rab-pagu-{year}-{slug}` (year-implicit via FK).
+      // RABCategory shape: {id, title, showNarrative, viewMode, linkedPaguSectionId, narrative, items}.
+      try {
+        const { data: rabs, error } = await supabase.from('rabs').select('*');
+        if (error) throw error;
+        if (rabs && rabs.length > 0) {
+          const unwrapped: RABCategory[] = rabs.map((r: any) => ({
+            id:                  r?.id ?? '',
+            title:               r?.data?.title ?? '',
+            showNarrative:       r?.data?.showNarrative ?? false,
+            viewMode:            r?.data?.viewMode ?? 'SEMUA',
+            linkedPaguSectionId: r?.data?.linkedPaguSectionId ?? '',
+            narrative:           r?.data?.narrative ?? {} as any,
+            items:               Array.isArray(r?.data?.items) ? r.data.items : [],
+          }));
+          setRabCategories(unwrapped);
+          counts.rabs = rabs.length;
+          snapshotRabs = unwrapped; // [S3.3]
+        }
+      } catch (err: any) {
+        console.warn('⚠️ Load rabs failed:', err?.message || err);
+        errors.push('rabs');
+      }
+
+      // [S3.3] RPDS: envelope unwrap. ID pattern `rpd-{linkedSectionId}` = `rpd-pagu-{year}-{slug}`.
+      // RPDSection shape: {id, title, linkedSectionId, rows[]}. monthly defaults handled at render time.
+      try {
+        const { data: rpds, error } = await supabase.from('rpds').select('*');
+        if (error) throw error;
+        if (rpds && rpds.length > 0) {
+          const unwrapped: RPDSection[] = rpds.map((r: any) => ({
+            id:               r?.id ?? '',
+            title:            r?.data?.title ?? '',
+            linkedSectionId:  r?.data?.linkedSectionId ?? '',
+            rows:             Array.isArray(r?.data?.rows) ? r.data.rows : [],
+          }));
+          setRpdSections(unwrapped);
+          counts.rpds = rpds.length;
+          snapshotRpds = unwrapped; // [S3.3]
+        }
+      } catch (err: any) {
+        console.warn('⚠️ Load rpds failed:', err?.message || err);
+        errors.push('rpds');
       }
 
       // BILLS: unwrap envelope, preserve id
@@ -461,6 +512,8 @@ const App: React.FC = () => {
         bpjsHistory:      snapshotBpjsHistory,
         jasaMap:          snapshotJasaMap,
         paguLock:         snapshotPaguLock,
+        rabs:             snapshotRabs,
+        rpds:             snapshotRpds,
       };
 
       setIsSyncing(false);
@@ -532,6 +585,40 @@ const App: React.FC = () => {
           (s) => 'Pagu ' + (s.title || s.id),
         ));
         prevSnapshotRef.current.pagu = paguFlat;
+      }
+
+      // [S3.3] RABS: envelope upsert. ID native dari INITIAL_RAB_CATEGORIES = `rab-{linkedPaguSectionId}` (year-implicit).
+      currentEntity = 'rabs';
+      if (rabCategories.length > 0) {
+        const rabsPayload = rabCategories.map(r => {
+          const { id, ...rest } = r;
+          return { id, data: rest };
+        });
+        const { error: rabsErr } = await supabase.from('rabs').upsert(rabsPayload);
+        if (rabsErr) throw rabsErr;
+        // [S3.3] Audit emit — D-S3.3-4: title primary, FK fallback
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.rabs, rabCategories, 'rab',
+          (c) => 'RAB ' + ((c as any).title || (c as any).linkedPaguSectionId || (c as any).id),
+        ));
+        prevSnapshotRef.current.rabs = rabCategories;
+      }
+
+      // [S3.3] RPDS: envelope upsert. ID native = `rpd-{linkedSectionId}` (year-implicit via pagu FK).
+      currentEntity = 'rpds';
+      if (rpdSections.length > 0) {
+        const rpdsPayload = rpdSections.map(r => {
+          const { id, ...rest } = r;
+          return { id, data: rest };
+        });
+        const { error: rpdsErr } = await supabase.from('rpds').upsert(rpdsPayload);
+        if (rpdsErr) throw rpdsErr;
+        // [S3.3] Audit emit — D-S3.3-4: title primary, FK fallback
+        auditBuffer.push(...diffCollectionForAudit(
+          prevSnapshotRef.current.rpds, rpdSections, 'rpd',
+          (s) => 'RPD ' + ((s as any).title || (s as any).linkedSectionId || (s as any).id),
+        ));
+        prevSnapshotRef.current.rpds = rpdSections;
       }
 
       // BILLS: envelope upsert
