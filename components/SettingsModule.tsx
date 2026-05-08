@@ -36,7 +36,7 @@ interface TabSpec {
 }
 
 const TABS: TabSpec[] = [
-  { id: 'audit',       label: 'Riwayat Aktivitas',  icon: <ClipboardList size={18} />, status: 'live' },
+  { id: 'audit',       label: 'Tinjauan Audit',  icon: <ClipboardList size={18} />, status: 'live' },
   { id: 'devlog',      label: 'Riwayat Pengembangan', icon: <BookOpen size={18} />,    status: 'live' },
   { id: 'komunikasi',  label: 'Komunikasi & Diskusi', icon: <MessageSquare size={18} />, status: 'live' },
   { id: 'profil_rs',   label: 'Profil RS',          icon: <Building2 size={18} />,    status: 'live' },
