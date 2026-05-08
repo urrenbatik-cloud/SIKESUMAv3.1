@@ -3,7 +3,7 @@
 **Sistem Informasi Keuangan & Manajemen Rumah Sakit** — aplikasi web operasional untuk Rumah Sakit Tingkat IV 02.07.03 Batin Tikal (TNI AD), dikelola oleh Sie Renbang.
 
 **Live:** [https://sikesumav31.vercel.app](https://sikesumav31.vercel.app)
-**Version:** v3.1 (Step 3 Session A complete + Komunikasi feature live)
+**Version:** v3.1 (Step 5 Phase 5.4 Deviation Dashboard live + Step 3 Session B.1 complete)
 **Tech Stack:** React 19 + Vite + TypeScript + Supabase + Vercel
 
 ---
@@ -284,29 +284,33 @@ Schema changes via Supabase SQL Editor. Convention:
 
 ```
 SIKESUMAv3.1/
-├── App.tsx                            # Root component + state + sync logic (~1000 lines)
+├── App.tsx                            # Root component + state + sync logic (~1100 lines)
 ├── components/
-│   ├── AuditLogViewer.tsx             # Audit log inspector (filter + pagination + detail modal)
+│   ├── AuditEntryEditModal.tsx        # [S5.3] Modal edit reasoning + review status (422 LOC)
+│   ├── AuditLogViewer.tsx             # Tinjauan Audit (filter + chips + status column + modal trigger)
 │   ├── BPJSModule.tsx                 # Tab BPJS (claims + settings) + S3.0 reconcile wrapper
 │   ├── BpjsSettingsForm.tsx           # Time-versioned BPJS fee settings
+│   ├── DeviationDashboard.tsx         # [S5.4] Pure SVG charts RPD vs Realisasi (851 LOC)
 │   ├── DevLogViewer.tsx               # Riwayat Pengembangan (devlog timeline + ROADMAP)
 │   ├── PaguAnggaran.tsx               # Pagu editor (multi-year)
 │   ├── PayrollSummary.tsx             # Daftar Gaji + payroll status
 │   ├── PhaseDiscussionsModule.tsx     # Komunikasi & Diskusi (10 roles, threading, attachments)
+│   ├── RsProfileEditor.tsx            # [S3.6] Profil RS editable (11 fields, self-contained)
 │   ├── ServiceBillRecap.tsx           # Rekapitulasi tagihan jasa + file upload
 │   ├── SettingsModule.tsx             # Settings overlay (6 tabs, gear icon entry)
 │   ├── Toast.tsx                      # Toast UI (imperative API)
-│   └── ...                            # 13 modul lain (RAB, RPD, Revenue, dll)
+│   └── ...                            # 12 modul lain (RAB, RPD, Revenue, dll)
 ├── constants/
-│   ├── audit.ts                       # AUDIT_ENTITIES (25) + AUDIT_ACTIONS (10) taxonomy
+│   ├── audit.ts                       # AUDIT_ENTITIES (25) + AUDIT_ACTIONS (10) + [S5.1] reasoning categories
 │   ├── devLog.ts                      # DEV_LOG_ENTRIES + ROADMAP + DevLogAuthor types
 │   └── komunikasi.ts                  # ROLE_REGISTRY (10) + Komunikasi types + helpers
 ├── constants.tsx                      # DUMMY data + initial state values
 ├── lib/
-│   ├── audit.ts                       # logAuditEntries + diffCollectionForAudit + diffObjectForAudit
+│   ├── audit.ts                       # logAuditEntries + diffCollectionForAudit + [S5.1] reasoning helpers
 │   └── supabase.ts                    # Supabase client + envelope JSONB helpers
 ├── utils/
 │   ├── csvHelper.ts                   # CSV parsing/export
+│   ├── deviationMetrics.ts            # [S5.4] Pure compute: RPD vs Realisasi deviation (381 LOC)
 │   └── feeCalculation.ts              # BPJS fee logic (5 scenarios)
 ├── types.ts                           # TypeScript interfaces
 ├── PHASE_3_HARDENING_BACKLOG.md       # Phase 3 backlog (P3.1-P3.6 security/audit/scale)
@@ -323,13 +327,14 @@ SIKESUMAv3.1/
 - [`HANDOVER.md`](./HANDOVER.md) — Quick handoff brief untuk new contributors
 - [`SIKESUMA-AUDIT-HANDOVER-v1_4.md`](./SIKESUMA-AUDIT-HANDOVER-v1_4.md) — Comprehensive handover doc (Step 2 era)
 - [`STEP2_COMPLETION_ROADMAP_v3_1_v2.md`](./STEP2_COMPLETION_ROADMAP_v3_1_v2.md) — Step 2 completion roadmap
+- [`STEP5_DECISION_SUPPORT_LOG.md`](./STEP5_DECISION_SUPPORT_LOG.md) — Step 5 development log (Phase 5.1–5.4 decisions + verification)
 - [`PHASE_3_HARDENING_BACKLOG.md`](./PHASE_3_HARDENING_BACKLOG.md) — Phase 3 backlog (P3.1-P3.6 hardening)
 - [`PATCHES_SUMMARY_KOMUNIKASI.md`](./PATCHES_SUMMARY_KOMUNIKASI.md) — Komunikasi feature completion summary
 
 ### Live Documentation (di production app)
 
 - **Settings → Riwayat Pengembangan** — `constants/devLog.ts` `DEV_LOG_ENTRIES` rendered as timeline + `ROADMAP` rendered as priority-grouped backlog
-- **Settings → Riwayat Aktivitas** — `audit_log` table rendered with filter UI
+- **Settings → Tinjauan Audit** — `audit_log` table rendered with filter, status chips, reasoning editor modal (Phase 5.3)
 
 ---
 
@@ -340,10 +345,16 @@ SIKESUMAv3.1/
 | Phase 1 | ✅ Complete | v3.1 baseline + Vite scaffold |
 | Phase 2 (Step 1) | ✅ Complete | Schema audit + RLS setup |
 | Phase 2 (Step 2 v2) | ✅ Complete | 4 sequences (consolidate + multi-year + file storage + validation rigor) |
-| **Step 3 / Session A** | ✅ **Complete** | **Audit log foundation hanya** (S3.0/S3.1/S3.2.1/S3.2.2/S3.2.3) — schema + lib + UI inspector + S3.0 architectural fix. **Step 3 secara keseluruhan ~50% selesai**; business persistence wires (S3.3-S3.6) masih pending Session B. |
-| **Step 3 / Komunikasi** | ✅ **Complete** | Komunikasi & Diskusi feature (post-Session A insert) — 2 tables, 1 storage bucket, single-file MVP component, Settings tab integration |
-| **Step 3 / Session B** | 🔜 Pending | S3.3 RAB+RPD persist + S3.4 Kuitansi + S3.5 PNBP + S3.6 Profil RS (~14-19 jam estimate) |
-| Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention, Komunikasi auth migration. Scope: **TD-1..7** (DoctorData/StaffData refactor, TS errors cleanup, multi-user auth, audit viewer enhancements, retention) + **TD-13..17** (Komunikasi-specific: real auth, email notif, realtime, storage monitoring, per-discussion unread) + **P3.1-P3.6** (deeper hardening tracks di [`PHASE_3_HARDENING_BACKLOG.md`](./PHASE_3_HARDENING_BACKLOG.md)). Total ~25-35 jam. |
+| **Step 3 / Session A** | ✅ **Complete** | Audit log foundation (S3.0/S3.1/S3.2) — schema + lib + UI inspector + S3.0 architectural fix |
+| **Step 3 / Komunikasi** | ✅ **Complete** | Komunikasi & Diskusi feature — 2 tables, 1 storage bucket, 10-role threading |
+| **Step 3 / Session B.1** | ✅ **Complete** | S3.3 RAB+RPD persist + S3.6 Profil RS editable (11 fields) |
+| **Step 3 / Session B.2+** | 🔜 Pending | S3.4 Kuitansi + S3.5 PNBP Setoran (~10-14 jam estimate) |
+| **Step 5 / Phase 5.1** | ✅ **Complete** | Reasoning Capture Foundation — 7 fields + 5 helpers di lib/audit.ts |
+| **Step 5 / Phase 5.2** | ✅ **Complete** | 2024 Dummy Data — 4 scenarios, 90 records, mixed 53% reviewed |
+| **Step 5 / Phase 5.3** | ✅ **Complete** | Tinjauan Audit UI — modal editor + summary chips + status filter |
+| **Step 5 / Phase 5.4** | ✅ **Complete** | Deviation Dashboard — pure SVG stacked bar + line chart + drill-down modal |
+| **Step 5 / Phase 5.5-5.6** | 🔜 Pending | Early Warning Engine + Revision Proposal Generator (~7-9 jam) |
+| Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention. Total ~25-35 jam. |
 | Step 4 | 🔜 Future | Multi-RS template deploy |
 
 ---
@@ -378,6 +389,18 @@ SIKESUMAv3.1/
 - **§Komunikasi-D4 Selective audit:** Hanya discussion lifecycle (create/close/archive) + file upload yang masuk audit_log. Routine text messages tidak di-audit (privacy + storage hygiene). Direct inline `logAuditEntries([entry])` call (different dari Session A diff-based pattern).
 - **§Komunikasi-D5 Visual unread badge:** Red dot + count di gear icon header. Global granularity per device (per-discussion = TD-17).
 - **§Komunikasi-D6 Placement:** New tab di SettingsModule (position 3, antara Riwayat Pengembangan dan Profil RS).
+
+### Step 5 — Decision Support Module (Phase 5.1–5.4)
+
+- **§S5.1 Reasoning fields:** Embedded di `data` JSONB (bukan tabel terpisah). 6 initial categories extensible via `system_settings`. UI placement di Phase 5.3.
+- **§S5.2 Dummy data:** SQL bulk INSERT (replayable). 4 scenarios: Normal/Wabah/Inflasi/Underspend. Mixed 53% reviewed. Companion cleanup SQL.
+- **§S5.3-D1 A:** Extend existing AuditLogViewer (bukan sibling component baru).
+- **§S5.3-D4:** +reviewerNotes 7th field — semantic split public (reasoning) vs internal (reviewerNotes).
+- **§S5.3 Validation:** Reasoning ≥10 chars + category required. Un-review allowed with confirm (reasoning preserved).
+- **§S5.4-D1 A:** Sub-tab "4.2 Deviasi & Tinjauan" di Tab 4 (Pelaporan & LRA).
+- **§S5.4-D2 A:** Pure SVG charts (0 KB external deps, no recharts/chart.js).
+- **§S5.4-D6 A:** Hybrid color coding — reasoning category color saat ada audit, fallback muted base color.
+- Full decision index: [`STEP5_DECISION_SUPPORT_LOG.md`](./STEP5_DECISION_SUPPORT_LOG.md) §7.
 
 ---
 
@@ -427,4 +450,4 @@ Internal use untuk RS TNI AD. Tidak untuk distribusi publik tanpa izin.
 
 ---
 
-*Last updated: 8 Mei 2026 (Step 3 Session A complete + Komunikasi & Diskusi feature live).*
+*Last updated: 9 Mei 2026 (Step 5 Phase 5.4 Deviation Dashboard live + 4 devLog entries added).*
