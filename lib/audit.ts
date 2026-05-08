@@ -25,8 +25,8 @@
 // ============================================================================
 
 import { supabase } from './supabase';
-import type { AuditEntityId, AuditActionId } from '../constants/audit';
-import { AUDIT_ENTITIES } from '../constants/audit';
+import type { AuditEntityId, AuditActionId, ReasoningCategory } from '../constants/audit';
+import { AUDIT_ENTITIES, INITIAL_REASONING_CATEGORIES } from '../constants/audit';
 
 
 // ─── §1. Types ─────────────────────────────────────────────────────────────
@@ -41,27 +41,50 @@ import { AUDIT_ENTITIES } from '../constants/audit';
  *                              sampleIds: string[] (max 5) }
  *   - config_update         : { [field]: { before, after } } untuk setiap key changed
  *   - reset/seed_load/...   : caller-defined (e.g., { count: 35 })
+ *
+ * [S5.1] Reasoning fields ditambah untuk midterm pagu revision workflow:
+ *   - reasoning, reasoningCategory, dynamicsFactor: filled later via
+ *     Tinjauan Audit UI (Phase 5.3 / UI placement Opsi C). null at-creation.
+ *   - isReviewed/reviewedAt/reviewedBy: tracking review status.
+ *   - Backward compat: existing entries pre-S5.1 punya fields = undefined.
  */
 export interface AuditEntryData {
-  entity:      AuditEntityId;
-  action:      AuditActionId;
-  entityId:    string;          // record id atau '-' untuk bulk/system
-  description: string;          // human-readable Indonesian (e.g., "Tambah Tagihan listrik Mei")
-  snapshot:    unknown;         // diverse shapes per action — caller tahu structure
-  user:        string;          // 'system-default' Phase 2; auth.uid() Phase 3 P3.1
-  timestamp:   string;          // ISO 8601 (redundan dengan created_at, tapi explicit)
+  entity:             AuditEntityId;
+  action:             AuditActionId;
+  entityId:           string;          // record id atau '-' untuk bulk/system
+  description:        string;          // human-readable Indonesian (e.g., "Tambah Tagihan listrik Mei")
+  snapshot:           unknown;         // diverse shapes per action — caller tahu structure
+  user:               string;          // 'system-default' Phase 2; auth.uid() Phase 3 P3.1
+  timestamp:          string;          // ISO 8601 (redundan dengan created_at, tapi explicit)
+  // [S5.1] Reasoning fields — all optional/nullable. Backward compat:
+  // existing entries pre-S5.1 don't have these fields (undefined).
+  reasoning?:         string | null;
+  reasoningCategory?: string | null;
+  dynamicsFactor?:    string | null;
+  isReviewed?:        boolean;
+  reviewedAt?:        string | null;
+  reviewedBy?:        string | null;
 }
 
 /**
  * Caller-side input untuk logAuditEntries — `user` dan `timestamp` di-fill
  * automatic oleh logAuditEntries (bukan responsibility caller).
+ *
+ * [S5.1] Caller bisa OPTIONAL pass reasoning at-creation. Default: null
+ * (di-fill nanti via Tinjauan Audit UI). Mayoritas callers existing
+ * (syncToCloud diff, Komunikasi inline, RsProfileEditor inline) NOT
+ * pass reasoning — itu di-isi oleh Sie Renbang via review process.
  */
 export interface AuditEntryInput {
-  entity:      AuditEntityId;
-  action:      AuditActionId;
-  entityId:    string;
-  description: string;
-  snapshot:    unknown;
+  entity:             AuditEntityId;
+  action:             AuditActionId;
+  entityId:           string;
+  description:        string;
+  snapshot:           unknown;
+  // [S5.1] Optional reasoning at-creation
+  reasoning?:         string | null;
+  reasoningCategory?: string | null;
+  dynamicsFactor?:    string | null;
 }
 
 /**
@@ -350,13 +373,21 @@ export async function logAuditEntries(
   const rows: AuditLogRow[] = entries.map((e) => ({
     id: generateAuditId(),
     data: {
-      entity:      e.entity,
-      action:      e.action,
-      entityId:    e.entityId,
-      description: e.description,
-      snapshot:    e.snapshot,
+      entity:             e.entity,
+      action:             e.action,
+      entityId:           e.entityId,
+      description:        e.description,
+      snapshot:           e.snapshot,
       user,
       timestamp,
+      // [S5.1] Reasoning fields — null at-creation per §S5.1-D-3.
+      // Optional: caller bisa override (e.g., system actions yang tau alasannya).
+      reasoning:          e.reasoning ?? null,
+      reasoningCategory:  e.reasoningCategory ?? null,
+      dynamicsFactor:     e.dynamicsFactor ?? null,
+      isReviewed:         false,
+      reviewedAt:         null,
+      reviewedBy:         null,
     },
   }));
 
@@ -384,4 +415,134 @@ export async function logAuditEntry(
   user: string = DEFAULT_USER,
 ): Promise<number> {
   return logAuditEntries([entry], user);
+}
+
+
+// ─── §5. Reasoning Helpers (S5.1) ──────────────────────────────────────────
+//
+// Phase 5.1 — helpers untuk reasoning capture + review workflow.
+// Origin: Sie Renbang verbal clarification 8 Mei 2026 (audit_log dipakai
+// sebagai justifikasi midterm pagu revision).
+
+/**
+ * Update existing audit entry dengan reasoning + mark sebagai reviewed.
+ * Dipakai oleh AuditLogViewer detail modal (Phase 5.3 — UI placement Opsi C).
+ *
+ * Pattern: fetch existing data envelope JSONB → merge fields → upsert.
+ * Defensive: kalau entry tidak ditemukan atau update gagal, return false
+ * tanpa exception (mirror logAuditEntries error philosophy).
+ *
+ * @param entryId - Audit entry id (e.g., 'audit-1715140847314-abc123')
+ * @param updates - Reasoning + category + dynamics. Field yang null/undefined
+ *                  preserve existing value (partial update). Note: kalau caller
+ *                  PENGEN explicit clear field, pass empty string '' (akan
+ *                  ter-stored sebagai non-null empty string).
+ * @param reviewer - Role + name reviewer (e.g., 'Predecessor (Sie Renbang)')
+ *                   — pattern dari Komunikasi feature.
+ * @returns true kalau update success, false otherwise.
+ */
+export async function markAuditEntryReviewed(
+  entryId: string,
+  updates: {
+    reasoning?:         string | null;
+    reasoningCategory?: string | null;
+    dynamicsFactor?:    string | null;
+  },
+  reviewer: string,
+): Promise<boolean> {
+  // Fetch existing data — envelope JSONB merge (preserve existing fields)
+  const { data: existing, error: fetchErr } = await supabase
+    .from('audit_log')
+    .select('data')
+    .eq('id', entryId)
+    .single();
+
+  if (fetchErr || !existing) {
+    console.warn('⚠️ markAuditEntryReviewed: fetch failed for', entryId, fetchErr?.message);
+    return false;
+  }
+
+  const existingData = (existing.data ?? {}) as AuditEntryData;
+
+  // Merge: undefined updates preserve existing, defined updates (incl. null) override
+  const merged: AuditEntryData = {
+    ...existingData,
+    reasoning:         updates.reasoning !== undefined         ? updates.reasoning         : (existingData.reasoning ?? null),
+    reasoningCategory: updates.reasoningCategory !== undefined ? updates.reasoningCategory : (existingData.reasoningCategory ?? null),
+    dynamicsFactor:    updates.dynamicsFactor !== undefined    ? updates.dynamicsFactor    : (existingData.dynamicsFactor ?? null),
+    isReviewed:        true,
+    reviewedAt:        new Date().toISOString(),
+    reviewedBy:        reviewer,
+  };
+
+  const { error: updateErr } = await supabase
+    .from('audit_log')
+    .update({ data: merged })
+    .eq('id', entryId);
+
+  if (updateErr) {
+    console.warn('⚠️ markAuditEntryReviewed: update failed for', entryId, updateErr.message);
+    return false;
+  }
+  return true;
+}
+
+
+/**
+ * Fetch reasoning categories dari system_settings.reasoning_categories.
+ * Dipakai oleh AuditLogViewer detail modal untuk populate dropdown.
+ *
+ * Defensive cascade:
+ *   1. Try fetch dari system_settings
+ *   2. Validate shape (Array of {id, label, color})
+ *   3. Fallback ke INITIAL_REASONING_CATEGORIES kalau:
+ *      - Key tidak ada
+ *      - Parsing gagal
+ *      - Shape invalid
+ *      - Empty array
+ *
+ * Cache: caller bertanggung jawab cache result (mis. di useState/useMemo).
+ * Function ini fresh-fetch setiap call.
+ *
+ * @returns Array reasoning categories (minimum INITIAL fallback)
+ */
+export async function fetchReasoningCategories(): Promise<ReasoningCategory[]> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'reasoning_categories')
+      .single();
+
+    if (error || !data?.value) {
+      console.warn('⚠️ fetchReasoningCategories: fallback to INITIAL', error?.message);
+      return INITIAL_REASONING_CATEGORIES;
+    }
+
+    if (Array.isArray(data.value)) {
+      // Validate shape — accept rows yang punya minimal {id, label}, normalize color
+      const valid: ReasoningCategory[] = data.value
+        .filter((c: unknown): c is { id: string; label: string; color?: string } => {
+          if (!c || typeof c !== 'object') return false;
+          const obj = c as Record<string, unknown>;
+          return typeof obj.id === 'string'
+              && typeof obj.label === 'string'
+              && obj.id.length > 0
+              && obj.label.length > 0;
+        })
+        .map((c) => ({
+          id:    c.id,
+          label: c.label,
+          color: typeof c.color === 'string' ? c.color : 'gray',
+        }));
+
+      if (valid.length > 0) return valid;
+    }
+
+    return INITIAL_REASONING_CATEGORIES;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn('⚠️ fetchReasoningCategories exception, fallback:', msg);
+    return INITIAL_REASONING_CATEGORIES;
+  }
 }
