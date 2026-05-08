@@ -27,6 +27,7 @@
 import { supabase } from './supabase';
 import type { AuditEntityId, AuditActionId, ReasoningCategory } from '../constants/audit';
 import { AUDIT_ENTITIES, INITIAL_REASONING_CATEGORIES } from '../constants/audit';
+import { getRoleLabel } from '../constants/komunikasi';
 
 
 // ─── §1. Types ─────────────────────────────────────────────────────────────
@@ -64,6 +65,10 @@ export interface AuditEntryData {
   isReviewed?:        boolean;
   reviewedAt?:        string | null;
   reviewedBy?:        string | null;
+  // [S5.3] Internal commentary tentang proses tinjauan (bukan event-nya).
+  // Audience: internal Sie Renbang & multi-reviewer (Phase 3 P3.1+).
+  // Tidak muncul di laporan external default.
+  reviewerNotes?:     string | null;
 }
 
 /**
@@ -388,6 +393,7 @@ export async function logAuditEntries(
       isReviewed:         false,
       reviewedAt:         null,
       reviewedBy:         null,
+      reviewerNotes:      null,
     },
   }));
 
@@ -447,6 +453,7 @@ export async function markAuditEntryReviewed(
     reasoning?:         string | null;
     reasoningCategory?: string | null;
     dynamicsFactor?:    string | null;
+    reviewerNotes?:     string | null;
   },
   reviewer: string,
 ): Promise<boolean> {
@@ -470,6 +477,7 @@ export async function markAuditEntryReviewed(
     reasoning:         updates.reasoning !== undefined         ? updates.reasoning         : (existingData.reasoning ?? null),
     reasoningCategory: updates.reasoningCategory !== undefined ? updates.reasoningCategory : (existingData.reasoningCategory ?? null),
     dynamicsFactor:    updates.dynamicsFactor !== undefined    ? updates.dynamicsFactor    : (existingData.dynamicsFactor ?? null),
+    reviewerNotes:     updates.reviewerNotes !== undefined     ? updates.reviewerNotes     : (existingData.reviewerNotes ?? null),
     isReviewed:        true,
     reviewedAt:        new Date().toISOString(),
     reviewedBy:        reviewer,
@@ -485,6 +493,76 @@ export async function markAuditEntryReviewed(
     return false;
   }
   return true;
+}
+
+
+/**
+ * [S5.3] Un-review entry: clear isReviewed/reviewedAt/reviewedBy + reviewerNotes.
+ * Reasoning/category/dynamicsFactor PRESERVED (T2 decision: A — reasoning kept).
+ * Use case: reviewer realize wrong review, wants to undo without losing context.
+ *
+ * @param entryId - Audit entry id
+ * @returns true on success, false on failure
+ */
+export async function markAuditEntryUnreviewed(entryId: string): Promise<boolean> {
+  const { data: existing, error: fetchErr } = await supabase
+    .from('audit_log')
+    .select('data')
+    .eq('id', entryId)
+    .single();
+
+  if (fetchErr || !existing) {
+    console.warn('⚠️ markAuditEntryUnreviewed: fetch failed for', entryId, fetchErr?.message);
+    return false;
+  }
+
+  const existingData = (existing.data ?? {}) as AuditEntryData;
+
+  const merged: AuditEntryData = {
+    ...existingData,
+    isReviewed:    false,
+    reviewedAt:    null,
+    reviewedBy:    null,
+    reviewerNotes: null,
+    // reasoning, reasoningCategory, dynamicsFactor INTENTIONALLY preserved (T2-A)
+  };
+
+  const { error: updateErr } = await supabase
+    .from('audit_log')
+    .update({ data: merged })
+    .eq('id', entryId);
+
+  if (updateErr) {
+    console.warn('⚠️ markAuditEntryUnreviewed: update failed for', entryId, updateErr.message);
+    return false;
+  }
+  return true;
+}
+
+
+/**
+ * [S5.3] Read current reviewer identity dari Komunikasi feature localStorage.
+ * Format: "{name} ({roleLabel})" e.g., "Ferry (Successor)".
+ * Fallback: "Sie Renbang" — Phase 5.2 dummy data convention.
+ *
+ * Coupled dengan constants/komunikasi.ts STORAGE_KEY_IDENTITY shape:
+ *   { role: RoleId, name: string }
+ *
+ * Defensive: parse error / missing → fallback. Tidak throw.
+ */
+export function getCurrentReviewer(): string {
+  try {
+    const raw = localStorage.getItem('sikesuma_komunikasi_identity');
+    if (!raw) return 'Sie Renbang';
+    const parsed = JSON.parse(raw) as { role?: string; name?: string };
+    if (parsed && typeof parsed.name === 'string' && parsed.name.length > 0) {
+      const roleLabel = parsed.role ? getRoleLabel(parsed.role) : null;
+      return roleLabel ? `${parsed.name} (${roleLabel})` : parsed.name;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return 'Sie Renbang';
 }
 
 
