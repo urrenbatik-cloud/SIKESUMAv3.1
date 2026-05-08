@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
   ShieldCheck, HeartPulse, LayoutList, Receipt, Database, Settings2
 } from 'lucide-react';
@@ -84,6 +84,62 @@ const BPJSModule: React.FC<BPJSModuleProps> = (props) => {
     return result;
   }, [props.logs, activeInternalTab, localFilter]);
 
+  // ==========================================================================
+  // [S3.0] RECONCILE WRAPPER — fix prop-drilling anti-pattern
+  // ==========================================================================
+  // Background:
+  //   ServiceLog menerima `filteredLogs` (subset by tab + period filter, e.g.,
+  //   3 items "BPJS Mei 2025") sebagai display source. Tapi internal mutation
+  //   pattern di ServiceLog (L80, L82, L176) operates pada `logs` prop:
+  //     onLogsChange(logs.map(l => l.id === id ? edited : l))
+  //     onLogsChange([...logs, newItem])
+  //     onLogsChange(logs.filter(x => x.id !== id))
+  //
+  //   Kalau `logs` = filtered subset, callback hands subset ke parent setter.
+  //   Without wrapper, parent's logsList state direplace dengan subset →
+  //   true full state (60 items) berkurang ke 3 items. Pre-existing v3.1
+  //   architectural bug, exposed oleh S3.2 audit log diff (phantom 57 removed).
+  //
+  // Fix:
+  //   Reconcile subset back ke full list via 3-step merge:
+  //   1. Items dalam filter window: replace dengan modified values, atau drop
+  //      kalau tidak ada di modified (= deleted within scope).
+  //   2. Items di luar filter window: preserve as-is (THE FIX — these stay in
+  //      full list even though they're not in the visible subset).
+  //   3. New items (in modified, not in full list): append.
+  //
+  // Result: ServiceLog API unchanged, BPJSModule API unchanged. Single
+  // wrapper insertion fixes the data flow.
+  //
+  // Severity confirmed MEDIUM: patient_claims is upsert-only di syncToCloud,
+  //   jadi DB rows tidak hilang. Bug murni di state layer + audit log layer.
+  //   Tanpa fix, audit log emit phantom bulk_delete every kali user edit
+  //   filtered view → audit unusable untuk BPK/Itjenad compliance.
+  //
+  // Latent (NOT FIXED in S3.0, deferred to Phase 3 P3.x cleanup):
+  //   DoctorData.tsx + StaffData.tsx punya struktur internal yang sama
+  //   (onChange(items.map(...)) etc.). Currently SAFE karena BPJSModule
+  //   passes full props.doctors / props.staff (bukan filtered subset).
+  //   Kalau caller berubah di future, bug akan trigger. Architectural smell
+  //   yang sebaiknya di-refactor di tech-debt sprint.
+  // ==========================================================================
+  const handleFilteredLogsChange = useCallback((modifiedFiltered: PatientClaim[]) => {
+    const filteredIds = new Set(filteredLogs.map(l => l.id));
+    const modifiedById = new Map(modifiedFiltered.map(l => [l.id, l]));
+
+    // Step 1+2: rebuild full list. Items di filter window: replace OR drop.
+    // Items di luar filter window: preserve as-is.
+    const reconciledExisting = props.logs
+      .filter(l => !filteredIds.has(l.id) || modifiedById.has(l.id))
+      .map(l => modifiedById.get(l.id) ?? l);
+
+    // Step 3: append new items (in modified subset, tapi belum exist di full list)
+    const existingIds = new Set(props.logs.map(l => l.id));
+    const newlyAdded = modifiedFiltered.filter(l => !existingIds.has(l.id));
+
+    props.onLogsChange([...reconciledExisting, ...newlyAdded]);
+  }, [filteredLogs, props.logs, props.onLogsChange]);
+
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700">
       <div className="bg-slate-900 p-2.5 rounded-[3rem] flex flex-wrap gap-2 shadow-2xl border border-slate-800 no-print sticky top-0 z-[60]">
@@ -101,7 +157,7 @@ const BPJSModule: React.FC<BPJSModuleProps> = (props) => {
         {(activeInternalTab === 'BPJS' || activeInternalTab === 'YANMASUM') && (
           <div className="space-y-8 animate-in fade-in duration-500">
              <ServiceLog 
-                logs={filteredLogs} onLogsChange={props.onLogsChange} doctors={props.doctors} 
+                logs={filteredLogs} onLogsChange={handleFilteredLogsChange} doctors={props.doctors} 
                 activeTabType={activeInternalTab === 'BPJS' ? TabType.JASA_BPJS : TabType.JASA_YANMASUM} 
                 globalMonth={localFilter.month} globalYear={localFilter.year === 'ALL' ? 2025 : localFilter.year}
                 onMinimizeForm={props.onMinimizeForm}
