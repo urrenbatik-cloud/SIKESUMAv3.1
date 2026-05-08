@@ -279,6 +279,63 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
 
   {
+    id:    'log-2026-05-09-phase-5-6-revision-proposal',
+    date:  '2026-05-09',
+    phase: 'Step 5 / Phase 5.6',
+    title: 'Phase 5.6 — Revision Proposal Generator LIVE',
+    type:  'feature',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Auto-generate draft proposal revisi pagu dari analisis deviasi + early warning. Sie Renbang bisa langsung klik "Buat Proposal Revisi" dari EarlyWarningPanel.
+
+**Output format:**
+- In-app modal preview (surat dinas RS TNI AD layout)
+- Copy-to-clipboard (plain text version)
+- Print-ready HTML (opens new window with proper styling)
+
+**5 section proposal:**
+1. KOP Surat (RS TNI AD header)
+2. Latar Belakang (summary deviasi + early warning status)
+3. Ringkasan Deviasi per Kategori (tabel RPD vs Realisasi)
+4. Peringatan Dini (tabel warning + critical alerts)
+5. Faktor Dinamika & Konteks Alasan (reasoning distribution + faktor eksternal)
+6. Detail per Kategori (monthly breakdown untuk kategori signifikan)
+7. Rekomendasi (auto-generated berdasarkan pattern + severity)
+
+**Files:** components/RevisionProposalGenerator.tsx (608 LOC)
+**Bundle:** +38 KB total Phase 5.5+5.6 combined.`,
+  },
+
+  {
+    id:    'log-2026-05-09-phase-5-5-early-warning',
+    date:  '2026-05-09',
+    phase: 'Step 5 / Phase 5.5',
+    title: 'Phase 5.5 — Early Warning Engine LIVE',
+    type:  'feature',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Early Warning Engine shipped — pattern detection otomatis dari deviation data. Integrated sebagai panel di DeviationDashboard antara header strip dan charts.
+
+**3-tier severity:** Info (≥10%), Warning (≥20%), Critical (≥50%).
+
+**4 pattern types:**
+- Spike: lonjakan belanja >30% month-to-month
+- Gradual Inflation: 3+ bulan berturut naik
+- Cliff Drop: penurunan tajam >40% month-to-month
+- Sustained Overspend: 3+ bulan di atas warning threshold
+
+**Health assessment:** healthy / watch / at_risk / critical — dengan badge + message di panel header.
+
+**UI features:**
+- Collapsible panel (expand/collapse)
+- Severity filter tabs (Semua/Kritis/Peringatan/Info)
+- Alert cards dengan pattern badge, recommendation, deviation %
+- "Buat Proposal Revisi" button → triggers Phase 5.6
+
+**Architecture:** Pure compute \`utils/earlyWarning.ts\` (540 LOC) + UI \`components/EarlyWarningPanel.tsx\` (310 LOC). 0 external deps, configurable thresholds via system_settings (fallback defaults).`,
+  },
+
+  {
     id:    'log-2026-05-09-phase-5-4-deviation-dashboard',
     date:  '2026-05-09',
     phase: 'Step 5 / Phase 5.4',

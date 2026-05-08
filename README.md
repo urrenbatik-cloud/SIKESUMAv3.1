@@ -3,7 +3,7 @@
 **Sistem Informasi Keuangan & Manajemen Rumah Sakit** — aplikasi web operasional untuk Rumah Sakit Tingkat IV 02.07.03 Batin Tikal (TNI AD), dikelola oleh Sie Renbang.
 
 **Live:** [https://sikesumav31.vercel.app](https://sikesumav31.vercel.app)
-**Version:** v3.1 (Step 5 Phase 5.4 Deviation Dashboard live + Step 3 Session B.1 complete)
+**Version:** v3.1 (Step 5 Phase 5.6 — Decision Support Module COMPLETE)
 **Tech Stack:** React 19 + Vite + TypeScript + Supabase + Vercel
 
 ---
@@ -290,11 +290,13 @@ SIKESUMAv3.1/
 │   ├── AuditLogViewer.tsx             # Tinjauan Audit (filter + chips + status column + modal trigger)
 │   ├── BPJSModule.tsx                 # Tab BPJS (claims + settings) + S3.0 reconcile wrapper
 │   ├── BpjsSettingsForm.tsx           # Time-versioned BPJS fee settings
-│   ├── DeviationDashboard.tsx         # [S5.4] Pure SVG charts RPD vs Realisasi (851 LOC)
+│   ├── DeviationDashboard.tsx         # [S5.4] Pure SVG charts RPD vs Realisasi (880 LOC)
+│   ├── EarlyWarningPanel.tsx          # [S5.5] Early warning alerts widget (310 LOC)
 │   ├── DevLogViewer.tsx               # Riwayat Pengembangan (devlog timeline + ROADMAP)
 │   ├── PaguAnggaran.tsx               # Pagu editor (multi-year)
 │   ├── PayrollSummary.tsx             # Daftar Gaji + payroll status
 │   ├── PhaseDiscussionsModule.tsx     # Komunikasi & Diskusi (10 roles, threading, attachments)
+│   ├── RevisionProposalGenerator.tsx  # [S5.6] Auto-generate revision proposal (608 LOC)
 │   ├── RsProfileEditor.tsx            # [S3.6] Profil RS editable (11 fields, self-contained)
 │   ├── ServiceBillRecap.tsx           # Rekapitulasi tagihan jasa + file upload
 │   ├── SettingsModule.tsx             # Settings overlay (6 tabs, gear icon entry)
@@ -311,6 +313,7 @@ SIKESUMAv3.1/
 ├── utils/
 │   ├── csvHelper.ts                   # CSV parsing/export
 │   ├── deviationMetrics.ts            # [S5.4] Pure compute: RPD vs Realisasi deviation (381 LOC)
+│   ├── earlyWarning.ts                # [S5.5] Pure compute: pattern detection + threshold alerts (540 LOC)
 │   └── feeCalculation.ts              # BPJS fee logic (5 scenarios)
 ├── types.ts                           # TypeScript interfaces
 ├── PHASE_3_HARDENING_BACKLOG.md       # Phase 3 backlog (P3.1-P3.6 security/audit/scale)
@@ -353,7 +356,7 @@ SIKESUMAv3.1/
 | **Step 5 / Phase 5.2** | ✅ **Complete** | 2024 Dummy Data — 4 scenarios, 90 records, mixed 53% reviewed |
 | **Step 5 / Phase 5.3** | ✅ **Complete** | Tinjauan Audit UI — modal editor + summary chips + status filter |
 | **Step 5 / Phase 5.4** | ✅ **Complete** | Deviation Dashboard — pure SVG stacked bar + line chart + drill-down modal |
-| **Step 5 / Phase 5.5-5.6** | 🔜 Pending | Early Warning Engine + Revision Proposal Generator (~7-9 jam) |
+| **Step 5 / Phase 5.5-5.6** | ✅ **Complete** | Early Warning Engine + Revision Proposal Generator |
 | Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention. Total ~25-35 jam. |
 | Step 4 | 🔜 Future | Multi-RS template deploy |
 
@@ -450,4 +453,4 @@ Internal use untuk RS TNI AD. Tidak untuk distribusi publik tanpa izin.
 
 ---
 
-*Last updated: 9 Mei 2026 (Step 5 Phase 5.4 Deviation Dashboard live + 4 devLog entries added).*
+*Last updated: 9 Mei 2026 (Step 5 COMPLETE — Phase 5.5 Early Warning + Phase 5.6 Revision Proposal live).*

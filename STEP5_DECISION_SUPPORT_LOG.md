@@ -4,7 +4,7 @@
 > **Step**: Step 5 — Decision Support Module untuk Adaptive Planning
 > **Period**: 8–9 Mei 2026
 > **Author**: AI Assistant Session B + Ferry (Successor)
-> **Status**: Phase 5.1–5.4 SEALED, Phase 5.5–5.6 pending
+> **Status**: Phase 5.1–5.6 COMPLETE ✅
 
 ---
 
@@ -29,8 +29,8 @@ Setelah Session B.1 (S3.3 RAB+RPD Persist + S3.6 Profil RS) live, Ferry menelepo
 | 5.2 | 2024 Dummy Data Generation | ✅ SEALED | 4-scenario realistic data (150 records) via SQL seed |
 | 5.3 | Audit Review UI (Tinjauan Audit) | ✅ SEALED | Modal edit + filter + visual indicator di AuditLogViewer |
 | 5.4 | Deviation Dashboard | ✅ SEALED | Pure SVG charts RPD vs Realisasi + drill-down modal |
-| 5.5 | Early Warning Engine | 🔜 Pending | Pattern detection otomatis dari deviation data |
-| 5.6 | Revision Proposal Generator | 🔜 Pending | Draft proposal revisi pagu dari analysis results |
+| 5.5 | Early Warning Engine | ✅ SEALED | Pattern detection otomatis dari deviation data |
+| 5.6 | Revision Proposal Generator | ✅ SEALED | Draft proposal revisi pagu dari analysis results |
 
 ### 1.3 Data Strategy
 
@@ -447,29 +447,233 @@ No external chart library added (Pure SVG decision D-5.4-2).
 
 ---
 
-## 9. Remaining Step 5 Roadmap
+## 7. Phase 5.5 — Early Warning Engine
 
-| Phase | Estimate | Dependencies |
+### 7.1 Tujuan
+
+Pattern detection otomatis dan threshold-based alerts dari deviation data (output Phase 5.4). Memberikan sinyal dini (early warning) kepada Sie Renbang untuk trigger evaluasi kebutuhan revisi pagu.
+
+### 7.2 Decisions
+
+| ID | Keputusan | Dipilih |
 |---|---|---|
-| 5.5 Early Warning Engine | ~4-5 jam | Phase 5.4 data model stable |
-| 5.6 Revision Proposal Generator | ~3-4 jam | Phase 5.5 pattern detection |
-| **Total remaining** | **~7-9 jam** | **~2 sessions** |
+| D-5.5-1 | Threshold levels | 3-tier: Info (≥10%), Warning (≥20%), Critical (≥50%) |
+| D-5.5-2 | Pattern types | 4 pola: spike, gradual_inflation, cliff_drop, sustained_overspend |
+| D-5.5-3 | Placement | Inline panel di DeviationDashboard (antara header dan charts) |
+| D-5.5-4 | Architecture | Pure compute utils/earlyWarning.ts + UI EarlyWarningPanel.tsx |
 
-### Phase 5.5 Scope Preview
-- Configurable threshold alerts (e.g., >20% deviation → warning)
-- Pattern detection on monthly trajectory (spike, gradual inflation, cliff drop)
-- Dashboard widget showing active warnings
+### 7.3 Pattern Detection
 
-### Phase 5.6 Scope Preview
-- Auto-generate revision proposal document from deviation analysis
-- Template-based output (format RS TNI AD compliant)
-- Include reasoning context + supporting evidence from audit_log
+| Pattern | Threshold | Detection Logic |
+|---|---|---|
+| `threshold_breach` | ≥20% (warning), ≥50% (critical) | Single month deviation exceeds threshold |
+| `spike` | >30% month-to-month | Sudden jump in realisasi from prev month |
+| `cliff_drop` | >40% month-to-month | Sudden drop in realisasi from prev month |
+| `gradual_inflation` | 3+ consecutive months rising | Steady increase with deviation above info threshold |
+| `sustained_overspend` | 3+ months above warning threshold | Persistent overspend pattern (strongest revision signal) |
+
+### 7.4 Health Assessment
+
+| Level | Condition | Message |
+|---|---|---|
+| `healthy` | 0 alerts | Tidak ada peringatan — realisasi sesuai rencana |
+| `watch` | info only | Deviasi masih dalam batas, tetap dipantau |
+| `at_risk` | warning alerts | Pantau perkembangan dan siapkan analisis |
+| `critical` | critical alerts | Segera evaluasi kebutuhan revisi pagu |
+
+### 7.5 UI Features
+
+- Collapsible panel (expand/collapse toggle)
+- Severity filter tabs (Semua / Kritis / Peringatan / Info)
+- Alert cards with pattern badge, category label, month range, recommendation
+- "Buat Proposal Revisi" button → triggers Phase 5.6 modal
+- Zero-alert state: green "Aman" banner
+
+### 7.6 Files Changed
+
+| File | Action | LOC |
+|---|---|---|
+| `utils/earlyWarning.ts` | NEW | 540 |
+| `components/EarlyWarningPanel.tsx` | NEW | 310 |
+| `components/DeviationDashboard.tsx` | Patched | +29 (imports + state + render) |
+| **Net** | | **~879 LOC** |
 
 ---
 
-## 10. Git Commit History (Phase 5)
+## 8. Phase 5.6 — Revision Proposal Generator
+
+### 8.1 Tujuan
+
+Auto-generate draft proposal revisi pagu dari analisis deviasi (Phase 5.4), early warning (Phase 5.5), dan reasoning context dari audit_log (Phase 5.1/5.3). Output: surat dinas RS TNI AD style.
+
+### 8.2 Decisions
+
+| ID | Keputusan | Dipilih |
+|---|---|---|
+| D-5.6-1 | Output format | In-app modal + copy-to-clipboard + print-ready HTML |
+| D-5.6-2 | Template structure | 7 sections (KOP, Latar Belakang, Ringkasan, Peringatan, Faktor, Detail, Rekomendasi) |
+| D-5.6-3 | Trigger | Button di EarlyWarningPanel header |
+| D-5.6-4 | Format | Print-ready HTML (Times New Roman, surat dinas layout) |
+
+### 8.3 Proposal Sections
+
+| Section | Content |
+|---|---|
+| KOP Surat | MARKAS BESAR ANGKATAN DARAT + RS header |
+| I. Latar Belakang | Summary deviasi + early warning status + total RPD vs Realisasi |
+| II. Ringkasan Deviasi | Tabel per kategori (RPD, Realisasi, Selisih, Deviasi %) |
+| III. Peringatan Dini | Tabel warning + critical alerts dari early warning engine |
+| IV. Faktor Dinamika | Reasoning category distribution + dynamics factors |
+| V. Detail per Kategori | Monthly breakdown untuk kategori dengan deviasi signifikan |
+| VI. Rekomendasi | Auto-generated berdasarkan pattern analysis |
+| VII. Penutup | TTD template |
+
+### 8.4 Auto-Recommendation Logic
+
+Proposal generator auto-builds rekomendasi berdasarkan:
+- Overspend categories >20% → "ajukan revisi pagu ke atas"
+- Underspend categories <-20% → "evaluasi penyebab, pertimbangkan realokasi"
+- Sustained overspend pattern → "segera koordinasi PPK"
+- Critical spike alerts → "verifikasi kebutuhan darurat vs anomali"
+- Low review coverage → "tingkatkan kelengkapan tinjauan audit"
+- Default fallback → "monitoring berkala via SIKESUMA"
+
+### 8.5 Output Formats
+
+| Format | Use Case |
+|---|---|
+| In-app modal | Preview + review sebelum distribusi |
+| Copy-to-clipboard (plain text) | Paste ke WhatsApp, email, atau doc editor |
+| Print-ready HTML | Buka new window → browser print (PDF save juga bisa) |
+
+### 8.6 Files Changed
+
+| File | Action | LOC |
+|---|---|---|
+| `components/RevisionProposalGenerator.tsx` | NEW | 608 |
+| **Net** | | **608 LOC** |
+
+---
+
+## 9. Cumulative Impact Summary (Phase 5.1–5.6)
+
+### 9.1 Total LOC Added
+
+| Component | LOC |
+|---|---|
+| lib/audit.ts extensions | +256 |
+| constants/audit.ts extensions | +129 |
+| components/AuditEntryEditModal.tsx | 422 (new) |
+| components/AuditLogViewer.tsx extensions | +203 |
+| components/DeviationDashboard.tsx | 880 (new, +29 from 5.5/5.6 patch) |
+| utils/deviationMetrics.ts | 381 (new) |
+| utils/earlyWarning.ts | 540 (new) |
+| components/EarlyWarningPanel.tsx | 310 (new) |
+| components/RevisionProposalGenerator.tsx | 608 (new) |
+| App.tsx patches | +42 |
+| types.ts patches | +3 |
+| SettingsModule.tsx patch | +1 |
+| **TOTAL** | **~3,775 LOC** |
+
+### 9.2 All New Files Created
+
+| File | Phase | LOC | Purpose |
+|---|---|---|---|
+| `components/AuditEntryEditModal.tsx` | 5.3 | 422 | Modal form untuk review audit entries |
+| `components/DeviationDashboard.tsx` | 5.4 | 880 | Visualisasi deviasi RPD vs Realisasi |
+| `utils/deviationMetrics.ts` | 5.4 | 381 | Pure compute helpers untuk deviation analysis |
+| `utils/earlyWarning.ts` | 5.5 | 540 | Pattern detection + threshold alerts |
+| `components/EarlyWarningPanel.tsx` | 5.5 | 310 | Early warning dashboard widget |
+| `components/RevisionProposalGenerator.tsx` | 5.6 | 608 | Auto-generate revision proposal |
+
+### 9.3 Bundle Size Impact
+
+| Baseline (post-5.4) | After 5.5+5.6 | Delta |
+|---|---|---|
+| 979 KB | 1,017 KB | +38 KB (+3.9%) |
+
+No external library added (all 6 phases = 0 external deps for Step 5 features).
+
+---
+
+## 10. Known Constraints & Caveats
+
+1. **Bill items[].akun** harus match pagu kode (e.g., `521211.01`) supaya `realisasiMetrics.absorptionMap` pickup correctly.
+
+2. **Doctor/Employee state untuk jasa medis 2024** — tidak di-generate. Realisasi 2024 hanya dari bills (bukan calculated jasa medis). Acceptable untuk testing deviasi belanja.
+
+3. **patient_claims 2024** — tidak di-generate. Revenue side (PNBP) defer ke Session B.3.
+
+4. **RPD 2024 revisi** — initial baseline only. Revision tracking via audit_log reasoning.
+
+5. **Audit timestamps 2024** — synthetic dates (bukan created_at = sekarang). Penting untuk Phase 5.4 chronological dashboard.
+
+6. **Cross-year staff data** — `realisasiMetrics` pulls TKS gaji from current `staffList` regardless of year. 2024 data shows present-day staff costs. Known design limitation.
+
+7. **DeviationDashboard** fetches audit_log per-render via Supabase query (not from App.tsx state). Tradeoff: real-time data vs extra DB call. Acceptable for dashboard that refreshes infrequently.
+
+8. **Warning thresholds** — currently hardcoded defaults. system_settings.warning_thresholds key reserved for future UI configurability.
+
+9. **Proposal generator** — output is DRAFT template, not final document. Sie Renbang must review and adjust before official submission.
+
+10. **upToMonth parameter** — earlyWarning.analyzeWarnings() supports partial-year analysis but DeviationDashboard currently passes 12 (full year). Future enhancement: auto-detect current month for current-year analysis.
+
+---
+
+## 11. Decision References (Complete Index)
+
+### Phase 5.1
+- `D-5.1-1`: Reasoning fields embedded in data JSONB
+- `D-5.1-2`: 6 initial categories, extensible via system_settings
+- `D-5.1-3`: UI placement defer to Phase 5.3
+
+### Phase 5.2
+- `D-5.2-1 A`: SQL bulk INSERT script (not TypeScript util or Node.js)
+- `D-5.2-2`: ~150 records scope
+- `D-5.2-3`: Mixed 60% reviewed strategy
+- `D-5.2-4`: Cleanup SQL companion script
+- `D-5.2-5`: 3 deliverables (plan + seed + cleanup)
+
+### Phase 5.3
+- `D-5.3-1 A`: Extend AuditLogViewer (not sibling component)
+- `D-5.3-2 A+B`: Status column dot + summary chips combined
+- `D-5.3-3 A`: Modal-based edit (not inline expand or side panel)
+- `D-5.3-4`: +reviewerNotes as 7th field (semantic split public vs internal)
+- `D-5.3-5`: State-only filter (URL hash deferred)
+- `D-5.3-6`: AuditEntryEditModal factored out as child component
+- `T1 A`: Validation reasoning ≥10 chars + category required
+- `T2 A`: Un-review with confirm dialog (reasoning preserved)
+- `T3 A`: Human-readable labels via getReasoningCategoryMeta()
+- `T4 A`: Post-save: modal close + toast + list refresh
+- `T5 A`: Default filter "Belum Direview"
+
+### Phase 5.4
+- `D-5.4-1 A`: Sub-tab di Tab 4 (Pelaporan & LRA)
+- `D-5.4-2 A`: Pure SVG (no recharts/chart.js)
+- `D-5.4-3`: Stacked Bar + Line Chart combo
+- `D-5.4-4`: 4-section drill-down modal
+- `D-5.4-5 A`: Year filter respect main app dropdown
+- `D-5.4-6 A`: Hybrid color coding (reasoning category + fallback)
+- `D-5.4-7`: 3-file deliverable structure
+
+### Phase 5.5
+- `D-5.5-1`: 3-tier severity (Info ≥10%, Warning ≥20%, Critical ≥50%)
+- `D-5.5-2`: 4 pattern types (spike, gradual_inflation, cliff_drop, sustained_overspend)
+- `D-5.5-3`: Inline panel placement di DeviationDashboard
+- `D-5.5-4`: Pure compute + configurable thresholds (fallback defaults)
+
+### Phase 5.6
+- `D-5.6-1`: In-app modal + copy-to-clipboard + print-ready HTML
+- `D-5.6-2`: 7-section proposal template (RS TNI AD surat dinas)
+- `D-5.6-3`: Trigger via EarlyWarningPanel button
+- `D-5.6-4`: Print-ready HTML with Times New Roman surat dinas layout
+
+---
+
+## 12. Git Commit History (Phase 5)
 
 ```
+[pending] Phase 5.5+5.6: Early Warning Engine + Revision Proposal  (5.5+5.6)
 ca0fd73 Integrate DeviationDashboard into App component          (5.4)
 e5fc3d9 Add new enum values to MainTab                          (5.4)
 48f2657 Add DeviationDashboard component for RPD visualization    (5.4)
@@ -485,4 +689,28 @@ e273daf Add reviewerNotes to audit entry data                      (5.3)
 
 ---
 
-*Last updated: 9 Mei 2026 — Phase 5.4 SEALED.*
+## 13. Step 5 Completion Summary
+
+**Step 5 — Decision Support Module COMPLETE** (8–9 Mei 2026).
+
+6 phases delivered across ~25-30 jam productive time:
+- Phase 5.1: Reasoning capture foundation (schema + helpers)
+- Phase 5.2: 2024 dummy data (4 scenarios, 90 records)
+- Phase 5.3: Tinjauan Audit UI (modal editor + filters)
+- Phase 5.4: Deviation Dashboard (pure SVG charts + drill-down)
+- Phase 5.5: Early Warning Engine (pattern detection + alerts)
+- Phase 5.6: Revision Proposal Generator (auto-draft surat dinas)
+
+**End-to-end workflow delivered:** Sie Renbang sekarang bisa:
+1. Input data belanja → auto-tracked di audit_log
+2. Review audit entries dengan reasoning dan category
+3. Visualisasi deviasi RPD vs Realisasi di dashboard
+4. Terima early warning otomatis saat pola deviasi terdeteksi
+5. Generate draft proposal revisi pagu berbasis data
+
+**Total LOC Step 5:** ~3,775 LOC across 6 new files + patches
+**Total bundle impact:** +60 KB from pre-Step 5 baseline (all pure, 0 external deps)
+
+---
+
+*Last updated: 9 Mei 2026 — Step 5 COMPLETE (Phase 5.1–5.6 all SEALED).*

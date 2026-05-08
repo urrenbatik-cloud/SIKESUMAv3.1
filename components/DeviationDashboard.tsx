@@ -53,6 +53,9 @@ import {
   getAuditActionMeta,
 } from '../constants/audit';
 import type { PaguSection, RPDSection, Bill } from '../types';
+import EarlyWarningPanel from './EarlyWarningPanel';
+import RevisionProposalGenerator from './RevisionProposalGenerator';
+import { analyzeWarnings, DEFAULT_WARNING_THRESHOLDS } from '../utils/earlyWarning';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
@@ -115,6 +118,7 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
     cell: MonthlyCell;
     category: CategoryDeviation;
   } | null>(null);
+  const [showProposal, setShowProposal] = useState(false); // [S5.6] Proposal modal
 
   // Resolve year for fetch (ALL → fallback to current year for dashboard view)
   const yearNum = selectedYear === 'ALL'
@@ -169,6 +173,12 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
     }
     return max || 1; // avoid div by 0
   }, [data]);
+
+  // [S5.5] Early Warning analysis (memoized)
+  const warningResult = useMemo(
+    () => analyzeWarnings(data, DEFAULT_WARNING_THRESHOLDS, 12),
+    [data],
+  );
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -229,6 +239,14 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
         </div>
       )}
 
+      {/* [S5.5] Early Warning Panel — between header and charts */}
+      {!isLoading && data.categories.length > 0 && (
+        <EarlyWarningPanel
+          deviationData={data}
+          onGenerateProposal={() => setShowProposal(true)}
+        />
+      )}
+
       {/* CHART 1: Stacked Bar — Realisasi per kategori per bulan */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-4">
@@ -284,6 +302,17 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
           auditEntries={auditEntries}
           reasoningCategories={reasoningCategories}
           onClose={() => setDrillCell(null)}
+        />
+      )}
+
+      {/* [S5.6] Revision Proposal Generator modal */}
+      {showProposal && (
+        <RevisionProposalGenerator
+          deviationData={data}
+          warningResult={warningResult}
+          auditEntries={auditEntries}
+          reasoningCategories={reasoningCategories}
+          onClose={() => setShowProposal(false)}
         />
       )}
     </div>
