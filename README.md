@@ -68,7 +68,7 @@ prevSnapshotRef.current.bills = allBills;
 await logAuditEntries(auditBuffer);
 ```
 
-23 entity taxonomy + 10 action types (create/update/delete + bulk variants + config_update + reset/seed_load/import_csv). Slim diff per field `{before, after}` untuk update; full snapshot untuk create/delete; aggregate stats untuk bulk. Komunikasi feature menambah 2 entities (`phaseDiscussion`, `phaseMessage`) dengan inline emit pattern (D4 selective).
+25 entity taxonomy (23 baseline Session A + 2 Komunikasi additions) + 10 action types (create/update/delete + bulk variants + config_update + reset/seed_load/import_csv). Slim diff per field `{before, after}` untuk update; full snapshot untuk create/delete; aggregate stats untuk bulk. Komunikasi feature menambah 2 entities (`phaseDiscussion`, `phaseMessage`) dengan inline emit pattern (D4 selective).
 
 UI inspector di Settings → tab "Riwayat Aktivitas" dengan filter (entity, action, date range), pagination 100/page, detail modal pretty-print JSON, clear-all double-confirm.
 
@@ -340,10 +340,10 @@ SIKESUMAv3.1/
 | Phase 1 | ✅ Complete | v3.1 baseline + Vite scaffold |
 | Phase 2 (Step 1) | ✅ Complete | Schema audit + RLS setup |
 | Phase 2 (Step 2 v2) | ✅ Complete | 4 sequences (consolidate + multi-year + file storage + validation rigor) |
-| **Step 3 / Session A** | ✅ **Complete** | Audit log foundation (S3.0/S3.1/S3.2.1/S3.2.2/S3.2.3) — schema + lib + UI inspector + S3.0 architectural fix |
+| **Step 3 / Session A** | ✅ **Complete** | **Audit log foundation hanya** (S3.0/S3.1/S3.2.1/S3.2.2/S3.2.3) — schema + lib + UI inspector + S3.0 architectural fix. **Step 3 secara keseluruhan ~50% selesai**; business persistence wires (S3.3-S3.6) masih pending Session B. |
 | **Step 3 / Komunikasi** | ✅ **Complete** | Komunikasi & Diskusi feature (post-Session A insert) — 2 tables, 1 storage bucket, single-file MVP component, Settings tab integration |
 | **Step 3 / Session B** | 🔜 Pending | S3.3 RAB+RPD persist + S3.4 Kuitansi + S3.5 PNBP + S3.6 Profil RS (~14-19 jam estimate) |
-| Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention, Komunikasi auth migration (TD-13..17) |
+| Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention, Komunikasi auth migration. Scope: **TD-1..7** (DoctorData/StaffData refactor, TS errors cleanup, multi-user auth, audit viewer enhancements, retention) + **TD-13..17** (Komunikasi-specific: real auth, email notif, realtime, storage monitoring, per-discussion unread) + **P3.1-P3.6** (deeper hardening tracks di [`PHASE_3_HARDENING_BACKLOG.md`](./PHASE_3_HARDENING_BACKLOG.md)). Total ~25-35 jam. |
 | Step 4 | 🔜 Future | Multi-RS template deploy |
 
 ---
