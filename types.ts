@@ -1,4 +1,3 @@
-
 export enum MainTab { 
   RKKS = 'RKKS', 
   PENDAPATAN = 'PENDAPATAN',
@@ -16,7 +15,10 @@ export enum SubTab {
   BELANJA_PEMELIHARAAN = 'BELANJA_PEMELIHARAAN',
   REKAP_AUDIT = 'REKAP_AUDIT',
   TARGET_PENDAPATAN = 'TARGET_PENDAPATAN',
-  REV_DAILY = 'REV_DAILY'
+  REV_DAILY = 'REV_DAILY',
+  // [S5.4] Tab 4 sub-tabs
+  LAPORAN_LRA = 'LAPORAN_LRA',
+  DEVIASI_TINJAUAN = 'DEVIASI_TINJAUAN',
 }
 export enum TabType { 
   PAGU = 'PAGU', 
