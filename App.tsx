@@ -14,6 +14,7 @@ import RealisasiRPD from './components/RealisasiRPD';
 import BPJSModule from './components/BPJSModule';
 import OperationalBilling from './components/OperationalBilling';
 import RevenueModule from './components/RevenueModule';
+import DeviationDashboard from './components/DeviationDashboard';
 // [S3.2.3] Settings overlay (gear icon di header) — Riwayat Aktivitas + future config tabs
 import SettingsModule from './components/SettingsModule';
 // [Komunikasi] Konstanta key localStorage untuk read-state — single source of truth
@@ -919,7 +920,7 @@ const App: React.FC = () => {
     if (tab === MainTab.RKKS) { setSubTab(SubTab.PAGU_ANGGARAN); setActiveTabType(TabType.PAGU); }
     else if (tab === MainTab.PENDAPATAN) { setSubTab(SubTab.TARGET_PENDAPATAN); setActiveTabType(TabType.REV_DASHBOARD); }
     else if (tab === MainTab.BELANJA) { setSubTab(SubTab.BELANJA_JASA); setActiveTabType(TabType.JASA_BPJS); }
-    else { setActiveTabType(TabType.FINANCIAL_HEALTH); }
+    else { setSubTab(SubTab.LAPORAN_LRA); setActiveTabType(TabType.FINANCIAL_HEALTH); }
   };
 
   const handleSubTabChange = (tab: SubTab) => {
@@ -935,6 +936,10 @@ const App: React.FC = () => {
       case SubTab.BELANJA_PEMELIHARAAN: setActiveTabType(TabType.PEMELIHARAAN_DETAIL); break;
       case SubTab.REKAP_AUDIT: setActiveTabType(TabType.REKAP_OPERASIONAL); break;
       case SubTab.TARGET_PENDAPATAN: setActiveTabType(TabType.REV_DASHBOARD); break;
+      // [S5.4] Tab 4 sub-tabs — both keep TabType.FINANCIAL_HEALTH (RevenueModule
+      // and DeviationDashboard tidak share activeTabType-driven branching)
+      case SubTab.LAPORAN_LRA: setActiveTabType(TabType.FINANCIAL_HEALTH); break;
+      case SubTab.DEVIASI_TINJAUAN: setActiveTabType(TabType.FINANCIAL_HEALTH); break;
     }
   };
 
@@ -1022,6 +1027,13 @@ const App: React.FC = () => {
                 <SubTabButton active={subTab === SubTab.REKAP_AUDIT} onClick={() => handleSubTabChange(SubTab.REKAP_AUDIT)} label="2.5 Audit Per Akun" icon={<Calculator size={14} />} />
               </>
             )}
+            {/* [S5.4] Tab 4 sub-tabs */}
+            {mainTab === MainTab.FINANCIAL_HEALTH && (
+              <>
+                <SubTabButton active={subTab === SubTab.LAPORAN_LRA} onClick={() => handleSubTabChange(SubTab.LAPORAN_LRA)} label="4.1 Pelaporan & LRA" icon={<HeartPulse size={14} />} />
+                <SubTabButton active={subTab === SubTab.DEVIASI_TINJAUAN} onClick={() => handleSubTabChange(SubTab.DEVIASI_TINJAUAN)} label="4.2 Deviasi & Tinjauan" icon={<BarChart3 size={14} />} />
+              </>
+            )}
           </div>
           <div className="flex items-center gap-6">
              <div className="bg-white border border-slate-200 rounded-xl p-1 flex gap-1 shadow-inner">
@@ -1064,8 +1076,20 @@ const App: React.FC = () => {
               {(activeTabType === TabType.REKAP_OPERASIONAL || subTab === SubTab.REKAP_AUDIT || subTab === SubTab.BELANJA_OPERASIONAL || subTab === SubTab.BELANJA_MODAL || subTab === SubTab.BELANJA_PEMELIHARAAN) && (
                 <OperationalBilling activeTabType={activeTabType} subTab={subTab} bills={allBills} onBillsChange={setAllBills} globalYear={selectedYear} logs={logsList} bpjsSettingsHistory={bpjsSettingsHistory} doctors={doctorsList} staff={staffList} jasaAccountMap={jasaAccountMap} onJasaAccountMapChange={setJasaAccountMap} onMinimizeForm={f => setMinimizedForms([...minimizedForms, f])} reopenedForm={activeFormFromMinimized} onReopenedFormHandled={() => setActiveFormFromMinimized(null)} />
               )}
-              {(mainTab === MainTab.PENDAPATAN || mainTab === MainTab.FINANCIAL_HEALTH) && (
+              {/* Tab 3 Pendapatan + Tab 4 Pelaporan & LRA (default sub-tab 4.1) → RevenueModule */}
+              {(mainTab === MainTab.PENDAPATAN ||
+                (mainTab === MainTab.FINANCIAL_HEALTH && subTab === SubTab.LAPORAN_LRA)) && (
                 <RevenueModule activeTabType={activeTabType} logs={logsList} targets={revenueTargets} onTargetsChange={setRevenueTargets} specialtyTargets={specialtyTargets} onSpecialtyTargetsChange={setSpecialtyTargets} selectedYear={selectedYear} doctors={doctorsList} bills={allBills} rpdData={rpdSections} />
+              )}
+              {/* [S5.4] Tab 4 sub-tab 4.2 → DeviationDashboard */}
+              {mainTab === MainTab.FINANCIAL_HEALTH && subTab === SubTab.DEVIASI_TINJAUAN && (
+                <DeviationDashboard
+                  selectedYear={selectedYear}
+                  paguSections={paguSections}
+                  rpdSections={rpdSections}
+                  allBills={allBills}
+                  absorptionMap={realisasiMetrics.absorptionMap}
+                />
               )}
            </div>
         </div>
