@@ -158,6 +158,47 @@ export const ROADMAP: RoadmapItem[] = [
     priority: 'low',
   },
 
+  // ─── Komunikasi & Diskusi Hardening (TD-13..TD-17) ────────────────────────
+  // Ditambahkan post-Komunikasi launch (8 Mei 2026). Lihat DEV_LOG_ENTRIES
+  // entry 'log-2026-05-08-komunikasi-launch' untuk konteks fitur.
+  {
+    id:       'TD-13',
+    goal:     'Komunikasi — Real Auth Migration',
+    detail:   'Replace trust-based identity dropdown dengan Supabase Auth real verification. Currently localStorage-stored {role, name} bisa di-tamper user (read-only di UI tapi devtool accessible). Akan reuse infrastructure dari TD-3 untuk audit_log.user. Existing discussions + messages preserve attribution (immutable historical record).',
+    estimate: '~2-3 jam',
+    priority: 'medium',
+    dependsOn: ['TD-3'],
+  },
+  {
+    id:       'TD-14',
+    goal:     'Komunikasi — Email Notifications',
+    detail:   'Email digest harian/mingguan ke stakeholder yang punya unread di discussions yang mereka participate. Butuh Supabase Edge Function + email provider (SendGrid/Resend). User opt-in via Settings → preferences. Templating: list of new messages per discussion + click-through link ke production app.',
+    estimate: '~4-6 jam',
+    priority: 'low',
+  },
+  {
+    id:       'TD-15',
+    goal:     'Komunikasi — Realtime Updates',
+    detail:   'Replace polling + manual refresh dengan Supabase Realtime channel subscription untuk phase_messages INSERTs. Auto-prepend new messages ke open thread, auto-update unread badge tanpa user action. Storage cost minimal (small payloads). Akan eliminate Refresh button kebutuhan.',
+    estimate: '~2-3 jam',
+    priority: 'low',
+  },
+  {
+    id:       'TD-16',
+    goal:     'Komunikasi — Storage Retention + Quota Monitoring',
+    detail:   'Worst case 25 MB × 5 attachments × 100 messages = 12.5 GB > 5 GB Supabase free tier. Implement: (a) auto-orphan cleanup saat discussion archived/deleted (cascade ke storage objects), (b) dashboard widget untuk monitor storage usage real-time, (c) optional retention policy 1 tahun match BPK audit horizon. Share infrastructure dengan TD-7 audit retention.',
+    estimate: '~2-3 jam',
+    priority: 'medium',
+    dependsOn: ['TD-7'],
+  },
+  {
+    id:       'TD-17',
+    goal:     'Komunikasi — Per-Discussion Unread Granularity',
+    detail:   'Currently MVP unread = single global last_read timestamp di localStorage. Upgrade ke per-discussion last_read map (sudah punya optional field di ReadState type). Effect: badge count per-card lebih akurat (sekarang false-positive kalau user baca diskusi A tapi belum diskusi B — both flagged unread sampai global timestamp updated). Juga add gear icon badge breakdown ("3 baru di 2 diskusi") via tooltip.',
+    estimate: '~1-2 jam',
+    priority: 'low',
+  },
+
   // ─── De-scoped (Future Roadmap, requires user input) ──────────────────────
   {
     id:       'OOS-1',
@@ -192,6 +233,67 @@ export const ROADMAP: RoadmapItem[] = [
 // ============================================================================
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
+  // ════════════════════════════════════════════════════════════════════════
+  // KOMUNIKASI & DISKUSI FEATURE (post-Session A insert, 8 Mei 2026)
+  // ════════════════════════════════════════════════════════════════════════
+
+  {
+    id:    'log-2026-05-08-komunikasi-launch',
+    date:  '2026-05-08',
+    phase: 'Step 3 / Komunikasi',
+    title: 'Komunikasi & Diskusi — Multi-Stakeholder Async Coordination LIVE',
+    type:  'feature',
+    author: 'AI Assistant Session B',
+    description:
+`Fitur **Komunikasi & Diskusi** LIVE di Settings → tab "Komunikasi & Diskusi" (position 3, antara Riwayat Pengembangan dan Profil RS).
+
+**Tujuan:** Media async untuk koordinasi pengembangan antara stakeholder (Successor, Predecessor, Bagian IT, Karumkit, Verifikator, Bendahara, Asisten Successor + 3 slot tambahan) yang tidak sering kontak langsung. GitHub-issues-style threading dengan attachment support.
+
+**Decisions encoded (D1-D6, all locked sebelum eksekusi):**
+- **D1** Trust-based identity (10-role registry, suggestedNames per role, custom name fallback). Real auth = TD-13 Phase 3 P3.1.
+- **D2** Topic-based threading (flat chronological, no nested replies). Reply-to via "Re:" indicator.
+- **D3** File limits: 25 MB/file × 5 attachments/message × 9 MIME types (PDF/DOC(X)/XLS(X)/PNG/JPG/ZIP).
+- **D4** Selective audit: hanya discussion create/close/archive + file upload yang masuk audit_log. Routine text messages **tidak** di-audit (privacy + storage hygiene).
+- **D5** Visual unread badge: red dot + count di gear icon ⚙️ header, refresh saat Settings ditutup. Per-device global granularity (per-discussion = TD-17).
+- **D6** Placement: new tab di SettingsModule (position 3, antara Riwayat Pengembangan dan Profil RS).
+
+**Schema (Phase 1):**
+- 2 tabel envelope JSONB: \`phase_discussions\` (title, status, phase_ref, participants, message_count, last_activity, last_message_preview) + \`phase_messages\` (discussion_id, author_role+name, content, edited, reply_to, attachments[]).
+- 1 storage bucket: \`phase-docs\` private (signed URLs untuk download), 25 MB limit, MIME whitelist.
+- RLS PERMISSIVE ALL untuk POC; role-based di TD-13.
+
+**Constants (Phase 2):** \`constants/komunikasi.ts\` (395 baris) — types, ROLE_REGISTRY (10 roles dengan color/icon/suggestedNames), MIME whitelist, edit window 30 menit, helpers (validateAttachmentFile, canEditMessage, formatFileSize, generateKomunikasiId, sanitizeFilename, addParticipant, dll). 2 audit entities ditambah ke \`constants/audit.ts\`: \`phaseDiscussion\` + \`phaseMessage\`.
+
+**Component (Phase 3+4):** \`components/PhaseDiscussionsModule.tsx\` (1354 baris) single-file MVP dengan 7 sub-components inline (Avatar, CaveatBanner, IdentitySelector, NewDiscussionModal, DiscussionCard, MessageBubble, MessageComposer + DiscussionThread wrapper). \`components/SettingsModule.tsx\` +5 baris (tab integration). \`App.tsx\` +43 baris (unread badge logic + handleSettingsClose dengan 500ms-delay refresh).
+
+**Audit emission pattern:** Direct \`logAuditEntries([entry])\` inline calls — DIFFERENT dari Session A diff-based syncToCloud pattern. Comment di kode untuk future-successor clarity.
+
+**Smoke test:** **10/10 PASS** (8 wajib + 2 optional). Test 1-8 = identity flow, discussion CRUD, message text-only no-audit, file upload + audit, validation, edit window 30-min, identity switch. Test 9-10 = status workflow + unread badge.
+
+**Tech debt added:** TD-13 (real auth migration), TD-14 (email notifications), TD-15 (realtime updates), TD-16 (storage retention + quota monitoring), TD-17 (per-discussion unread granularity). Lihat ROADMAP section above.
+
+**Caveat banner:** Identity tidak diverifikasi (trust-based). Untuk pesan formal, pastikan identity dipilih akurat. Real auth = roadmap Phase 3 (TD-13).
+
+**Out-of-band:** Ferry akan personally inform stakeholders (Sie Renbang, Panji IT, dll) via existing trust channels untuk start pakai fitur ini.`,
+    files: [
+      'constants/komunikasi.ts',
+      'constants/audit.ts',
+      'constants/devLog.ts',
+      'components/PhaseDiscussionsModule.tsx',
+      'components/SettingsModule.tsx',
+      'App.tsx',
+    ],
+    decisions: [
+      '§Komunikasi-D1 Trust-based identity (10-role registry)',
+      '§Komunikasi-D2 Topic-based threading (no nested replies)',
+      '§Komunikasi-D3 25 MB × 5 attachments × MIME whitelist',
+      '§Komunikasi-D4 Selective audit (create/close/file_upload only)',
+      '§Komunikasi-D5 Visual unread badge global granularity',
+      '§Komunikasi-D6 SettingsModule tab position 3',
+    ],
+    related: ['log-2026-05-08-devlog-init', 'log-2026-05-08-s3_2_3'],
+  },
+
   // ════════════════════════════════════════════════════════════════════════
   // STEP 3 — SESSION A (Ferry + AI Assistant, 7-8 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
