@@ -212,3 +212,52 @@ export const getReasoningCategoryMeta = (
   if (found) return found;
   return { id, label: id, color: 'gray' };
 };
+
+
+// ─── §4. Reasoning Validation & Badge Helpers (S5.3) ───────────────────────
+//
+// Phase 5.3 — Tinjauan Audit UI helpers untuk validation + badge rendering.
+
+/**
+ * Reasoning minimum length untuk gating "Tandai Direview" button.
+ * Decision T1-A: prevent lazy "ok" review entries.
+ */
+export const REASONING_MIN_LENGTH = 10;
+
+/**
+ * Validation helper — returns true kalau reasoning + category cukup untuk
+ * gate "Simpan Tinjauan" action di AuditEntryEditModal.
+ */
+export const isReasoningValid = (
+  reasoning: string | null | undefined,
+  category: string | null | undefined,
+): boolean => {
+  return (
+    typeof reasoning === 'string' &&
+    reasoning.trim().length >= REASONING_MIN_LENGTH &&
+    !!category
+  );
+};
+
+/**
+ * Map color name (dari ReasoningCategory.color: 'red'/'blue'/'amber'/'purple'/'gray')
+ * ke concrete Tailwind classes untuk badge styling.
+ *
+ * Tailwind requires LITERAL classnames (not interpolated) for purge — so we
+ * enumerate explicit class strings di-mapping object.
+ */
+export const getCategoryBadgeClasses = (
+  color: string | null | undefined,
+): string => {
+  const map: Record<string, string> = {
+    red:    'bg-red-50 text-red-700 border-red-200',
+    blue:   'bg-blue-50 text-blue-700 border-blue-200',
+    amber:  'bg-amber-50 text-amber-700 border-amber-200',
+    purple: 'bg-purple-50 text-purple-700 border-purple-200',
+    gray:   'bg-gray-50 text-gray-700 border-gray-200',
+    slate:  'bg-slate-50 text-slate-700 border-slate-200',
+  };
+  return color && map[color]
+    ? map[color]
+    : 'bg-slate-50 text-slate-700 border-slate-200';
+};
