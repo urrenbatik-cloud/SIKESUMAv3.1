@@ -13,15 +13,16 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  X, ClipboardList, Building2, Calculator, Coins, Construction,
+  X, ClipboardList, Building2, Calculator, Coins, Construction, BookOpen,
 } from 'lucide-react';
 import AuditLogViewer from './AuditLogViewer';
+import DevLogViewer from './DevLogViewer';
 
 interface SettingsModuleProps {
   onClose: () => void;
 }
 
-type SettingsTab = 'audit' | 'profil_rs' | 'bpjs_config' | 'pnbp_config';
+type SettingsTab = 'audit' | 'devlog' | 'profil_rs' | 'bpjs_config' | 'pnbp_config';
 
 interface TabSpec {
   id:     SettingsTab;
@@ -33,7 +34,8 @@ interface TabSpec {
 }
 
 const TABS: TabSpec[] = [
-  { id: 'audit',       label: 'Riwayat Aktivitas', icon: <ClipboardList size={18} />, status: 'live' },
+  { id: 'audit',       label: 'Riwayat Aktivitas',  icon: <ClipboardList size={18} />, status: 'live' },
+  { id: 'devlog',      label: 'Riwayat Pengembangan', icon: <BookOpen size={18} />,    status: 'live' },
   { id: 'profil_rs',   label: 'Profil RS',          icon: <Building2 size={18} />,    status: 'soon', futureRef: 'S3.6' },
   { id: 'bpjs_config', label: 'Konfig BPJS',        icon: <Calculator size={18} />,   status: 'soon', futureRef: 'Phase 4+' },
   { id: 'pnbp_config', label: 'Konfig PNBP',        icon: <Coins size={18} />,        status: 'soon', futureRef: 'S3.5' },
@@ -114,6 +116,7 @@ const SettingsModule: React.FC<SettingsModuleProps> = ({ onClose }) => {
         {/* Content */}
         <div className="p-6 max-h-[70vh] overflow-y-auto">
           {activeTab === 'audit' && <AuditLogViewer />}
+          {activeTab === 'devlog' && <DevLogViewer />}
           {activeTab === 'profil_rs'   && <ComingSoonStub feature="Editor Profil RS"   subRef="S3.6" />}
           {activeTab === 'bpjs_config' && <ComingSoonStub feature="Editor Konfig BPJS" subRef="Phase 4+" />}
           {activeTab === 'pnbp_config' && <ComingSoonStub feature="Editor Konfig PNBP" subRef="S3.5" />}
