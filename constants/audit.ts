@@ -144,3 +144,71 @@ export const getAuditActionMeta = (id: string): AuditAction => {
   // Fallback for unknown actions — keep narrow union type by casting
   return { id: id as AuditActionId, label: id, color: 'stone' } as AuditAction;
 };
+
+
+// ─── §3. Reasoning Taxonomy (S5.1) ─────────────────────────────────────────
+//
+// Step 5.1 — Reasoning capture untuk midterm pagu revision workflow.
+// Origin: Sie Renbang verbal clarification 8 Mei 2026 — audit_log dipakai
+// sebagai justifikasi pengajuan revisi pagu sebelum masa pagu berakhir
+// (trigger-based, bukan time-based; trigger = gejala deviasi mulai muncul).
+//
+// Decisions encoded:
+//   §S5.1-D-1: 5 fields baru di audit_log envelope (reasoning,
+//              reasoningCategory, dynamicsFactor, isReviewed, reviewedAt,
+//              reviewedBy)
+//   §S5.1-D-2: 6 initial categories (extensible — Sie Renbang akan refine
+//              via learning-by-doing)
+//   §S5.1-D-3: All reasoning fields OPTIONAL at-creation. Di-fill nanti
+//              via Tinjauan Audit UI (Phase 5.3, UI placement Opsi C =
+//              integrated di AuditLogViewer detail modal).
+//   §S5.1-D-4: Backward compat — existing audit entries pre-S5.1 punya
+//              reasoning fields = undefined/null. Defensive read everywhere.
+//   §S5.1-D-5: UI placement Opsi C (integrated detail modal).
+//
+// Reasoning categories di-seed ke system_settings.reasoning_categories
+// (KV pattern). Sie Renbang bisa adjust via Settings → "Konfig Kategori
+// Alasan" (tab tambahan post-Phase 5.5).
+
+/**
+ * Reasoning category metadata — seeded di system_settings.reasoning_categories.
+ * Color names cocok dengan Tailwind palette + AUDIT_ACTIONS color scheme.
+ */
+export interface ReasoningCategory {
+  id:    string;        // canonical id (snake_case)
+  label: string;        // display label (Indonesian)
+  color: string;        // Tailwind color name (red/blue/amber/purple/gray/etc.)
+}
+
+/**
+ * Initial 6 categories — di-seed via SQL Phase 5.1.1. Bisa di-extend by user
+ * via Settings → "Konfig Kategori Alasan" (post-Phase 5.5).
+ */
+export const INITIAL_REASONING_CATEGORIES: ReasoningCategory[] = [
+  { id: 'kebutuhan_darurat',   label: 'Kebutuhan Darurat',       color: 'red'    },
+  { id: 'pertumbuhan_pasien',  label: 'Pertumbuhan Pasien',      color: 'blue'   },
+  { id: 'perubahan_kebijakan', label: 'Perubahan Kebijakan',     color: 'amber'  },
+  { id: 'harga_pasar',         label: 'Fluktuasi Harga Pasar',   color: 'purple' },
+  { id: 'salah_input',         label: 'Koreksi Salah Input',     color: 'gray'   },
+  { id: 'lainnya',             label: 'Lainnya',                 color: 'gray'   },
+];
+
+/**
+ * Lookup metadata untuk reasoning category id. Defensive fallback:
+ *   - Kalau id null/undefined → return null (no reasoning recorded)
+ *   - Kalau id ada tapi tidak match available list → return placeholder
+ *     (label = raw id, color = gray) supaya audit entries lama tetap render
+ *     meskipun Sie Renbang hapus suatu kategori dari system_settings.
+ *
+ * @param id - reasoning category id (atau null/undefined dari old entries)
+ * @param available - list dari fetchReasoningCategories() (override default)
+ */
+export const getReasoningCategoryMeta = (
+  id: string | null | undefined,
+  available: ReasoningCategory[] = INITIAL_REASONING_CATEGORIES,
+): ReasoningCategory | null => {
+  if (!id) return null;
+  const found = available.find((c) => c.id === id);
+  if (found) return found;
+  return { id, label: id, color: 'gray' };
+};
