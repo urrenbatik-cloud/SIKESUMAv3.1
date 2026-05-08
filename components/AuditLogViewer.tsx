@@ -17,28 +17,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   RefreshCw, Trash2, FileJson, ChevronLeft, ChevronRight, X,
-  AlertTriangle, Inbox,
+  AlertTriangle, Inbox, CheckCircle2, Clock,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { fetchReasoningCategories } from '../lib/audit';
 import {
   AUDIT_ENTITIES,
   AUDIT_ACTIONS,
   getAuditEntityLabel,
   getAuditActionMeta,
+  getReasoningCategoryMeta,
+  getCategoryBadgeClasses,
+  type ReasoningCategory,
 } from '../constants/audit';
+import AuditEntryEditModal from './AuditEntryEditModal';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface AuditLogRow {
   id: string;
   data: {
-    entity:      string;
-    action:      string;
-    entityId:    string;
-    user:        string;
-    timestamp:   string;
-    description: string;
-    snapshot:    unknown;
+    entity:             string;
+    action:             string;
+    entityId:           string;
+    user:               string;
+    timestamp:          string;
+    description:        string;
+    snapshot:           unknown;
+    // [S5.3] Reasoning fields (filled via Tinjauan Audit modal)
+    reasoning?:         string | null;
+    reasoningCategory?: string | null;
+    dynamicsFactor?:    string | null;
+    reviewerNotes?:     string | null;
+    isReviewed?:        boolean;
+    reviewedAt?:        string | null;
+    reviewedBy?:        string | null;
   };
   created_at?: string;
 }
@@ -72,10 +85,31 @@ const AuditLogViewer: React.FC = () => {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
 
+  // [S5.3] Filters baru — status review + reasoning category
+  // Default 'unreviewed' per T5-A: drives backfill workflow
+  const [statusFilter, setStatusFilter]     = useState<'all' | 'reviewed' | 'unreviewed'>('unreviewed');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+  // [S5.3] Summary counts (pre status filter, post other filters)
+  const [reviewedCount, setReviewedCount]     = useState(0);
+  const [unreviewedCount, setUnreviewedCount] = useState(0);
+
+  // [S5.3] Categories cache — fetched once on mount
+  const [categories, setCategories] = useState<ReasoningCategory[]>([]);
+
   // Modals
   const [detailRow, setDetailRow] = useState<AuditLogRow | null>(null);
+  const [editingRow, setEditingRow] = useState<AuditLogRow | null>(null); // [S5.3]
   const [clearConfirmStep, setClearConfirmStep] = useState<0 | 1 | 2>(0);
   const [isClearing, setIsClearing] = useState(false);
+
+  // [S5.3] Load reasoning categories once on mount (with system_settings fallback)
+  useEffect(() => {
+    fetchReasoningCategories().then(setCategories).catch(() => {
+      // Defensive: fetchReasoningCategories already has its own fallback,
+      // but catch for any unexpected throws.
+    });
+  }, []);
 
   // ─── Data Fetch ───────────────────────────────────────────────────────────
 
@@ -84,8 +118,9 @@ const AuditLogViewer: React.FC = () => {
     setError(null);
 
     try {
-      // Helper untuk apply filters ke query (DRY antara count + data)
-      const applyFilters = <T extends { filter: any; gte: any; lte: any }>(q: T): T => {
+      // Helper untuk apply BASE filters (entity/action/date) ke query — DRY antara
+      // count + data + summary chip queries.
+      const applyBaseFilters = <T extends { filter: any; gte: any; lte: any }>(q: T): T => {
         let next = q as any;
         if (entityFilter !== 'all') {
           next = next.filter('data->>entity', 'eq', entityFilter);
@@ -102,15 +137,47 @@ const AuditLogViewer: React.FC = () => {
         return next as T;
       };
 
-      // 1. Count query (DB-side aggregate)
+      // [S5.3] Apply status + category filters on top of base filters.
+      // isReviewed stored as string 'true'/'false' (per Phase 5.1 §S5.1 design —
+      // see audit-handover doc "isReviewed = string 'false' from boolean stored").
+      const applyAllFilters = <T extends { filter: any; gte: any; lte: any }>(q: T): T => {
+        let next = applyBaseFilters(q) as any;
+        if (statusFilter === 'reviewed') {
+          next = next.filter('data->>isReviewed', 'eq', 'true');
+        } else if (statusFilter === 'unreviewed') {
+          // Match BOTH 'false' (Phase 5.1+ entries) AND null (pre-S5.1 legacy).
+          // Supabase doesn't support OR easily here — workaround: neq 'true'.
+          next = next.filter('data->>isReviewed', 'neq', 'true');
+        }
+        if (categoryFilter !== 'all') {
+          next = next.filter('data->>reasoningCategory', 'eq', categoryFilter);
+        }
+        return next as T;
+      };
+
+      // [S5.3] §1. Summary chip counts (using BASE filters, regardless of status filter).
+      // These power the clickable chips above the filter bar.
+      const reviewedQ = supabase.from('audit_log').select('id', { count: 'exact', head: true })
+        .filter('data->>isReviewed', 'eq', 'true');
+      const { count: revCount, error: revErr } = await applyBaseFilters(reviewedQ as any);
+      if (revErr) throw revErr;
+      setReviewedCount(revCount ?? 0);
+
+      const unreviewedQ = supabase.from('audit_log').select('id', { count: 'exact', head: true })
+        .filter('data->>isReviewed', 'neq', 'true');
+      const { count: unrevCount, error: unrevErr } = await applyBaseFilters(unreviewedQ as any);
+      if (unrevErr) throw unrevErr;
+      setUnreviewedCount(unrevCount ?? 0);
+
+      // §2. Total count query (with status + category filter for current view)
       const countQ = supabase.from('audit_log').select('id', { count: 'exact', head: true });
-      const { count, error: countErr } = await applyFilters(countQ as any);
+      const { count, error: countErr } = await applyAllFilters(countQ as any);
       if (countErr) throw countErr;
       setTotalCount(count ?? 0);
 
-      // 2. Data query (paginated)
+      // §3. Data query (paginated, all filters)
       const dataQ = supabase.from('audit_log').select('*').order('created_at', { ascending: false });
-      const filtered = applyFilters(dataQ as any);
+      const filtered = applyAllFilters(dataQ as any);
       const paged = filtered.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       const { data, error: dataErr } = await paged;
       if (dataErr) throw dataErr;
@@ -123,7 +190,7 @@ const AuditLogViewer: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [entityFilter, actionFilter, dateFrom, dateTo, page]);
+  }, [entityFilter, actionFilter, dateFrom, dateTo, statusFilter, categoryFilter, page]);
 
   useEffect(() => {
     loadEntries();
@@ -133,7 +200,7 @@ const AuditLogViewer: React.FC = () => {
   useEffect(() => {
     setPage(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entityFilter, actionFilter, dateFrom, dateTo]);
+  }, [entityFilter, actionFilter, dateFrom, dateTo, statusFilter, categoryFilter]);
 
   // ─── Clear All Handler (double-confirm) ───────────────────────────────────
 
@@ -169,6 +236,42 @@ const AuditLogViewer: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* [S5.3] Summary chips — clickable filter shortcuts (T5-A: default unreviewed) */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setStatusFilter('unreviewed')}
+          className={`px-3 py-1.5 rounded-full text-sm border transition flex items-center gap-1.5 ${
+            statusFilter === 'unreviewed'
+              ? 'bg-amber-100 text-amber-900 border-amber-400 font-semibold shadow-sm'
+              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+          }`}
+        >
+          <Clock size={14} />
+          {unreviewedCount} Belum Direview
+        </button>
+        <button
+          onClick={() => setStatusFilter('reviewed')}
+          className={`px-3 py-1.5 rounded-full text-sm border transition flex items-center gap-1.5 ${
+            statusFilter === 'reviewed'
+              ? 'bg-emerald-100 text-emerald-900 border-emerald-400 font-semibold shadow-sm'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+          }`}
+        >
+          <CheckCircle2 size={14} />
+          {reviewedCount} Direview
+        </button>
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-sm border transition ${
+            statusFilter === 'all'
+              ? 'bg-slate-900 text-white border-slate-900 font-semibold shadow-sm'
+              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+          }`}
+        >
+          📊 Semua ({reviewedCount + unreviewedCount})
+        </button>
+      </div>
+
       {/* Filter bar */}
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex flex-col">
@@ -195,6 +298,35 @@ const AuditLogViewer: React.FC = () => {
             <option value="all">Semua Aksi</option>
             {AUDIT_ACTIONS.map((a) => (
               <option key={a.id} value={a.id}>{a.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* [S5.3] Status filter (also accessible via chips above) */}
+        <div className="flex flex-col">
+          <label className="text-xs font-semibold text-slate-600 mb-1">Status Tinjauan</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'reviewed' | 'unreviewed')}
+            className="border border-slate-200 rounded-lg px-3 py-2 bg-white text-sm min-w-[140px] focus:ring-2 focus:ring-slate-400 focus:outline-none"
+          >
+            <option value="all">Semua</option>
+            <option value="unreviewed">Belum Direview</option>
+            <option value="reviewed">Sudah Direview</option>
+          </select>
+        </div>
+
+        {/* [S5.3] Reasoning category filter */}
+        <div className="flex flex-col">
+          <label className="text-xs font-semibold text-slate-600 mb-1">Kategori Alasan</label>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border border-slate-200 rounded-lg px-3 py-2 bg-white text-sm min-w-[160px] focus:ring-2 focus:ring-slate-400 focus:outline-none"
+          >
+            <option value="all">Semua Kategori</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
             ))}
           </select>
         </div>
@@ -258,6 +390,7 @@ const AuditLogViewer: React.FC = () => {
         <table className="w-full">
           <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-600 tracking-wide">
             <tr>
+              <th className="p-3 text-left whitespace-nowrap w-32">Status</th>
               <th className="p-3 text-left whitespace-nowrap">Waktu</th>
               <th className="p-3 text-left">Entitas</th>
               <th className="p-3 text-left">Aksi</th>
@@ -268,7 +401,7 @@ const AuditLogViewer: React.FC = () => {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="p-12 text-center text-slate-500">
+                <td colSpan={6} className="p-12 text-center text-slate-500">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw size={16} className="animate-spin" />
                     <span className="text-sm">Memuat...</span>
@@ -278,12 +411,12 @@ const AuditLogViewer: React.FC = () => {
             )}
             {!isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-12 text-center text-slate-500">
+                <td colSpan={6} className="p-12 text-center text-slate-500">
                   <div className="flex flex-col items-center gap-2">
                     <Inbox size={32} className="text-slate-300" />
                     <span className="text-sm font-semibold">Tidak ada entri</span>
                     <span className="text-xs">
-                      {entityFilter !== 'all' || actionFilter !== 'all' || dateFrom || dateTo
+                      {entityFilter !== 'all' || actionFilter !== 'all' || dateFrom || dateTo || statusFilter !== 'all' || categoryFilter !== 'all'
                         ? 'Coba ubah filter atau reset.'
                         : 'Belum ada aktivitas tercatat.'}
                     </span>
@@ -299,8 +432,32 @@ const AuditLogViewer: React.FC = () => {
                 year: '2-digit', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit',
               });
+              // [S5.3] Reasoning rendering helpers
+              const isReviewed = row.data.isReviewed === true;
+              const catMeta = getReasoningCategoryMeta(row.data.reasoningCategory, categories);
               return (
-                <tr key={row.id} className="border-t border-slate-100 hover:bg-slate-50 transition">
+                <tr
+                  key={row.id}
+                  className={`border-t border-slate-100 cursor-pointer transition ${
+                    isReviewed ? 'hover:bg-emerald-50/50' : 'hover:bg-amber-50/50'
+                  }`}
+                  onClick={() => setEditingRow(row)}
+                  title="Klik untuk tinjau / edit reasoning"
+                >
+                  {/* [S5.3] Status indicator column */}
+                  <td className="p-3 whitespace-nowrap">
+                    {isReviewed ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+                        Direview
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+                        <span className="inline-block w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-200" />
+                        Belum
+                      </span>
+                    )}
+                  </td>
                   <td className="p-3 text-xs text-slate-700 whitespace-nowrap font-mono">{dateStr}</td>
                   <td className="p-3 text-sm">
                     <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">
@@ -312,12 +469,27 @@ const AuditLogViewer: React.FC = () => {
                       {meta.label}
                     </span>
                   </td>
-                  <td className="p-3 text-sm text-slate-700">{row.data.description}</td>
-                  <td className="p-3 text-center">
+                  <td className="p-3 text-sm text-slate-700">
+                    <div>{row.data.description}</div>
+                    {/* [S5.3] Inline reasoning preview when reviewed */}
+                    {isReviewed && catMeta && (
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full border ${getCategoryBadgeClasses(catMeta.color)}`}>
+                          🏷️ {catMeta.label}
+                        </span>
+                        {row.data.dynamicsFactor && (
+                          <span className="text-[11px] text-slate-500 italic truncate max-w-[200px]" title={row.data.dynamicsFactor}>
+                            "{row.data.dynamicsFactor}"
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => setDetailRow(row)}
                       className="p-2 hover:bg-slate-200 rounded-lg transition group"
-                      title="Lihat detail JSON"
+                      title="Lihat raw JSON"
                     >
                       <FileJson size={16} className="text-slate-500 group-hover:text-slate-900" />
                     </button>
@@ -461,6 +633,15 @@ const AuditLogViewer: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+      {/* [S5.3] Tinjauan modal — open dari row click */}
+      {editingRow && (
+        <AuditEntryEditModal
+          row={editingRow}
+          categories={categories}
+          onClose={() => setEditingRow(null)}
+          onSaved={() => loadEntries()}
+        />
       )}
     </div>
   );
