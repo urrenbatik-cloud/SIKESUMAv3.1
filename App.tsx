@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
   LayoutDashboard, ShoppingBag, Box, FileText,
   ShieldCheck, Layers, Calendar, Coins, HeartPulse, ShoppingCart, 
@@ -16,6 +16,8 @@ import OperationalBilling from './components/OperationalBilling';
 import RevenueModule from './components/RevenueModule';
 // [S3.2.3] Settings overlay (gear icon di header) — Riwayat Aktivitas + future config tabs
 import SettingsModule from './components/SettingsModule';
+// [Komunikasi] Konstanta key localStorage untuk read-state — single source of truth
+import { STORAGE_KEY_READ_STATE } from './constants/komunikasi';
 // Added RPDSection to types import
 import { 
   MainTab, SubTab, TabType, PaguSection, RABCategory, RPDSection,
@@ -68,6 +70,38 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
   // [S3.2.3] Settings overlay open/close state — wired ke gear icon di header
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // [Komunikasi] Unread message count untuk badge di gear icon. Simplified MVP:
+  // count phase_messages WHERE created_at > localStorage last_global_read.
+  // Per-discussion granularity = future (TD-15 / Phase 3).
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const checkUnreadKomunikasi = useCallback(async () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY_READ_STATE);
+      let lastRead = '1970-01-01T00:00:00.000Z';
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.global_last_read) lastRead = parsed.global_last_read;
+      }
+      const { count, error: e } = await supabase
+        .from('phase_messages')
+        .select('*', { count: 'exact', head: true })
+        .gt('created_at', lastRead);
+      if (!e && typeof count === 'number') setUnreadCount(count);
+    } catch {
+      setUnreadCount(0);
+    }
+  }, []);
+
+  // Initial check on mount; re-check setiap kali Settings ditutup (user mungkin
+  // sudah baca pesan baru → localStorage updated oleh PhaseDiscussionsModule).
+  useEffect(() => { checkUnreadKomunikasi(); }, [checkUnreadKomunikasi]);
+
+  const handleSettingsClose = useCallback(() => {
+    setIsSettingsOpen(false);
+    // Delay 500ms supaya PhaseDiscussionsModule sempat update localStorage dulu
+    setTimeout(checkUnreadKomunikasi, 500);
+  }, [checkUnreadKomunikasi]);
 
   // ==========================================================================
   // STATE — Backed by Supabase (DB-driven) dengan DUMMY initial fallback
@@ -851,13 +885,22 @@ const App: React.FC = () => {
              </div>
 
              {/* [S3.2.3] Settings gear icon — opens SettingsModule overlay (Riwayat Aktivitas + future config tabs) */}
+             {/* [Komunikasi] Red dot badge untuk unread Komunikasi messages (D5 visual indicator) */}
              <button
                onClick={() => setIsSettingsOpen(true)}
-               className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 rounded-2xl text-white transition-all"
-               title="Pengaturan & Riwayat Aktivitas"
+               className="relative p-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 rounded-2xl text-white transition-all"
+               title={unreadCount > 0 ? `Pengaturan & Riwayat (${unreadCount} pesan baru di Komunikasi)` : 'Pengaturan & Riwayat Aktivitas'}
                aria-label="Buka pengaturan"
              >
                <SettingsIcon size={20} />
+               {unreadCount > 0 && (
+                 <span
+                   className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border-2 border-slate-900 shadow-lg"
+                   aria-label={`${unreadCount} pesan baru`}
+                 >
+                   {unreadCount > 99 ? '99+' : unreadCount}
+                 </span>
+               )}
              </button>
           </div>
         </div>
@@ -942,9 +985,10 @@ const App: React.FC = () => {
       </main>
 
       {/* [S3.2.3] Settings overlay — Riwayat Aktivitas + future config tabs.
-          Mounted at root level (z-100) so it sits above all main app content. */}
+          Mounted at root level (z-100) so it sits above all main app content.
+          [Komunikasi] onClose dirouted via handleSettingsClose untuk re-check unread count. */}
       {isSettingsOpen && (
-        <SettingsModule onClose={() => setIsSettingsOpen(false)} />
+        <SettingsModule onClose={handleSettingsClose} />
       )}
     </div>
   );
