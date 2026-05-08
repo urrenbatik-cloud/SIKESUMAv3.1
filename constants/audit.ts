@@ -79,6 +79,13 @@ export const AUDIT_ENTITIES = [
   { id: 'jasaFile',        label: 'File Verifikasi Jasa' }, // → tabel `jasa_verification_files`
   { id: 'jasaConfig',      label: 'Konfig Akun Jasa' },     // → system_settings.jasa_map
   { id: 'paguLock',        label: 'Kunci Pagu' },           // → system_settings.pagu_lock
+
+  // Komunikasi & Diskusi entities (2) — D4 selective audit (post-Session A feature)
+  // Wired via direct logAuditEntries() inline call (NOT diff-based syncToCloud) di
+  // PhaseDiscussionsModule.tsx. Events: discussion create/close/archive + file upload.
+  // Routine text-only messages tidak di-audit (privacy + storage hygiene).
+  { id: 'phaseDiscussion', label: 'Diskusi Phase' },        // → tabel `phase_discussions`
+  { id: 'phaseMessage',    label: 'Pesan Diskusi' },        // → tabel `phase_messages`
 ] as const;
 
 export type AuditEntity = typeof AUDIT_ENTITIES[number];
