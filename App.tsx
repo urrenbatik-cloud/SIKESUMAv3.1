@@ -4,7 +4,8 @@ import {
   LayoutDashboard, ShoppingBag, Box, FileText,
   ShieldCheck, Layers, Calendar, Coins, HeartPulse, ShoppingCart, 
   BarChart3, Users, Globe, Wrench, Calculator, Minimize2, Maximize2, 
-  X, AlertCircle, CloudUpload, Check, RefreshCw
+  X, AlertCircle, CloudUpload, Check, RefreshCw,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import PaguAnggaran from './components/PaguAnggaran';
 import RAB from './components/RAB';
@@ -13,6 +14,8 @@ import RealisasiRPD from './components/RealisasiRPD';
 import BPJSModule from './components/BPJSModule';
 import OperationalBilling from './components/OperationalBilling';
 import RevenueModule from './components/RevenueModule';
+// [S3.2.3] Settings overlay (gear icon di header) — Riwayat Aktivitas + future config tabs
+import SettingsModule from './components/SettingsModule';
 // Added RPDSection to types import
 import { 
   MainTab, SubTab, TabType, PaguSection, RABCategory, RPDSection,
@@ -63,6 +66,8 @@ const App: React.FC = () => {
   const [isPaguLocked, setIsPaguLocked] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  // [S3.2.3] Settings overlay open/close state — wired ke gear icon di header
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // ==========================================================================
   // STATE — Backed by Supabase (DB-driven) dengan DUMMY initial fallback
@@ -844,6 +849,16 @@ const App: React.FC = () => {
                    </select></div>
                 </div>
              </div>
+
+             {/* [S3.2.3] Settings gear icon — opens SettingsModule overlay (Riwayat Aktivitas + future config tabs) */}
+             <button
+               onClick={() => setIsSettingsOpen(true)}
+               className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 rounded-2xl text-white transition-all"
+               title="Pengaturan & Riwayat Aktivitas"
+               aria-label="Buka pengaturan"
+             >
+               <SettingsIcon size={20} />
+             </button>
           </div>
         </div>
       </header>
@@ -925,6 +940,12 @@ const App: React.FC = () => {
            </div>
         </div>
       </main>
+
+      {/* [S3.2.3] Settings overlay — Riwayat Aktivitas + future config tabs.
+          Mounted at root level (z-100) so it sits above all main app content. */}
+      {isSettingsOpen && (
+        <SettingsModule onClose={() => setIsSettingsOpen(false)} />
+      )}
     </div>
   );
 };
