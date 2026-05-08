@@ -83,14 +83,9 @@ export interface RoadmapItem {
 }
 
 export const ROADMAP: RoadmapItem[] = [
-  // ─── Session B (Step 3 remaining) ─────────────────────────────────────────
-  {
-    id:       'S3.3',
-    goal:     'RAB + RPD Persist',
-    detail:   'Wire RAB (Rencana Anggaran Biaya) module + RPD (Rencana Penarikan Dana) module ke Supabase tables `rabs` + `rpds` (sudah dibuat di S3.1). Audit emission entity `rab` dan `rpd` sudah ter-define di taxonomy. Pattern follow pagu_sections (envelope JSONB).',
-    estimate: '~4-5 jam',
-    priority: 'high',
-  },
+  // ─── Session B remaining (Step 3) ─────────────────────────────────────────
+  // S3.3 + S3.6 sudah LIVE via B.1 (8 Mei 2026). Lihat DEV_LOG_ENTRIES
+  // entry 'log-2026-05-08-b1-launch' untuk detail.
   {
     id:       'S3.4',
     goal:     'Modul Kuitansi',
@@ -106,12 +101,51 @@ export const ROADMAP: RoadmapItem[] = [
     priority: 'high',
     dependsOn: [],
   },
+
+  // ─── Step 5 — Decision Support Module untuk Adaptive Planning ─────────────
+  // Origin: Sie Renbang verbal clarification 8 Mei 2026. Audit_log akan dipakai
+  // untuk justifikasi pengajuan revisi pagu sebelum masa pagu berakhir
+  // (trigger-based, bukan time-based — trigger = gejala deviasi mulai muncul).
+  // Phasing Opsi B+ adaptive: sisip 5.1 setelah B.1, lanjut B.2/B.3 paralel
+  // dengan 5.2. Lihat 'log-2026-05-08-b1-launch' untuk konteks lengkap.
   {
-    id:       'S3.6',
-    goal:     'Profil RS Editable',
-    detail:   'Allow editing system_settings.rs_profile via Settings → tab "Profil RS" (currently placeholder). Quick win, ~1-2 jam. Foundation untuk future header rendering yang dynamic dari profile data.',
-    estimate: '~1-2 jam',
+    id:       'S5.1',
+    goal:     'Reasoning Capture di audit_log',
+    detail:   'Add fields: reasoning (string, free-text), reasoningCategory (enum extensible — initial: kebutuhan_darurat, pertumbuhan_pasien, perubahan_kebijakan, harga_pasar, salah_input, lainnya), dynamicsFactor (free-text "faktor ketiga" eksternal: wabah, kebijakan Pusat, fluktuasi harga, redistribusi pasien antar RS), isReviewed, reviewedAt, reviewedBy. Stored di JSONB envelope, optional fields. Reasoning categories di-store di system_settings.reasoning_categories supaya Sie Renbang bisa adjust via Settings.',
+    estimate: '~2-3 jam',
     priority: 'high',
+  },
+  {
+    id:       'S5.2',
+    goal:     'Audit Review UI',
+    detail:   'New tab di Settings: "Tinjauan Audit". List unreviewed audit entries dengan reasoning input form (textarea + category dropdown + dynamics field). Backfill capability: existing entries (created sebelum 5.1 deploy) bisa di-review later. Mark-as-reviewed untuk filter.',
+    estimate: '~4-6 jam',
+    priority: 'high',
+    dependsOn: ['S5.1'],
+  },
+  {
+    id:       'S5.3',
+    goal:     'Deviation Dashboard',
+    detail:   'New sub-tab di Pelaporan: "Analisa Deviasi". Per pos anggaran tampilkan: Pagu YTD vs Realisasi YTD vs RPD YTD, % terpakai vs % waktu (severity color), trend mini-chart per bulan, drill-down ke audit entries reviewed. Butuh Realisasi data complete (Session B selesai).',
+    estimate: '~6-8 jam',
+    priority: 'high',
+    dependsOn: ['S3.3', 'S3.5', 'S5.2'],
+  },
+  {
+    id:       'S5.4',
+    goal:     'Early Warning Engine',
+    detail:   'Pattern-based, BUKAN time-based. Sinyal trigger: deviasi RPD vs Realisasi > 20% di pos manapun (configurable di Settings), burn rate Pagu > 1.5× % waktu, trend 3 bulan over-spend di pos sama, kategori kebutuhan_darurat ≥ 2× di 30 hari. Notification via Komunikasi feature (kirim ke role bendahara + successor + karumkit). Threshold semua configurable di Settings → "Konfig Warning".',
+    estimate: '~3-4 jam',
+    priority: 'medium',
+    dependsOn: ['S5.3'],
+  },
+  {
+    id:       'S5.5',
+    goal:     'Revision Proposal Generator',
+    detail:   'Output tombol "Generate Draft Revisi Pagu" di Tab Pelaporan. Aggregate semua reviewed audit entries dalam window (default 6 bulan, adjustable), group by pos, generate text template proposal dengan kumpulan reasoning + dynamics factor sebagai justifikasi. Output sebagai .docx via skill-docx.',
+    estimate: '~4-6 jam',
+    priority: 'medium',
+    dependsOn: ['S5.2'],
   },
 
   // ─── Phase 3 Hardening (post-Session B) ───────────────────────────────────
@@ -155,6 +189,13 @@ export const ROADMAP: RoadmapItem[] = [
     goal:     'Audit Log Retention Strategy',
     detail:   'Currently audit_log grows unbounded. Implement FIFO trim — delete entries older than 1 year (BPK audit horizon). Single SQL trigger atau Supabase cron function.',
     estimate: '~1 jam',
+    priority: 'low',
+  },
+  {
+    id:       'TD-18',
+    goal:     'RAB Snapshot Baseline Misalignment First-Sync',
+    detail:   'Cosmetic audit issue first-sync after deploy: rabCategories initial state = INITIAL_RAB_CATEGORIES (DUMMY data dengan ID `rab-sec-jasa` style). loadData snapshot capture this dummy state karena DB rabs masih kosong. Lalu useEffect line 846 re-map IDs ke year-prefixed (`rab-pagu-{year}-{slug}`) setelah pagu loaded. First sync diff hasilkan `+4 baru, −4 hapus` (false delete + create). DB state correct, hanya audit description "dramatic". Subsequent syncs clean karena prevSnapshotRef.rabs = DB state. Fix: change initial value `let snapshotRabs = rabCategories` jadi `let snapshotRabs: RABCategory[] = []` di App.tsx loadData. Same fix mungkin applicable ke pagu kalau ada similar mismatch. Detected via Test 2 smoke test B.1 (8 Mei 2026).',
+    estimate: '~30 menit',
     priority: 'low',
   },
 
@@ -233,6 +274,109 @@ export const ROADMAP: RoadmapItem[] = [
 // ============================================================================
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
+  // ════════════════════════════════════════════════════════════════════════
+  // SESSION B B.1 — S3.3 RAB+RPD PERSIST + S3.6 PROFIL RS EDITABLE (8 Mei 2026)
+  // ════════════════════════════════════════════════════════════════════════
+
+  {
+    id:    'log-2026-05-08-b1-launch',
+    date:  '2026-05-08',
+    phase: 'Step 3 / Session B',
+    title: 'Session B B.1 — S3.3 RAB+RPD Persist + S3.6 Profil RS Editable LIVE',
+    type:  'feature',
+    author: 'AI Assistant Session B',
+    description:
+`Session B sub-sequence B.1 LIVE. Dua sub-sequence delivered dalam satu deploy bundle, total ~5 jam work + ~30 menit smoke test.
+
+**S3.3 — RAB + RPD Persistence ke Cloud:**
+- App.tsx 5 surgical patches (+86 baris): prevSnapshotRef typing extension (rabs: RABCategory[], rpds: RPDSection[]), snapshot accumulator init di loadData, 2 try blocks fetch+unwrap rabs/rpds dengan defensive fallback (empty arrays kalau row missing fields), snapshot writeback, 2 syncToCloud entity wires (after pagu_sections, before bills).
+- ID native pattern: \`rab-{linkedPaguSectionId}\` (= \`rab-pagu-{year}-{slug}\`) dan \`rpd-{linkedSectionId}\`. Year-implicit via FK ke pagu, NO transformation needed di sync code.
+- Audit emission via diffCollectionForAudit dengan description builder D-S3.3-4: title primary, FK fallback (\`'RAB ' + (title || linkedPaguSectionId || id)\`, sama pattern untuk RPD).
+- Sync timing follow Session A pattern (batch via syncToCloud + diff helper, NOT inline per-edit Komunikasi pattern). User edit RAB/RPD → state change → click Sinkronisasi Cloud → batch persist + audit emit.
+
+**S3.6 — Profil RS Editable (Settings tab "Profil RS" sekarang LIVE):**
+- New file \`components/RsProfileEditor.tsx\` (344 baris): self-contained module per Komunikasi-pattern (D-S3.6-1 Opsi B), tidak di-wire ke App.tsx state, fetch direct ke supabase, manage own audit emit.
+- 11 fields total per D-S3.6-3 Opsi MAX: 5 existing (namaInstansi, namaRS, alamat, telepon, kota) + 6 baru (npwp, kodeSatker, akreditasi, kepalaRS, nipKepalaRS, email).
+- Defensive load via \`mergeWithDefaults()\` — toleran terhadap incomplete seed (auto-fill empty string untuk 6 field baru). Pertama save akan organic-upgrade DB ke full 11-field schema. Tidak perlu SQL migration explicit.
+- Field-level "Diubah" badge real-time per field saat user edit. Action bar bottom show "N field diubah · siap simpan".
+- Validation: 3 required (namaInstansi, namaRS, alamat) + email regex. Save button disabled kalau ada error atau no changes.
+- Audit emit per D-S3.6-2: direct \`logAuditEntries([entry])\` inline, entity 'rsProfile', action 'config_update', snapshot = field-level diff \`{field: {before, after}}\` for changed fields ONLY (not full profile dump). Description builder: \`'Ubah Profil RS: ' + changedFieldLabels.join(', ')\`.
+- SettingsModule.tsx 3 patches: import RsProfileEditor, tab status \`'soon'\`→\`'live'\`, replace \`<ComingSoonStub>\` dengan \`<RsProfileEditor />\` render.
+
+**Smoke test: 9/9 PASS** (8 wajib + 1 optional, ~30 menit).
+- Test 1: Initial load — rabs=0, rpds=0 baseline ✅
+- Test 2: RAB persist + audit — bulk_update entry "+4 baru, −4 hapus" (cosmetic, lihat TD-18; DB state correct)
+- Test 3: RPD persist + audit — bulk_create + update, clean diff descriptions ("Ubah RPD PAGU ANGGARAN JASA (HONOR OPERASIONAL SATKER)")
+- Test 4: Open Profil RS tab (sekarang live, 11 fields rendered, 5 populated + 6 empty as expected)
+- Test 5: Edit + Save full flow — audit entity 'rsProfile' action 'config_update' dengan field-level diff snapshot \`{kepalaRS: {before:"", after:"Mayor dr Yogi SpB"}, email: {before:"", after:"rsbatintikal@tniad.mil.id"}}\` ✅
+- Test 6: Required validation works
+- Test 7: Email regex works (invalid → error, valid → cleared)
+- Test 8: Reset button works (no audit emit, correct — reset adalah pure UI state revert)
+- Test 9 optional: AuditLogViewer filter integration cross-feature works (Profil RS, RAB, RPD entries semua muncul dengan benar)
+
+**Sie Renbang Verbal Clarification (8 Mei 2026):**
+
+Following written exchange ambiguity di awal sesi (Sie Renbang feedback "RPD belum mengikuti RAB" + "Realisasi terintegrasi dengan RPD"), Ferry telepon langsung dengan Sie Renbang. Klarifikasi penting: **behavior current SUDAH BENAR**. Tidak ada bug Issue 3 (RPD ← RAB) maupun Issue 4 (Realisasi mix). Sie Renbang's perspective:
+
+1. Rencana (RPD) dan realisasi belum tentu sama, tergantung dinamika — itu **normal**, bukan bug
+2. Audit_log akan dipakai untuk justifikasi pengajuan **revisi pagu sebelum masa pagu berakhir** (trigger-based, bukan time-based — trigger = gejala deviasi mulai muncul, manual decision oleh Sie Rembang/rapat koordinasi/Karumkit)
+3. Perlu sistem **early analysis + early audit + early warning** untuk support midterm revision workflow
+
+**"Faktor ketiga dinamika"** yang Sie Renbang sebut = faktor eksternal yang bukan plan (RPD) atau execution (Realisasi), tapi konteks lingkungan yang menjelaskan deviasi: wabah, perubahan kebijakan Pusat, fluktuasi harga, penambahan jumlah pasien karena pengembangan layanan spesifik RS, redistribusi pasien akibat penambahan RS lain di area yang sama.
+
+**Konteks project nature (Ferry clarification):** SIKESUMA + RS Batin Tikal sedang TRANSISI ke digitalisasi. Belum ada formal best practice (PMK/DJA/BPK reference belum di-anchor). RS skala kecil under developed sedang DEFINE workflow mereka sendiri berdasarkan general concept digitalisasi. Implikasi untuk design: keep flexibility (extensible categories, configurable thresholds, NO hardcoded enum). Sie Rembang akan refine via learning-by-doing.
+
+**Implication untuk roadmap:**
+
+New scope **Step 5 — Decision Support Module untuk Adaptive Planning** ditambahkan ke ROADMAP, dengan 5 sub-sequences (5.1 reasoning capture, 5.2 audit review UI, 5.3 deviation dashboard, 5.4 early warning engine pattern-based, 5.5 revision proposal generator).
+
+**Phasing Opsi B+ Adaptive (Ferry approved 8 Mei 2026):**
+1. NOW: Deploy B.1 ✅ (this entry)
+2. NEXT: Step 5.1 (reasoning capture) — supaya audit_log mulai capture reasoning data ASAP
+3. THEN: Generate 2024 dummy data (4 scenarios: Q1 normal, Q2 wabah, Q3 harga naik, Q4 underspend) untuk multi-scenario testing
+4. PARALLEL: Session B.2 (Kuitansi) ┃ Step 5.2 (Audit Review UI) — independent scope, bisa simultaneous atau sequential
+5. THEN: Session B.3 (PNBP Setoran + Laporan Kemenkeu)
+6. THEN: Step 5.3 (Deviation Dashboard) — butuh B.3 done untuk pendapatan vs belanja complete
+7. THEN: Step 5.4 (Early Warning Engine, configurable thresholds)
+8. LAST: Step 5.5 (Revision Proposal Generator)
+
+Total estimasi sisa proyek: ~30-40 jam productive, ~7-9 chat sessions, ~4-6 minggu wall-clock.
+
+**Data strategy (Ferry constraint):**
+- 2024 dan sebelumnya: BOLEH dummy untuk multi-scenario analysis (Step 5 testing)
+- 2025: BOLEH dummy TAPI **reserved for further analysis** — jangan dipakai untuk current testing
+- 2026: real production data, learn-by-doing dengan Sie Renbang
+
+**Tech debt added:**
+- TD-18 (RAB snapshot baseline misalignment first-sync — cosmetic, harmless after first sync, see Test 2 result + ROADMAP entry untuk fix detail)
+
+**Files changed di deploy ini:**
+- App.tsx (+86 baris, 5 patches)
+- components/RsProfileEditor.tsx (NEW, 344 baris)
+- components/SettingsModule.tsx (+1 baris effective: 3 patches)`,
+    files: [
+      'App.tsx',
+      'components/RsProfileEditor.tsx',
+      'components/SettingsModule.tsx',
+    ],
+    decisions: [
+      '§S3.3-D-1 Opsi A: ID pattern rab-{linkedPaguSectionId} (native, no transformation)',
+      '§S3.3-D-2 ID pattern rpd-{linkedSectionId}',
+      '§S3.3-D-3 Opsi A: Sync timing follow Session A pattern (loadData + syncToCloud diff)',
+      '§S3.3-D-4 Audit description builder: title primary, FK fallback',
+      '§S3.3-D-5 Multi-year: defer (current flat array works year-implicit via FK)',
+      '§S3.6-D-1 Opsi B: Self-contained module (Komunikasi pattern, not App.tsx state)',
+      '§S3.6-D-2 Direct inline logAuditEntries, action config_update, field-level diff snapshot',
+      '§S3.6-D-3 Opsi MAX: 11 fields (5 existing + 6 new)',
+      '§S3.6-D-4 Replace ComingSoonStub dengan RsProfileEditor render',
+      'Sie Rembang verbal clarification 8 Mei 2026: tidak ada bug Issue 3/4, behavior current correct',
+      'New scope Step 5 (Decision Support Module): adaptive phasing Opsi B+, sisip 5.1 setelah B.1',
+      'Project nature: SIKESUMA + RS Batin Tikal transisi digitalisasi, define-the-practice mode (no formal PMK/DJA grounding)',
+      'Data strategy: 2024 dummy OK, 2025 reserved, 2026 real',
+    ],
+    related: ['log-2026-05-08-komunikasi-launch'],
+  },
+
   // ════════════════════════════════════════════════════════════════════════
   // KOMUNIKASI & DISKUSI FEATURE (post-Session A insert, 8 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
