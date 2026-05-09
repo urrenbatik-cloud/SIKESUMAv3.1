@@ -3,10 +3,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { TabType, SubTab, Bill, BillingItem, BillCategory, PatientClaim, BPJSCalcSettings, Doctor, Employee, MinimizedForm, ProcurementFile, PaguSection } from '../types';
 import { formatIDR, calculatePPH21 } from './Formatters';
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
+import { canTransition, applyTransition } from '../utils/billStateMachine';
 import { 
   Plus, Trash2, Edit3, X, FileText, Landmark, ShoppingBag, Box,
   Calculator, Coins, ReceiptText, Paperclip, CheckCircle, Wallet, Tags, UserCog, Users, Wrench,
-  Minimize2, Upload, File, Eye, Download
+  Minimize2, Upload, File, Eye, Download, AlertCircle
 } from 'lucide-react';
 import LocalFilterBar, { LocalFilterState } from './LocalFilterBar';
 import KodeAutocomplete, { type KodeSuggestion } from './KodeAutocomplete';
@@ -64,8 +65,14 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
   
   const [formData, setFormData] = useState<Partial<Bill>>({
     namaTagihan: '', noFaktur: '', kegiatan: '', noSprin: '', bank: 'BNI', noRekening: '', npwp: '',
-    namaRekanan: '', tanggal: new Date().toISOString().split('T')[0], items: [], files: [], status: 'Verifikasi'
+    namaRekanan: '', tanggal: new Date().toISOString().split('T')[0], items: [], files: [],
+    // [Sprint C.5] Default 'Draft' (sebelumnya 'Verifikasi' yang skip Draft → audit gap).
+    // User harus klik 'Verifikasi' eksplisit setelah review item & nominal.
+    status: 'Draft',
   });
+
+  // [Sprint C.4 + C.5] Validation result state untuk modal "blocked save"
+  const [saveBlockReason, setSaveBlockReason] = useState<{ message: string; invalidItems?: { id: string; akun: string; namaBarang: string }[] } | null>(null);
 
   const isGlobalRekap = subTab === SubTab.REKAP_AUDIT;
 
@@ -181,10 +188,44 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
     let category: BillCategory = 'OPERASIONAL';
     if (subTab === SubTab.BELANJA_MODAL) category = 'MODAL';
     if (subTab === SubTab.BELANJA_PEMELIHARAAN) category = 'PEMELIHARAAN';
-    const payload = { ...formData, id: editingBillId || `bill-${Date.now()}`, category } as Bill;
-    if (editingBillId && !editingBillId.includes('new')) onBillsChange(bills.map(b => b.id === editingBillId ? payload : b));
-    else onBillsChange([...bills, payload]);
+
+    const targetStatus = formData.status || 'Draft';
+    const draftBill: Bill = {
+      ...formData,
+      id: editingBillId || `bill-${Date.now()}`,
+      category,
+      // Force Draft for validation purposes — actual transition done after via state machine
+      status: 'Draft',
+      statusLog: formData.statusLog || [],
+    } as Bill;
+
+    // [Sprint C.4 + C.5] Soft block: kalau user mau save dengan status non-Draft,
+    // jalankan canTransition() validator. Kalau gagal, tampilkan modal alasan.
+    let finalBill: Bill = draftBill;
+    if (targetStatus !== 'Draft') {
+      const transResult = canTransition(draftBill, targetStatus, paguSections);
+      if (!transResult.ok) {
+        setSaveBlockReason({
+          message: transResult.reason || 'Validation failed',
+          invalidItems: transResult.invalidItems,
+        });
+        return; // tidak save — show modal
+      }
+      finalBill = applyTransition(draftBill, targetStatus, { reason: 'Save action via form' });
+    } else {
+      // Kalau status Draft, log entry first-creation untuk audit trail
+      if (!finalBill.statusLog || finalBill.statusLog.length === 0) {
+        finalBill = {
+          ...finalBill,
+          statusLog: [{ from: null, to: 'Draft', at: new Date().toISOString(), reason: 'Bill created' }],
+        };
+      }
+    }
+
+    if (editingBillId && !editingBillId.includes('new')) onBillsChange(bills.map(b => b.id === editingBillId ? finalBill : b));
+    else onBillsChange([...bills, finalBill]);
     setShowModal(false);
+    setSaveBlockReason(null);
   };
 
   const handleMinimize = () => {
@@ -299,7 +340,7 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validasi Kelengkapan Berkas & Kode Akun</p>
           </div>
         </div>
-        <button onClick={() => { setEditingBillId(null); setFormData({ namaTagihan: '', items: [], files: [], bank: 'BNI', tanggal: new Date().toISOString().split('T')[0] }); setShowModal(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-900 transition-all flex items-center gap-3 active:scale-95">
+        <button onClick={() => { setEditingBillId(null); setFormData({ namaTagihan: '', items: [], files: [], bank: 'BNI', tanggal: new Date().toISOString().split('T')[0], status: 'Draft' }); setShowModal(true); }} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-900 transition-all flex items-center gap-3 active:scale-95">
           <Plus size={20} /> Input Tagihan Baru
         </button>
       </div>
@@ -499,12 +540,58 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
                        {formatIDR((formData.items || []).reduce((s,i) => s + (i.volume * i.hargaSatuan) - (i.ppn + i.pph21 + i.pph22), 0))}
                     </h4>
                  </div>
-                 <div className="flex gap-4">
+                 <div className="flex gap-4 items-center">
+                    {/* [Sprint C.5] Status badge — show current state of bill */}
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg ${
+                      formData.status === 'Lunas' ? 'bg-emerald-100 text-emerald-700' :
+                      formData.status === 'Verifikasi' ? 'bg-blue-100 text-blue-700' :
+                      'bg-slate-100 text-slate-500'
+                    }`}>{formData.status || 'Draft'}</span>
                     <button onClick={() => setShowModal(false)} className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest">Batal</button>
-                    <button onClick={handleSave} className="px-12 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-900 transition-all flex items-center gap-3">Simpan & Verifikasi Audit</button>
+                    {/* [Sprint C.5] Two-button save: Save as Draft (no validation) atau Save & Verifikasi (validated) */}
+                    <button onClick={() => { setFormData({ ...formData, status: 'Draft' }); setTimeout(handleSave, 0); }} className="px-8 py-4 bg-slate-200 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow hover:bg-slate-300 transition-all">Simpan Draft</button>
+                    <button onClick={() => { setFormData({ ...formData, status: 'Verifikasi' }); setTimeout(handleSave, 0); }} className="px-12 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-slate-900 transition-all flex items-center gap-3">Simpan & Verifikasi</button>
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* [Sprint C.4 + C.5] Save block modal — invalid akun atau transition gagal */}
+      {saveBlockReason && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={24} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Tidak Bisa Verifikasi</h3>
+                <p className="text-xs font-bold text-slate-500 mt-1">Validasi state machine gagal — perbaiki dulu sebelum simpan & verifikasi.</p>
+              </div>
+            </div>
+            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 mb-6">
+              <p className="text-sm font-bold text-red-700">{saveBlockReason.message}</p>
+            </div>
+            {saveBlockReason.invalidItems && saveBlockReason.invalidItems.length > 0 && (
+              <div className="mb-6">
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-2">Item yang akun-nya tidak valid:</p>
+                <ul className="space-y-1.5 bg-slate-50 rounded-2xl p-4 max-h-48 overflow-y-auto">
+                  {saveBlockReason.invalidItems.map(it => (
+                    <li key={it.id} className="text-xs flex items-center gap-3">
+                      <span className="font-mono font-black text-red-600">{it.akun || '(kosong)'}</span>
+                      <span className="text-slate-600">{it.namaBarang || '(no name)'}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[10px] font-bold text-slate-400 mt-2">Pakai dropdown autocomplete untuk pilih kode akun yang valid dari Pagu.</p>
+              </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setSaveBlockReason(null); setFormData({ ...formData, status: 'Draft' }); setTimeout(handleSave, 0); }} className="px-6 py-3 bg-slate-200 text-slate-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-300">Simpan Draft Saja</button>
+              <button onClick={() => setSaveBlockReason(null)} className="px-8 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow hover:bg-slate-900">Kembali ke Form</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

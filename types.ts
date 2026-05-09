@@ -109,11 +109,24 @@ export interface BillingItem {
 
 export interface ProcurementFile { id: string; namaFile: string; tipe: string; url?: string; size?: string; }
 
+/** [Sprint C.5] Bill state machine status.
+ *  Valid transitions (lihat utils/billStateMachine.ts):
+ *    Draft → Verifikasi (via klik 'Verifikasi' button, butuh items.length > 0 & akun valid)
+ *    Verifikasi → Lunas (via klik 'Tandai Lunas', butuh tanggal pembayaran)
+ *    Verifikasi → Draft (via klik 'Batal verifikasi' — kembali edit)
+ *    Lunas → terminal (tidak boleh balik kecuali via admin override yang di-audit)
+ */
+export type BillStatus = 'Draft' | 'Verifikasi' | 'Lunas';
+
 export interface Bill {
   id: string; category: BillCategory; type: 'BEKKES' | 'LAINNYA' | 'JASA_DR' | 'JASA_PEGAWAI' | 'PENGADAAN_MODAL' | 'PEMELIHARAAN';
   namaTagihan: string; noFaktur: string; kegiatan: string; noSprin: string;
   bank: string; noRekening: string; npwp: string; namaRekanan: string; tanggal: string;
-  items: BillingItem[]; files: ProcurementFile[]; status: 'Draft' | 'Verifikasi' | 'Lunas';
+  items: BillingItem[]; files: ProcurementFile[];
+  status: BillStatus;
+  /** [Sprint C.5] Audit trail untuk N1 enforcement (state transition history).
+   *  Setiap transisi push entry. Tidak required (legacy bills tidak punya). */
+  statusLog?: { from: BillStatus | null; to: BillStatus; at: string; by?: string; reason?: string }[];
 }
 
 export interface PaguRow {
