@@ -150,7 +150,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
       id: `row-${Date.now()}-${Math.random()}`,
       kode: '', description: '', volume: 1, satuan: '',
       hargaSatuanAwal: 0, hargaSatuanRevisi: 0, jumlahBiayaAwal: 0,
-      jumlahBiayaRevisi: 0, realisasi: 0, sumberDana: 'RM', level: 0
+      jumlahBiayaRevisi: 0, sumberDana: 'RM', level: 0
     };
     onSectionsChange(sections.map(sec => sec.id === sectionId ? { ...sec, rows: [...sec.rows, newRow] } : sec));
   };
@@ -165,7 +165,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
           id: `row-${Date.now()}-${Math.random()}`,
           kode: '', description: '', volume: 1, satuan: '',
           hargaSatuanAwal: 0, hargaSatuanRevisi: 0, jumlahBiayaAwal: 0,
-          jumlahBiayaRevisi: 0, realisasi: 0, sumberDana: parent.sumberDana, level: Math.min(parent.level + 1, 5)
+          jumlahBiayaRevisi: 0, sumberDana: parent.sumberDana, level: Math.min(parent.level + 1, 5)
         };
         const newRows = [...sec.rows];
         newRows.splice(parentIndex + 1, 0, newRow);

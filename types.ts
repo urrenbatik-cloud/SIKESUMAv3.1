@@ -119,7 +119,9 @@ export interface Bill {
 export interface PaguRow {
   id: string; kode: string; description: string; volume: number; satuan: string;
   hargaSatuanAwal: number; hargaSatuanRevisi: number; jumlahBiayaAwal: number;
-  jumlahBiayaRevisi: number; realisasi: number; sumberDana: string; level: number;
+  jumlahBiayaRevisi: number; sumberDana: string; level: number;
+  // Note: realisasi adalah DERIVED dari bucketRegistry.absorptionMap (Sprint A1).
+  // Tidak disimpan di PaguRow karena field zombie — selalu 0, tidak pernah dibaca.
 }
 
 export interface PaguSection { id: string; title: string; rows: PaguRow[]; }

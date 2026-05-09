@@ -86,37 +86,37 @@ export const INITIAL_PAGU_SECTIONS: PaguSection[] = [
     id: 'sec-jasa',
     title: 'PAGU ANGGARAN JASA (HONOR OPERASIONAL SATKER)',
     rows: [
-      { id: 'h1', kode: '521115.01', description: 'Honor Tenaga Lepas (TKS)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1200000000, hargaSatuanRevisi: 1200000000, jumlahBiayaAwal: 1200000000, jumlahBiayaRevisi: 1200000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'h2', kode: '521115.02', description: 'Honor Tenaga Kesehatan', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1500000000, hargaSatuanRevisi: 1500000000, jumlahBiayaAwal: 1500000000, jumlahBiayaRevisi: 1500000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'h3', kode: '521115.03', description: 'Honor Pengelola', volume: 1, satuan: 'Thn', hargaSatuanAwal: 300000000, hargaSatuanRevisi: 300000000, jumlahBiayaAwal: 300000000, jumlahBiayaRevisi: 300000000, realisasi: 0, sumberDana: 'RM', level: 0 },
+      { id: 'h1', kode: '521115.01', description: 'Honor Tenaga Lepas (TKS)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1200000000, hargaSatuanRevisi: 1200000000, jumlahBiayaAwal: 1200000000, jumlahBiayaRevisi: 1200000000, sumberDana: 'RM', level: 0 },
+      { id: 'h2', kode: '521115.02', description: 'Honor Tenaga Kesehatan', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1500000000, hargaSatuanRevisi: 1500000000, jumlahBiayaAwal: 1500000000, jumlahBiayaRevisi: 1500000000, sumberDana: 'RM', level: 0 },
+      { id: 'h3', kode: '521115.03', description: 'Honor Pengelola', volume: 1, satuan: 'Thn', hargaSatuanAwal: 300000000, hargaSatuanRevisi: 300000000, jumlahBiayaAwal: 300000000, jumlahBiayaRevisi: 300000000, sumberDana: 'RM', level: 0 },
     ]
   },
   {
     id: 'sec-ops',
     title: 'PAGU ANGGARAN BELANJA OPERASIONAL',
     rows: [
-      { id: 'o1', kode: '521111.01', description: 'Belanja Keperluan Perkantoran (ATK)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'o2', kode: '521111.02', description: 'Belanja Daya dan Jasa (Listrik/Air)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 300000000, hargaSatuanRevisi: 350000000, jumlahBiayaAwal: 300000000, jumlahBiayaRevisi: 350000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'o3', kode: '521811.01', description: 'Belanja Obat-obatan (Bekkes)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 5000000000, hargaSatuanRevisi: 5000000000, jumlahBiayaAwal: 5000000000, jumlahBiayaRevisi: 5000000000, realisasi: 0, sumberDana: 'PNBP', level: 0 },
-      { id: 'o4', kode: '521811.02', description: 'Belanja BMHP (Disposable)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 3000000000, hargaSatuanRevisi: 3000000000, jumlahBiayaAwal: 3000000000, jumlahBiayaRevisi: 3000000000, realisasi: 0, sumberDana: 'PNBP', level: 0 },
+      { id: 'o1', kode: '521111.01', description: 'Belanja Keperluan Perkantoran (ATK)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },
+      { id: 'o2', kode: '521111.02', description: 'Belanja Daya dan Jasa (Listrik/Air)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 300000000, hargaSatuanRevisi: 350000000, jumlahBiayaAwal: 300000000, jumlahBiayaRevisi: 350000000, sumberDana: 'RM', level: 0 },
+      { id: 'o3', kode: '521811.01', description: 'Belanja Obat-obatan (Bekkes)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 5000000000, hargaSatuanRevisi: 5000000000, jumlahBiayaAwal: 5000000000, jumlahBiayaRevisi: 5000000000, sumberDana: 'PNBP', level: 0 },
+      { id: 'o4', kode: '521811.02', description: 'Belanja BMHP (Disposable)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 3000000000, hargaSatuanRevisi: 3000000000, jumlahBiayaAwal: 3000000000, jumlahBiayaRevisi: 3000000000, sumberDana: 'PNBP', level: 0 },
     ]
   },
   {
     id: 'sec-modal',
     title: 'PAGU ANGGARAN BELANJA MODAL',
     rows: [
-      { id: 'm1', kode: '532111.01', description: 'Modal Alat Kedokteran Umum', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1500000000, hargaSatuanRevisi: 1500000000, jumlahBiayaAwal: 1500000000, jumlahBiayaRevisi: 1500000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'm2', kode: '532111.02', description: 'Modal Alat Kedokteran Spesialis', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1000000000, hargaSatuanRevisi: 1000000000, jumlahBiayaAwal: 1000000000, jumlahBiayaRevisi: 1000000000, realisasi: 0, sumberDana: 'RM', level: 0 },
+      { id: 'm1', kode: '532111.01', description: 'Modal Alat Kedokteran Umum', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1500000000, hargaSatuanRevisi: 1500000000, jumlahBiayaAwal: 1500000000, jumlahBiayaRevisi: 1500000000, sumberDana: 'RM', level: 0 },
+      { id: 'm2', kode: '532111.02', description: 'Modal Alat Kedokteran Spesialis', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1000000000, hargaSatuanRevisi: 1000000000, jumlahBiayaAwal: 1000000000, jumlahBiayaRevisi: 1000000000, sumberDana: 'RM', level: 0 },
     ]
   },
   {
     id: 'sec-pemeliharaan',
     title: 'PAGU ANGGARAN BELANJA PEMELIHARAAN',
     rows: [
-      { id: 'p1', kode: '523111.01', description: 'Pemeliharaan Gedung Kantor', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'p2', kode: '523111.02', description: 'Pemeliharaan Gedung Rawat Inap', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'p3', kode: '523121.01', description: 'Pemeliharaan Alkes Intensif', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, realisasi: 0, sumberDana: 'RM', level: 0 },
-      { id: 'p4', kode: '523121.02', description: 'Pemeliharaan Ambulans / Kendaraan', volume: 1, satuan: 'Thn', hargaSatuanAwal: 100000000, hargaSatuanRevisi: 100000000, jumlahBiayaAwal: 100000000, jumlahBiayaRevisi: 100000000, realisasi: 0, sumberDana: 'RM', level: 0 },
+      { id: 'p1', kode: '523111.01', description: 'Pemeliharaan Gedung Kantor', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },
+      { id: 'p2', kode: '523111.02', description: 'Pemeliharaan Gedung Rawat Inap', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },
+      { id: 'p3', kode: '523121.01', description: 'Pemeliharaan Alkes Intensif', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },
+      { id: 'p4', kode: '523121.02', description: 'Pemeliharaan Ambulans / Kendaraan', volume: 1, satuan: 'Thn', hargaSatuanAwal: 100000000, hargaSatuanRevisi: 100000000, jumlahBiayaAwal: 100000000, jumlahBiayaRevisi: 100000000, sumberDana: 'RM', level: 0 },
     ]
   }
 ];
