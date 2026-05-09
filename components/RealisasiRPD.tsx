@@ -145,7 +145,12 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
       });
     });
 
-    return { totalPagu, totalRencana, totalRealisasi, delta: totalRealisasi - totalRencana, sisaPagu: totalPagu - totalRealisasi };
+    return {
+      totalPagu, totalRencana, totalRealisasi,
+      sisaPagu: totalPagu - totalRealisasi,
+      serapanPct: totalPagu > 0 ? (totalRealisasi / totalPagu * 100) : 0,
+      rpdExceedsPagu: totalRencana > totalPagu && totalPagu > 0,
+    };
   }, [sections, plannedLookup, viewMode, paguSections]);
 
   const hasPlanned = !!rpdPlannedSections;
@@ -172,27 +177,28 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
         {/* Summary cards */}
         <div className={`grid ${hasPlanned ? 'grid-cols-5' : 'grid-cols-3'} gap-3 mt-4`}>
           <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
-            <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Pagu</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Pagu (Tab 1.1)</p>
             <p className="text-lg font-black text-white font-mono">{formatIDR(grandTotals.totalPagu)}</p>
           </div>
           {hasPlanned && (
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+            <div className={`rounded-xl px-4 py-3 border ${grandTotals.rpdExceedsPagu ? 'bg-amber-500/10 border-amber-400/30' : 'bg-white/5 border-white/10'}`}>
               <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">RPD Rencana</p>
-              <p className="text-lg font-black text-blue-300 font-mono">{formatIDR(grandTotals.totalRencana)}</p>
+              <p className={`text-lg font-black font-mono ${grandTotals.rpdExceedsPagu ? 'text-amber-400' : 'text-blue-300'}`}>{formatIDR(grandTotals.totalRencana)}</p>
+              {grandTotals.rpdExceedsPagu && (
+                <p className="text-[8px] font-bold text-amber-400 mt-1">⚠ RPD melebihi Pagu — perlu sinkronisasi</p>
+              )}
             </div>
           )}
           <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
             <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Realisasi (Lunas)</p>
             <p className="text-lg font-black text-emerald-400 font-mono">{formatIDR(grandTotals.totalRealisasi)}</p>
           </div>
-          {hasPlanned && (
-            <div className={`rounded-xl px-4 py-3 border ${grandTotals.delta > 0 ? 'bg-rose-500/10 border-rose-400/30' : grandTotals.delta < 0 ? 'bg-emerald-500/10 border-emerald-400/30' : 'bg-white/5 border-white/10'}`}>
-              <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Delta (Real − Rencana)</p>
-              <p className={`text-lg font-black font-mono ${grandTotals.delta > 0 ? 'text-rose-400' : grandTotals.delta < 0 ? 'text-emerald-400' : 'text-white'}`}>
-                {grandTotals.delta > 0 ? '+' : ''}{formatIDR(grandTotals.delta)}
-              </p>
-            </div>
-          )}
+          <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+            <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">% Serapan</p>
+            <p className={`text-lg font-black font-mono ${grandTotals.serapanPct > 100 ? 'text-rose-400' : grandTotals.serapanPct > 80 ? 'text-amber-400' : 'text-white'}`}>
+              {grandTotals.serapanPct.toFixed(1)}%
+            </p>
+          </div>
           <div className={`rounded-xl px-4 py-3 border ${grandTotals.sisaPagu < 0 ? 'bg-rose-500/10 border-rose-400/30' : 'bg-white/5 border-white/10'}`}>
             <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Sisa Pagu</p>
             <p className={`text-lg font-black font-mono ${grandTotals.sisaPagu < 0 ? 'text-rose-400' : 'text-white'}`}>
@@ -224,7 +230,7 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                     <th colSpan={4} className="bg-emerald-700 border-b border-emerald-600">REALISASI TRIMESTER III</th>
                     <th colSpan={4} className="bg-emerald-700 border-b border-emerald-600">REALISASI TRIMESTER IV</th>
                     <th rowSpan={2} className="w-32 px-2 py-4 bg-slate-900 border-l border-slate-700">TOTAL REALISASI</th>
-                    {hasPlanned && <th rowSpan={2} className="w-28 px-2 py-4 bg-amber-900 border-l border-slate-700">DELTA</th>}
+                    {hasPlanned && <th rowSpan={2} className="w-28 px-2 py-4 bg-amber-900 border-l border-slate-700">% SERAPAN</th>}
                     <th rowSpan={2} className="w-28 px-2 py-4 bg-slate-800 border-l border-slate-700">SISA PAGU</th>
                   </tr>
                   <tr className="bg-slate-700 text-[8px]">
@@ -241,8 +247,8 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                     const currentPagu = viewMode === 'SEMULA' ? rowPagu.awal : rowPagu.revisi;
                     const planned = plannedLookup[row.id];
                     const totalPlanned = planned ? sumMonthly(planned.monthly) : 0;
-                    const delta = total - totalPlanned;
                     const sisa = currentPagu - total;
+                    const serapan = currentPagu > 0 ? (total / currentPagu * 100) : 0;
                     const indentation = row.level * 1.5;
                     const originalIndex = section.rows.findIndex(r => r.id === row.id);
                     const nextRowOriginal = section.rows[originalIndex + 1];
@@ -282,8 +288,8 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
 
                         <td className="px-2 py-3 text-right font-mono font-black text-emerald-700 bg-emerald-50/30">{total > 0 ? formatIDR(total).replace('Rp', '').trim() : '-'}</td>
                         {hasPlanned && (
-                          <td className={`px-2 py-3 text-right font-mono font-black ${delta > 0 ? 'text-rose-600 bg-rose-50/50' : delta < 0 ? 'text-emerald-600 bg-emerald-50/30' : 'text-slate-400'}`}>
-                            {total === 0 && totalPlanned === 0 ? '-' : `${delta > 0 ? '+' : ''}${formatIDR(delta).replace('Rp', '').trim()}`}
+                          <td className={`px-2 py-3 text-right font-mono font-black ${serapan > 100 ? 'text-rose-600 bg-rose-50/50' : serapan > 80 ? 'text-amber-600 bg-amber-50/30' : serapan > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {total === 0 && currentPagu === 0 ? '-' : `${serapan.toFixed(1)}%`}
                           </td>
                         )}
                         <td className={`px-2 py-3 text-right font-mono font-black ${sisa < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-slate-500'}`}>
