@@ -270,6 +270,7 @@ const App: React.FC = () => {
             if (!byYear[year]) byYear[year] = [];
             byYear[year].push({
               id: p.id,
+              tahun: p.data?.tahun ?? year,  // [Sprint A3] backfill tahun dari ID pattern jika belum ada
               title: p.data?.title || '',
               rows: Array.isArray(p.data?.rows) ? p.data.rows : [],
             });
@@ -1098,7 +1099,7 @@ const App: React.FC = () => {
         <div className="max-w-[98%] mx-auto px-6 py-6 pb-32">
            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
               {activeTabType === TabType.PAGU && (
-                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} />
+                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, tahun: currentRKKSYear, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} />
               )}
               {activeTabType === TabType.RAB && (
                 <RAB paguSections={paguSections} categories={rabCategories} onCategoriesChange={setRabCategories} selectedYear={currentRKKSYear} />

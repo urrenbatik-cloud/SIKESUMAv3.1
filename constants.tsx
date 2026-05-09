@@ -84,6 +84,7 @@ export const DUMMY_BILLS: Bill[] = [
 export const INITIAL_PAGU_SECTIONS: PaguSection[] = [
   {
     id: 'sec-jasa',
+    tahun: 2025,
     title: 'PAGU ANGGARAN JASA (HONOR OPERASIONAL SATKER)',
     rows: [
       { id: 'h1', kode: '521115.01', description: 'Honor Tenaga Lepas (TKS)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1200000000, hargaSatuanRevisi: 1200000000, jumlahBiayaAwal: 1200000000, jumlahBiayaRevisi: 1200000000, sumberDana: 'RM', level: 0 },
@@ -93,6 +94,7 @@ export const INITIAL_PAGU_SECTIONS: PaguSection[] = [
   },
   {
     id: 'sec-ops',
+    tahun: 2025,
     title: 'PAGU ANGGARAN BELANJA OPERASIONAL',
     rows: [
       { id: 'o1', kode: '521111.01', description: 'Belanja Keperluan Perkantoran (ATK)', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },
@@ -103,6 +105,7 @@ export const INITIAL_PAGU_SECTIONS: PaguSection[] = [
   },
   {
     id: 'sec-modal',
+    tahun: 2025,
     title: 'PAGU ANGGARAN BELANJA MODAL',
     rows: [
       { id: 'm1', kode: '532111.01', description: 'Modal Alat Kedokteran Umum', volume: 1, satuan: 'Thn', hargaSatuanAwal: 1500000000, hargaSatuanRevisi: 1500000000, jumlahBiayaAwal: 1500000000, jumlahBiayaRevisi: 1500000000, sumberDana: 'RM', level: 0 },
@@ -111,6 +114,7 @@ export const INITIAL_PAGU_SECTIONS: PaguSection[] = [
   },
   {
     id: 'sec-pemeliharaan',
+    tahun: 2025,
     title: 'PAGU ANGGARAN BELANJA PEMELIHARAAN',
     rows: [
       { id: 'p1', kode: '523111.01', description: 'Pemeliharaan Gedung Kantor', volume: 1, satuan: 'Thn', hargaSatuanAwal: 200000000, hargaSatuanRevisi: 200000000, jumlahBiayaAwal: 200000000, jumlahBiayaRevisi: 200000000, sumberDana: 'RM', level: 0 },

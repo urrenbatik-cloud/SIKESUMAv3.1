@@ -124,7 +124,12 @@ export interface PaguRow {
   // Tidak disimpan di PaguRow karena field zombie — selalu 0, tidak pernah dibaca.
 }
 
-export interface PaguSection { id: string; title: string; rows: PaguRow[]; }
+export interface PaguSection {
+  id: string;
+  tahun: number;     // [Sprint A3] Tahun anggaran — eksplisit, tidak lagi parsing dari ID
+  title: string;
+  rows: PaguRow[];
+}
 
 export interface MinimizedForm {
   id: string;
