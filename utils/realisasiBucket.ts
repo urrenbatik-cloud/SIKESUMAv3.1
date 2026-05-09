@@ -242,9 +242,10 @@ export function buildBucketRegistry(input: BuildBucketRegistryInput): BucketRegi
 
 /**
  * Run IV checks: validate buckets against lattice constraints.
- * - IV-OVER-PAGU: yearly realisasi for a kode exceeds pagu ceiling
- * - IV-RPD-DEVIATION: monthly realisasi deviates > 30% from RPD planned
- * - IV-ORPHAN: bucket kode has no matching pagu row (potential miscoding)
+ * - IV-OVER-PAGU:    [ERROR]   yearly realisasi for a kode exceeds pagu ceiling (L7)
+ * - IV-RPD-DEVIATION:[WARNING] monthly realisasi deviates > 30% from RPD planned
+ * - IV-ORPHAN:       [ERROR]   bucket kode has no matching pagu row (L8 violation, [C.3])
+ * - IV-DUP-PAGU:     [WARNING] kode appears in >1 Pagu section, may double-count (L1, [C.1])
  */
 function runIVChecks(
   buckets: Record<string, Record<number, RealisasiBucket>>,
@@ -257,13 +258,23 @@ function runIVChecks(
   // Build pagu lookup: kode → ceiling
   const paguByKode: Record<string, number> = {};
   const allPaguKodes = new Set<string>();
+  // [Sprint C.1] L1 enforcement: detect duplicate kode di Pagu (lintas section).
+  // Track which sections each kode appears in. Soft block = pagu tetap save,
+  // tapi munculkan IV-DUP-PAGU check supaya consumer (LRA dashboard, etc) sadar.
+  const kodeToSections: Record<string, string[]> = {};
   paguSections.forEach(sec => {
+    const seenInThisSection = new Set<string>();
     sec.rows.forEach(r => {
       const cleanCode = r.kode.trim();
       if (!cleanCode) return;
       allPaguKodes.add(cleanCode);
+      // Track section appearance (only count once per section even if duplicated within)
+      if (!seenInThisSection.has(cleanCode)) {
+        seenInThisSection.add(cleanCode);
+        if (!kodeToSections[cleanCode]) kodeToSections[cleanCode] = [];
+        kodeToSections[cleanCode].push(sec.title || sec.id);
+      }
       // Use leaf nodes only
-      const isLeaf = r.level === Math.max(...sec.rows.filter(sr => sr.kode.trim().startsWith(cleanCode.split('.')[0])).map(sr => sr.level));
       if (r.level > 0 || sec.rows.length === 1) {
         paguByKode[cleanCode] = (budgetViewMode === 'SEMULA' ? r.jumlahBiayaAwal : r.jumlahBiayaRevisi) || 0;
       }
@@ -278,6 +289,21 @@ function runIVChecks(
       if (!cleanCode) return;
       rpdByKode[cleanCode] = { ...row.monthly } as unknown as Record<string, number>;
     });
+  });
+
+  // [Sprint C.1] IV-DUP-PAGU: kode yang muncul di >1 section Pagu dalam tahun yang sama.
+  // Soft block per keputusan user: Pagu tetap di-save, tapi check ini membuat
+  // konsumer (LRA dashboard) sadar bahwa total realisasi mungkin terinflate
+  // (kalau bill posting ke kode yang sama, butuh disambiguasi section).
+  Object.entries(kodeToSections).forEach(([kode, sectionNames]) => {
+    if (sectionNames.length > 1) {
+      checks.push({
+        kodeAkun: kode, bulan: 0, severity: 'WARNING',
+        code: 'IV-DUP-PAGU',
+        message: `Kode ${kode} muncul di ${sectionNames.length} section Pagu: ${sectionNames.join(', ')}. Total realisasi mungkin double-counted.`,
+        bucketTotal: 0, reference: 0,
+      });
+    }
   });
 
   // Check each bucket kode
