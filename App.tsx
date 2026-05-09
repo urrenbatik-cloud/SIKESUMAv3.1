@@ -910,12 +910,32 @@ const App: React.FC = () => {
 
   const [rpdSections, setRpdSections] = useState<RPDSection[]>([]);
   useEffect(() => {
-    const rpdSectionsInitial = paguSections.map(sec => ({ id: `rpd-${sec.id}`, title: sec.title, linkedSectionId: sec.id, rows: sec.rows.map(r => ({ id: r.id, kode: r.kode, description: r.description, totalBudget: r.jumlahBiayaAwal, totalBudgetRevisi: r.jumlahBiayaRevisi, level: r.level, monthly: { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0 } })) }));
+    // [Sprint A2] RPD rows mirror Pagu rows (id, kode, description, level), tapi
+    // budget tidak lagi disimpan di RPD — di-derive dari Pagu via paguByKode.
+    // useEffect ini hanya pastikan struktur RPD sinkron dengan Pagu (rows ada).
+    const rpdSectionsInitial = paguSections.map(sec => ({
+      id: `rpd-${sec.id}`,
+      title: sec.title,
+      linkedSectionId: sec.id,
+      rows: sec.rows.map(r => ({
+        id: r.id,
+        kode: r.kode,
+        description: r.description,
+        level: r.level,
+        monthly: { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0 }
+      }))
+    }));
     setRpdSections(prev => {
        if (prev.length === 0) return rpdSectionsInitial;
        return rpdSectionsInitial.map(newSec => {
           const existing = prev.find(p => p.linkedSectionId === newSec.linkedSectionId);
-          if (existing) return { ...newSec, rows: newSec.rows.map(nr => { const exRow = existing.rows.find(er => er.id === nr.id); return exRow ? { ...nr, monthly: exRow.monthly, totalBudget: nr.totalBudget, totalBudgetRevisi: nr.totalBudgetRevisi } : nr; })};
+          if (existing) {
+            // Preserve existing monthly distribution; struktur baru ikut Pagu
+            return { ...newSec, rows: newSec.rows.map(nr => {
+              const exRow = existing.rows.find(er => er.id === nr.id);
+              return exRow ? { ...nr, monthly: exRow.monthly } : nr;
+            })};
+          }
           return newSec;
        });
     });
@@ -1105,7 +1125,7 @@ const App: React.FC = () => {
                 <RAB paguSections={paguSections} categories={rabCategories} onCategoriesChange={setRabCategories} selectedYear={currentRKKSYear} />
               )}
               {activeTabType === TabType.RPD && (
-                <RPD sections={rpdSections} onSectionsChange={setRpdSections} viewMode={budgetViewMode} selectedYear={currentRKKSYear} />
+                <RPD sections={rpdSections} paguSections={paguSections} onSectionsChange={setRpdSections} viewMode={budgetViewMode} selectedYear={currentRKKSYear} />
               )}
               {activeTabType === TabType.REALISASI && (
                 <RealisasiRPD

@@ -91,12 +91,12 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
     return map;
   }, [paguSections]);
 
-  // Helper: get pagu for a row — from paguSections if available, fallback to RPD's own value
-  const getPaguForRow = (row: RPDRow): { awal: number; revisi: number } => {
+  // Helper: get pagu for a row from Tab 1.1 (SSOT). Returns null if kode tidak
+  // ditemukan — caller wajib tampilkan "INVALID KODE" (Sprint A2 Opsi A strict).
+  const getPaguForRow = (row: RPDRow): { awal: number; revisi: number } | null => {
     const kode = row.kode.trim();
-    if (paguByKode[kode]) return paguByKode[kode];
-    // Fallback: use RPD's own totalBudget (may differ from Tab 1.1)
-    return { awal: row.totalBudget || 0, revisi: row.totalBudgetRevisi || 0 };
+    if (!kode) return null;
+    return paguByKode[kode] || null;
   };
 
   const getVisibleRows = (rows: RPDRow[]) => {
@@ -113,12 +113,13 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
     return visible;
   };
 
-  // Grand totals — pagu from paguSections (Tab 1.1), not from RPD
+  // Grand totals — pagu from paguSections (Tab 1.1, SSOT). RPD-fallback dihapus.
   const grandTotals = useMemo(() => {
     let totalPagu = 0, totalRencana = 0, totalRealisasi = 0;
 
+    // [Sprint A2] Pagu HANYA dari Tab 1.1 — tidak ada lagi fallback ke
+    // RPDRow.totalBudget yang sudah dihapus dari schema.
     if (paguSections && paguSections.length > 0) {
-      // Pagu from Tab 1.1 (single source of truth)
       paguSections.forEach(sec => {
         const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
         sec.rows.filter(r => r.level === minLvl).forEach(r => {
@@ -126,13 +127,9 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
         });
       });
     } else {
-      // Fallback: from RPD rows (backward compat)
-      sections.forEach(sec => {
-        const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
-        sec.rows.filter(r => r.level === minLvl).forEach(row => {
-          totalPagu += (viewMode === 'SEMULA' ? row.totalBudget : row.totalBudgetRevisi) || 0;
-        });
-      });
+      // paguSections wajib di-pass dari App.tsx. Kalau tidak ada, log warning.
+      // eslint-disable-next-line no-console
+      console.warn('[RealisasiRPD] paguSections empty/missing — totalPagu = 0. SSOT requires Tab 1.1 data.');
     }
 
     // Realisasi + RPD Rencana from sections
@@ -243,8 +240,12 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                 <tbody className="divide-y divide-slate-100 font-bold">
                   {visibleRows.map((row) => {
                     const { t1, t2, t3, t4, total } = calculateRowSums(row);
+                    // [Sprint A2] SSOT strict: null = kode tidak ada di Pagu Tab 1.1
                     const rowPagu = getPaguForRow(row);
-                    const currentPagu = viewMode === 'SEMULA' ? rowPagu.awal : rowPagu.revisi;
+                    const isInvalidKode = (row.kode || '').trim() !== '' && rowPagu === null;
+                    const paguAwal = rowPagu?.awal ?? 0;
+                    const paguRevisi = rowPagu?.revisi ?? 0;
+                    const currentPagu = viewMode === 'SEMULA' ? paguAwal : paguRevisi;
                     const planned = plannedLookup[row.id];
                     const totalPlanned = planned ? sumMonthly(planned.monthly) : 0;
                     const sisa = currentPagu - total;
@@ -255,14 +256,17 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                     const hasChildren = nextRowOriginal && nextRowOriginal.level > row.level;
 
                     return (
-                      <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/50' : 'bg-white'} hover:bg-emerald-50 transition-colors group text-[10px]`}>
+                      <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/50' : 'bg-white'} ${isInvalidKode ? 'bg-red-50/40' : ''} hover:bg-emerald-50 transition-colors group text-[10px]`}>
                         <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-100 align-top cursor-pointer" style={{ paddingLeft: `${indentation + 1}rem` }} onClick={() => hasChildren && toggleRowCollapse(row.id)}>
                           <span className="font-mono font-black text-emerald-600 mr-2">{row.kode}</span>
                           <span className={`${hasChildren ? 'font-black' : 'font-bold'} text-slate-700`}>{row.description}</span>
                           {hasChildren && <span className="ml-2 text-slate-400">{collapsedRows.has(row.id) ? '▶' : '▼'}</span>}
+                          {isInvalidKode && (
+                            <span title="Kode akun ini tidak ditemukan di Pagu Anggaran (Tab 1.1). Tambahkan ke Pagu atau perbaiki kode di sini." className="ml-2 px-1.5 py-0.5 bg-red-600 text-white text-[8px] font-black rounded uppercase tracking-widest">INVALID KODE</span>
+                          )}
                         </td>
-                        {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400">{formatIDR(rowPagu.awal).replace('Rp', '').trim()}</td>}
-                        {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800">{formatIDR(rowPagu.revisi).replace('Rp', '').trim()}</td>}
+                        {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400">{isInvalidKode ? '—' : formatIDR(paguAwal).replace('Rp', '').trim()}</td>}
+                        {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800">{isInvalidKode ? '—' : formatIDR(paguRevisi).replace('Rp', '').trim()}</td>}
                         {hasPlanned && (
                           <td className="px-2 py-3 text-right font-mono font-bold text-indigo-600 bg-indigo-50/30">
                             {totalPlanned > 0 ? formatIDR(totalPlanned).replace('Rp', '').trim() : '-'}
@@ -288,12 +292,12 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
 
                         <td className="px-2 py-3 text-right font-mono font-black text-emerald-700 bg-emerald-50/30">{total > 0 ? formatIDR(total).replace('Rp', '').trim() : '-'}</td>
                         {hasPlanned && (
-                          <td className={`px-2 py-3 text-right font-mono font-black ${serapan > 100 ? 'text-rose-600 bg-rose-50/50' : serapan > 80 ? 'text-amber-600 bg-amber-50/30' : serapan > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
-                            {total === 0 && currentPagu === 0 ? '-' : `${serapan.toFixed(1)}%`}
+                          <td className={`px-2 py-3 text-right font-mono font-black ${isInvalidKode ? 'text-red-600 bg-red-100' : serapan > 100 ? 'text-rose-600 bg-rose-50/50' : serapan > 80 ? 'text-amber-600 bg-amber-50/30' : serapan > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {isInvalidKode ? '—' : (total === 0 && currentPagu === 0 ? '-' : `${serapan.toFixed(1)}%`)}
                           </td>
                         )}
-                        <td className={`px-2 py-3 text-right font-mono font-black ${sisa < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-slate-500'}`}>
-                          {formatIDR(sisa).replace('Rp', '').trim()}
+                        <td className={`px-2 py-3 text-right font-mono font-black ${isInvalidKode ? 'text-red-600 bg-red-100' : sisa < 0 ? 'text-rose-600 bg-rose-50/50' : 'text-slate-500'}`}>
+                          {isInvalidKode ? '—' : formatIDR(sisa).replace('Rp', '').trim()}
                         </td>
                       </tr>
                     );

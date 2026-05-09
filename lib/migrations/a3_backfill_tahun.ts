@@ -15,7 +15,7 @@
  *   - Atau jalankan manual via curl/Python script (lihat logs Sprint A)
  */
 
-import { supabase } from './supabase';
+import { supabase } from '../supabase';
 
 export async function backfillTahun(): Promise<{ updated: number; skipped: number }> {
   const { data, error } = await supabase.from('pagu_sections').select('*');

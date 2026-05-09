@@ -198,9 +198,9 @@ export interface RPDRow {
   id: string;
   kode: string;
   description: string;
-  totalBudget: number;
-  totalBudgetRevisi: number;
   level: number;
+  // [Sprint A2] totalBudget & totalBudgetRevisi DIHAPUS — di-derive dari Pagu
+  // via utils/paguLookup.ts. RPD hanya menyimpan distribusi monthly.
   monthly: {
     m1: number; m2: number; m3: number; m4: number; m5: number; m6: number;
     m7: number; m8: number; m9: number; m10: number; m11: number; m12: number;

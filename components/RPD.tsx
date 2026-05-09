@@ -1,17 +1,25 @@
 
-import React, { useState } from 'react';
-import { RPDSection, RPDRow } from '../types';
+import React, { useState, useMemo } from 'react';
+import { RPDSection, RPDRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
+import { buildPaguByKode } from '../utils/paguLookup';
 
 interface RPDProps {
   sections: RPDSection[];
+  /** Pagu sections — SSOT untuk budget. Wajib di-pass agar RPD bisa derive
+   *  totalBudget tanpa cache (Sprint A2 / L4 enforcement). */
+  paguSections: PaguSection[];
   onSectionsChange: (newSections: RPDSection[]) => void;
   viewMode: 'SEMULA' | 'REVISI' | 'SEMUA';
   selectedYear: number;
 }
 
-const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selectedYear }) => {
+const RPD: React.FC<RPDProps> = ({ sections, paguSections, onSectionsChange, viewMode, selectedYear }) => {
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
+
+  // [Sprint A2] SSOT: Pagu lookup map. RPDRow.totalBudget tidak lagi disimpan;
+  // semua tampilan budget di-derive dari paguSections via buildPaguByKode.
+  const paguByKode = useMemo(() => buildPaguByKode(paguSections), [paguSections]);
 
   const showRevisi = viewMode === 'REVISI' || viewMode === 'SEMUA';
   const showSemula = viewMode === 'SEMULA' || viewMode === 'SEMUA';
@@ -40,19 +48,17 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
 
   const bubbleUpRPD = (rows: RPDRow[]): RPDRow[] => {
     let updated = [...rows];
+    // [Sprint A2] Hanya bubble-up monthly. totalBudget/totalBudgetRevisi tidak
+    // lagi disimpan di RPDRow — di-derive dari Pagu via paguByKode.
     for (let i = updated.length - 1; i >= 0; i--) {
       const item = updated[i];
       let hasChildren = false;
       const childSums = { m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0 };
-      let childBudgetSum = 0;
-      let childBudgetRevisiSum = 0;
 
       for (let j = i + 1; j < updated.length; j++) {
         if (updated[j].level <= item.level) break;
         if (updated[j].level === item.level + 1) {
           hasChildren = true;
-          childBudgetSum += updated[j].totalBudget || 0;
-          childBudgetRevisiSum += updated[j].totalBudgetRevisi || 0;
           Object.keys(childSums).forEach(key => {
             (childSums as any)[key] += (updated[j].monthly as any)[key] || 0;
           });
@@ -61,8 +67,6 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
 
       if (hasChildren) {
         updated[i].monthly = { ...childSums };
-        updated[i].totalBudget = childBudgetSum;
-        updated[i].totalBudgetRevisi = childBudgetRevisiSum;
       }
     }
     return updated;
@@ -166,9 +170,16 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
                   <tbody className="divide-y divide-slate-100">
                     {visibleRows.map((row) => {
                       const { t1, t2, t3, t4, total } = calculateRowSums(row);
-                      const currentPagu = viewMode === 'SEMULA' ? row.totalBudget : row.totalBudgetRevisi;
+                      // [Sprint A2] SSOT: Pagu di-lookup dari paguByKode (derived dari Tab 1.1).
+                      // Kalau kode tidak ada di Pagu → INVALID KODE (Opsi A strict).
+                      const cleanCode = (row.kode || '').trim();
+                      const paguEntry = cleanCode ? paguByKode[cleanCode] : null;
+                      const isInvalidKode = cleanCode !== '' && !paguEntry;
+                      const paguAwal = paguEntry ? paguEntry.awal : 0;
+                      const paguRevisi = paguEntry ? paguEntry.revisi : 0;
+                      const currentPagu = viewMode === 'SEMULA' ? paguAwal : paguRevisi;
                       const selisih = currentPagu - total;
-                      
+
                       const indentation = row.level * 1.5;
                       const originalIndex = section.rows.findIndex(r => r.id === row.id);
                       const nextRowOriginal = section.rows[originalIndex + 1];
@@ -176,7 +187,7 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
                       const isCollapsed = collapsedRows.has(row.id);
 
                       return (
-                        <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/50 font-black' : 'bg-white'} hover:bg-blue-50 transition-colors group text-[10px]`}>
+                        <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/50 font-black' : 'bg-white'} ${isInvalidKode ? 'bg-red-50/40' : ''} hover:bg-blue-50 transition-colors group text-[10px]`}>
                           <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-100 align-top" style={{ paddingLeft: `${indentation + 1}rem` }}>
                              {hasChildren && (
                               <button onClick={() => toggleRowCollapse(row.id)} className={`mr-2 w-4 h-4 rounded bg-slate-200 text-slate-600 items-center justify-center transition-transform inline-flex ${isCollapsed ? '-rotate-90' : ''}`}>
@@ -184,10 +195,13 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
                               </button>
                             )}
                             <span className="font-bold">{row.kode} {row.description}</span>
+                            {isInvalidKode && (
+                              <span title="Kode akun ini tidak ditemukan di Pagu Anggaran (Tab 1.1). Periksa Pagu atau perbaiki kode di sini." className="ml-2 px-1.5 py-0.5 bg-red-600 text-white text-[8px] font-black rounded uppercase tracking-widest">INVALID KODE</span>
+                            )}
                           </td>
-                          {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400 bg-slate-50/20">{formatIDR(row.totalBudget).replace('Rp', '').trim()}</td>}
-                          {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800 bg-blue-50/20">{formatIDR(row.totalBudgetRevisi).replace('Rp', '').trim()}</td>}
-                          
+                          {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400 bg-slate-50/20">{isInvalidKode ? '—' : formatIDR(paguAwal).replace('Rp', '').trim()}</td>}
+                          {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800 bg-blue-50/20">{isInvalidKode ? '—' : formatIDR(paguRevisi).replace('Rp', '').trim()}</td>}
+
                           {[1, 2, 3, 't1', 4, 5, 6, 't2', 7, 8, 9, 't3', 10, 11, 12, 't4'].map((m) => {
                             const isSub = typeof m === 'string';
                             const mKey = isSub ? m : `m${m}`;
@@ -202,7 +216,7 @@ const RPD: React.FC<RPDProps> = ({ sections, onSectionsChange, viewMode, selecte
                           })}
 
                           <td className="px-2 py-3 text-right font-mono font-black text-blue-700 bg-blue-50/30">{total > 0 ? formatIDR(total).replace('Rp', '').trim() : '-'}</td>
-                          <td className={`px-2 py-3 text-right font-mono font-black ${selisih !== 0 ? 'text-red-600 bg-red-50 animate-pulse' : 'text-emerald-600 opacity-30'}`}>{formatIDR(selisih).replace('Rp', '').trim()}</td>
+                          <td className={`px-2 py-3 text-right font-mono font-black ${isInvalidKode ? 'text-red-600 bg-red-100' : selisih !== 0 ? 'text-red-600 bg-red-50 animate-pulse' : 'text-emerald-600 opacity-30'}`}>{isInvalidKode ? '—' : formatIDR(selisih).replace('Rp', '').trim()}</td>
                           <td className="px-1 py-3 text-center"><button onClick={() => deleteRow(section.id, row.id)} className="text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button></td>
                         </tr>
                       );
