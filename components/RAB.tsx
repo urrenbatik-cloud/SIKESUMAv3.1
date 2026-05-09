@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { RABNarrative, RABCategory, RABRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Trash2, Plus, Info, ChevronRight, ListPlus } from 'lucide-react';
+import KodeAutocomplete, { type KodeSuggestion } from './KodeAutocomplete';
 
 const NarrativeGroup: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -160,6 +161,20 @@ const RAB: React.FC<RABProps> = ({ paguSections, categories, onCategoriesChange,
         const minLvl = cat.items.length > 0 ? Math.min(...cat.items.map(i => i.level)) : 0;
         const subtotal = cat.items.filter(i => i.level === minLvl).reduce((s, i) => s + (showRevisi ? i.jumlahHargaRevisi : i.jumlahHargaAwal), 0);
 
+        // [Sprint B.6] Build kode options dari Pagu section yang ter-link.
+        // RAB.kode harus match PaguRow.kode di linkedPaguSectionId — autocomplete
+        // hanya tampilkan kode yang sudah didefinisikan di Pagu.
+        const linkedPaguSection = paguSections.find(p => p.id === cat.linkedPaguSectionId);
+        const paguOptions: KodeSuggestion[] = linkedPaguSection
+          ? linkedPaguSection.rows
+              .filter(r => r.kode.trim() !== '')
+              .map(r => ({
+                kode: r.kode,
+                uraian: r.description,
+                meta: linkedPaguSection.title,
+              }))
+          : [];
+
         return (
           <section key={cat.id} className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden mb-10">
             <div className="p-8 bg-slate-900 border-b border-slate-800 flex flex-wrap justify-between items-center gap-6">
@@ -259,7 +274,21 @@ const RAB: React.FC<RABProps> = ({ paguSections, categories, onCategoriesChange,
                         <tr key={item.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-blue-50/50 transition-colors group/row text-[10px] divide-x divide-slate-100`}>
                           {/* 1. KODE */}
                           <td className="px-5 py-3 align-top">
-                            <input className="w-full bg-transparent border-none font-mono font-bold text-slate-500 p-0 outline-none uppercase" value={item.kode} onChange={e => handleRowChange(cat.id, item.id, 'kode', e.target.value)} />
+                            <KodeAutocomplete
+                              mode="pagu"
+                              paguOptions={paguOptions}
+                              value={item.kode}
+                              onChange={v => handleRowChange(cat.id, item.id, 'kode', v)}
+                              onSelect={(sug) => {
+                                // [Sprint B.6] Auto-fill uraian dari Pagu saat pick
+                                onCategoriesChange(categories.map(c => c.id === cat.id ? {
+                                  ...c,
+                                  items: c.items.map(it => it.id === item.id ? { ...it, kode: sug.kode, uraian: sug.uraian } : it)
+                                } : c));
+                              }}
+                              placeholder="Pilih dari Pagu..."
+                              showValidation={true}
+                            />
                           </td>
                           {/* 2. URAIAN */}
                           <td className="px-5 py-3 align-top relative" style={{ paddingLeft: `${indentation + 1}rem` }}>

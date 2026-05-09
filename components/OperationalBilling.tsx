@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { TabType, SubTab, Bill, BillingItem, BillCategory, PatientClaim, BPJSCalcSettings, Doctor, Employee, MinimizedForm, ProcurementFile } from '../types';
+import { TabType, SubTab, Bill, BillingItem, BillCategory, PatientClaim, BPJSCalcSettings, Doctor, Employee, MinimizedForm, ProcurementFile, PaguSection } from '../types';
 import { formatIDR, calculatePPH21 } from './Formatters';
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
 import { 
@@ -9,6 +9,7 @@ import {
   Minimize2, Upload, File, Eye, Download
 } from 'lucide-react';
 import LocalFilterBar, { LocalFilterState } from './LocalFilterBar';
+import KodeAutocomplete, { type KodeSuggestion } from './KodeAutocomplete';
 
 interface OperationalBillingProps {
   activeTabType: TabType;
@@ -25,11 +26,16 @@ interface OperationalBillingProps {
   onMinimizeForm: (form: MinimizedForm) => void;
   reopenedForm: MinimizedForm | null;
   onReopenedFormHandled: () => void;
+  /** [Sprint B.6] Pagu sections untuk autocomplete akun di Bill items.
+   *  Bill.items[].akun harus match PaguRow.kode (FK konseptual) — autocomplete
+   *  mencegah typo/free-text yang jadi orphan posting di realisasiBucket. */
+  paguSections: PaguSection[];
 }
 
 const OperationalBilling: React.FC<OperationalBillingProps> = ({ 
   activeTabType, subTab, bills, onBillsChange, globalYear, logs, bpjsSettingsHistory, doctors, staff,
-  jasaAccountMap, onJasaAccountMapChange, onMinimizeForm, reopenedForm, onReopenedFormHandled
+  jasaAccountMap, onJasaAccountMapChange, onMinimizeForm, reopenedForm, onReopenedFormHandled,
+  paguSections
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
@@ -62,6 +68,25 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
   });
 
   const isGlobalRekap = subTab === SubTab.REKAP_AUDIT;
+
+  // [Sprint B.6] Build paguOptions untuk autocomplete akun di Bill items.
+  // Sumber: semua leaf nodes dari paguSections (yang sudah di-filter per tahun di App.tsx).
+  // Bill.items[].akun harus match salah satu PaguRow.kode → mencegah orphan posting.
+  const paguOptions = useMemo<KodeSuggestion[]>(() => {
+    const opts: KodeSuggestion[] = [];
+    paguSections.forEach(sec => {
+      sec.rows.forEach((row, idx) => {
+        const cleanCode = row.kode.trim();
+        if (!cleanCode) return;
+        // Only include leaf nodes (no children) — parent rows are aggregations
+        const nextRow = sec.rows[idx + 1];
+        const hasChildren = nextRow && nextRow.level > row.level;
+        if (hasChildren) return;
+        opts.push({ kode: cleanCode, uraian: row.description, meta: sec.title });
+      });
+    });
+    return opts;
+  }, [paguSections]);
 
   const currentFilteredBills = useMemo(() => {
     let filtered = bills;
@@ -391,7 +416,27 @@ const OperationalBilling: React.FC<OperationalBillingProps> = ({
                                 <tbody className="divide-y divide-slate-100">
                                    {(formData.items || []).map((it, idx) => (
                                       <tr key={it.id}>
-                                         <td className="px-4 py-3"><input value={it.akun} onChange={e => { const n=[...(formData.items || [])]; n[idx].akun=e.target.value; setFormData({...formData, items: n}); }} className="w-full border-none font-mono font-black text-blue-600 outline-none" placeholder="521111.01" /></td>
+                                         <td className="px-4 py-3">
+                                           <KodeAutocomplete
+                                             mode="pagu"
+                                             paguOptions={paguOptions}
+                                             value={it.akun}
+                                             onChange={v => { const n=[...(formData.items || [])]; n[idx].akun=v; setFormData({...formData, items: n}); }}
+                                             onSelect={(sug) => {
+                                               // [Sprint B.6] Auto-fill namaBarang dari Pagu description saat user pick suggestion.
+                                               // Bill.items[].akun = FK konseptual ke PaguRow.kode → mencegah orphan posting di realisasiBucket.
+                                               const n=[...(formData.items || [])];
+                                               n[idx].akun = sug.kode;
+                                               // Hanya auto-fill namaBarang kalau user belum mengisi (jangan timpa input manual)
+                                               if (!n[idx].namaBarang || n[idx].namaBarang.trim() === '') {
+                                                 n[idx].namaBarang = sug.uraian;
+                                               }
+                                               setFormData({...formData, items: n});
+                                             }}
+                                             placeholder="Pilih dari Pagu..."
+                                             showValidation={true}
+                                           />
+                                         </td>
                                          <td className="px-4 py-3"><input value={it.namaBarang} onChange={e => { const n=[...(formData.items || [])]; n[idx].namaBarang=e.target.value; setFormData({...formData, items: n}); }} className="w-full border-none font-bold outline-none" placeholder="Uraian barang..." /></td>
                                          <td className="px-4 py-3"><input type="number" value={it.volume} onChange={e => { const n=[...(formData.items || [])]; n[idx].volume=Number(e.target.value); setFormData({...formData, items: n}); }} className="w-full border-none font-black text-center outline-none" /></td>
                                          <td className="px-4 py-3"><input type="number" value={it.hargaSatuan} onChange={e => { const n=[...(formData.items || [])]; n[idx].hargaSatuan=Number(e.target.value); setFormData({...formData, items: n}); }} className="w-full border-none font-mono font-black text-right outline-none" /></td>

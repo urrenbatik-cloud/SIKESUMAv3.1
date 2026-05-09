@@ -1,9 +1,10 @@
-
 import React, { useMemo } from 'react';
 import { PaguRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks } from 'lucide-react';
 import { YEARS } from '../constants';
+import KodeAutocomplete from './KodeAutocomplete';
+import { deriveKodeBas, lookupBas } from '../utils/basDictionary';
 
 interface PaguAnggaranProps {
   sections: PaguSection[];
@@ -310,9 +311,28 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                       return (
                         <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
                           <td className="px-5 py-3 border-r border-slate-100 align-top">
-                            <input className={`w-full bg-transparent border-none focus:ring-0 p-0 font-mono font-bold uppercase ${duplicateKodeWarnings[row.kode.trim()] ? 'text-amber-500' : 'text-slate-500'}`} value={row.kode} onChange={e => handleRowChange(section.id, row.id, 'kode', e.target.value)} />
+                            <KodeAutocomplete
+                              mode="bas"
+                              basKategori={['BELANJA', 'PENDAPATAN']}
+                              value={row.kode}
+                              onChange={v => handleRowChange(section.id, row.id, 'kode', v)}
+                              onSelect={(sug) => {
+                                // [Sprint B.6] Auto-fill kode_bas (canonical 6-digit) saat user pick dari autocomplete.
+                                // Description tetap user-controlled — autocomplete punya BAS uraian standar
+                                // tapi user mungkin pakai uraian internal yang lebih spesifik.
+                                const newKode = sug.kode;
+                                const kodeBas = deriveKodeBas(newKode) || newKode;
+                                const updatedRows = section.rows.map(r => r.id === row.id ? { ...r, kode: newKode, kode_bas: kodeBas } : r);
+                                onSectionsChange(sections.map(s => s.id === section.id ? { ...s, rows: updatedRows } : s));
+                              }}
+                              placeholder="521115.01"
+                              className={duplicateKodeWarnings[row.kode.trim()] ? 'text-amber-500' : ''}
+                            />
                             {duplicateKodeWarnings[row.kode.trim()] && (
                               <p className="text-[8px] font-bold text-amber-500 mt-0.5" title={`Juga ada di: ${duplicateKodeWarnings[row.kode.trim()]?.join(', ')}`}>⚠ duplikat</p>
+                            )}
+                            {row.kode_bas && row.kode_bas !== row.kode.split('.')[0] && (
+                              <p className="text-[8px] font-bold text-blue-500 mt-0.5" title={`BAS canonical: ${row.kode_bas}`}>BAS: {row.kode_bas}</p>
                             )}
                           </td>
                           <td className="px-5 py-3 border-r border-slate-100 align-top relative" style={{ paddingLeft: `${indentation + 1}rem` }}>

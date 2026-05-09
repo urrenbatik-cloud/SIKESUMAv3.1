@@ -1158,7 +1158,7 @@ const App: React.FC = () => {
                 />
               )}
               {(activeTabType === TabType.REKAP_OPERASIONAL || subTab === SubTab.REKAP_AUDIT || subTab === SubTab.BELANJA_OPERASIONAL || subTab === SubTab.BELANJA_MODAL || subTab === SubTab.BELANJA_PEMELIHARAAN) && (
-                <OperationalBilling activeTabType={activeTabType} subTab={subTab} bills={allBills} onBillsChange={setAllBills} globalYear={selectedYear} logs={logsList} bpjsSettingsHistory={bpjsSettingsHistory} doctors={doctorsList} staff={staffList} jasaAccountMap={jasaAccountMap} onJasaAccountMapChange={setJasaAccountMap} onMinimizeForm={f => setMinimizedForms([...minimizedForms, f])} reopenedForm={activeFormFromMinimized} onReopenedFormHandled={() => setActiveFormFromMinimized(null)} />
+                <OperationalBilling activeTabType={activeTabType} subTab={subTab} bills={allBills} onBillsChange={setAllBills} globalYear={selectedYear} logs={logsList} bpjsSettingsHistory={bpjsSettingsHistory} doctors={doctorsList} staff={staffList} jasaAccountMap={jasaAccountMap} onJasaAccountMapChange={setJasaAccountMap} onMinimizeForm={f => setMinimizedForms([...minimizedForms, f])} reopenedForm={activeFormFromMinimized} onReopenedFormHandled={() => setActiveFormFromMinimized(null)} paguSections={paguSections} />
               )}
               {/* Tab 3 Pendapatan + Tab 4 Pelaporan & LRA (default sub-tab 4.1) → RevenueModule */}
               {(mainTab === MainTab.PENDAPATAN ||
