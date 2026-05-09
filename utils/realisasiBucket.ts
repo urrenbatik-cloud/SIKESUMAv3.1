@@ -286,13 +286,15 @@ function runIVChecks(
     const paguCeiling = paguByKode[kode];
 
     // IV-ORPHAN: kode exists in buckets but not in pagu
+    // [Sprint C.3] Upgrade severity WARNING → ERROR, hapus filter `kode.includes('.')`.
+    // Sebelumnya parent codes (no dot) yang orphan silently ignored — sekarang ditangkap.
+    // Orphan = bukti L8 violation (Bill.akun harus exist di Pagu) — tidak boleh silent.
     if (paguCeiling === undefined) {
-      // Only warn for child kodes (with dot) that have significant amounts
-      if (kode.includes('.') && yearTotal > 0) {
+      if (yearTotal > 0) {
         checks.push({
-          kodeAkun: kode, bulan: 0, severity: 'WARNING',
+          kodeAkun: kode, bulan: 0, severity: 'ERROR',
           code: 'IV-ORPHAN',
-          message: `Kode ${kode} memiliki realisasi Rp ${yearTotal.toLocaleString('id-ID')} tapi tidak ditemukan di Pagu`,
+          message: `Kode ${kode} memiliki realisasi Rp ${yearTotal.toLocaleString('id-ID')} tapi tidak ditemukan di Pagu — orphan posting (L8 violation)`,
           bucketTotal: yearTotal, reference: 0,
         });
       }
