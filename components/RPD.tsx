@@ -21,6 +21,34 @@ const RPD: React.FC<RPDProps> = ({ sections, paguSections, onSectionsChange, vie
   // semua tampilan budget di-derive dari paguSections via buildPaguByKode.
   const paguByKode = useMemo(() => buildPaguByKode(paguSections), [paguSections]);
 
+  // [Sprint C.2] L5 enforcement: cari rows yang RPD monthly sum > Pagu ceiling.
+  // Soft block: tidak block edit, tapi banner prominent di top RPD untuk early
+  // warning sebelum belanja terjadi (beda dengan IV-OVER-PAGU yang catches actuals).
+  const overPaguRows = useMemo(() => {
+    const overs: { kode: string; description: string; rpdSum: number; pagu: number; overPct: number }[] = [];
+    sections.forEach(sec => {
+      sec.rows.forEach((row, idx) => {
+        const cleanCode = (row.kode || '').trim();
+        if (!cleanCode) return;
+        // Skip parents — they're aggregations
+        const next = sec.rows[idx + 1];
+        if (next && next.level > row.level) return;
+        const pagu = paguByKode[cleanCode];
+        if (!pagu) return;
+        const rpdSum = (Object.values(row.monthly) as number[]).reduce((s: number, v: number) => s + (v || 0), 0);
+        const ceiling = viewMode === 'SEMULA' ? pagu.awal : pagu.revisi;
+        if (ceiling > 0 && rpdSum > ceiling) {
+          overs.push({
+            kode: cleanCode, description: row.description || '',
+            rpdSum, pagu: ceiling,
+            overPct: ((rpdSum - ceiling) / ceiling) * 100,
+          });
+        }
+      });
+    });
+    return overs;
+  }, [sections, paguByKode, viewMode]);
+
   const showRevisi = viewMode === 'REVISI' || viewMode === 'SEMUA';
   const showSemula = viewMode === 'SEMULA' || viewMode === 'SEMUA';
 
@@ -135,6 +163,33 @@ const RPD: React.FC<RPDProps> = ({ sections, paguSections, onSectionsChange, vie
             </div>
          </div>
       </div>
+
+      {/* [Sprint C.2] L5 banner: RPD plan exceeds Pagu ceiling */}
+      {overPaguRows.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-600 rounded-2xl p-6 shadow-lg ring-1 ring-red-100">
+          <div className="flex items-start gap-4">
+            <div className="bg-red-600 text-white rounded-xl p-2.5 flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-700 mb-1">⚠ L5 — RPD Over Pagu (Soft Block)</p>
+              <p className="text-sm font-bold text-red-900 mb-3">{overPaguRows.length} kode merencanakan distribusi monthly yang melebihi Pagu Anggaran. Perencanaan infeasible — koreksi sebelum diajukan untuk verifikasi.</p>
+              <ul className="space-y-1.5 text-xs">
+                {overPaguRows.slice(0, 8).map((r) => (
+                  <li key={r.kode} className="flex items-center gap-3 bg-white rounded-lg px-3 py-1.5">
+                    <span className="font-mono font-black text-red-700 w-24">{r.kode}</span>
+                    <span className="flex-1 truncate text-slate-700">{r.description}</span>
+                    <span className="font-mono text-slate-500">RPD <strong>{formatIDR(r.rpdSum)}</strong></span>
+                    <span className="font-mono text-slate-500">Pagu <strong>{formatIDR(r.pagu)}</strong></span>
+                    <span className="font-black text-red-600">+{r.overPct.toFixed(1)}%</span>
+                  </li>
+                ))}
+                {overPaguRows.length > 8 && <li className="text-xs text-red-600 font-bold pl-3">…dan {overPaguRows.length - 8} lainnya.</li>}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sections.map((section) => {
         const visibleRows = getVisibleRows(section.rows);

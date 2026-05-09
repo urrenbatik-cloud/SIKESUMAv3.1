@@ -242,10 +242,11 @@ export function buildBucketRegistry(input: BuildBucketRegistryInput): BucketRegi
 
 /**
  * Run IV checks: validate buckets against lattice constraints.
- * - IV-OVER-PAGU:    [ERROR]   yearly realisasi for a kode exceeds pagu ceiling (L7)
- * - IV-RPD-DEVIATION:[WARNING] monthly realisasi deviates > 30% from RPD planned
- * - IV-ORPHAN:       [ERROR]   bucket kode has no matching pagu row (L8 violation, [C.3])
- * - IV-DUP-PAGU:     [WARNING] kode appears in >1 Pagu section, may double-count (L1, [C.1])
+ * - IV-OVER-PAGU:      [ERROR]   yearly realisasi for a kode exceeds pagu ceiling (L7)
+ * - IV-RPD-DEVIATION:  [WARNING] monthly realisasi deviates > 30% from RPD planned
+ * - IV-ORPHAN:         [ERROR]   bucket kode has no matching pagu row (L8 violation, [C.3])
+ * - IV-DUP-PAGU:       [WARNING] kode appears in >1 Pagu section, may double-count (L1, [C.1])
+ * - IV-RPD-OVER-PAGU:  [ERROR]   RPD monthly sum exceeds Pagu ceiling (L5, [C.2])
  */
 function runIVChecks(
   buckets: Record<string, Record<number, RealisasiBucket>>,
@@ -302,6 +303,24 @@ function runIVChecks(
         code: 'IV-DUP-PAGU',
         message: `Kode ${kode} muncul di ${sectionNames.length} section Pagu: ${sectionNames.join(', ')}. Total realisasi mungkin double-counted.`,
         bucketTotal: 0, reference: 0,
+      });
+    }
+  });
+
+  // [Sprint C.2] IV-RPD-OVER-PAGU: L5 enforcement — RPD monthly sum > Pagu ceiling.
+  // Soft block: catches over-budget planning sebelum belanja terjadi (early warning,
+  // beda dengan IV-OVER-PAGU yang catches pasca-spending). Severity ERROR karena
+  // ini adalah perencanaan yang infeasible terhadap budget.
+  Object.entries(rpdByKode).forEach(([kode, monthly]) => {
+    const rpdSum = Object.values(monthly).reduce((s, v) => s + (v || 0), 0);
+    const paguCeiling = paguByKode[kode];
+    if (paguCeiling !== undefined && paguCeiling > 0 && rpdSum > paguCeiling) {
+      const overPct = ((rpdSum - paguCeiling) / paguCeiling * 100).toFixed(1);
+      checks.push({
+        kodeAkun: kode, bulan: 0, severity: 'ERROR',
+        code: 'IV-RPD-OVER-PAGU',
+        message: `Kode ${kode}: RPD plan (${rpdSum.toLocaleString('id-ID')}) melebihi Pagu (${paguCeiling.toLocaleString('id-ID')}) sebesar ${overPct}% — perencanaan infeasible (L5)`,
+        bucketTotal: rpdSum, reference: paguCeiling,
       });
     }
   });
