@@ -612,13 +612,18 @@ const App: React.FC = () => {
         if (rabsErr) throw rabsErr;
 
         // Orphan cleanup: hapus record di DB yang tidak ada di current state
+        // [FIX 10 Mei 2026 v2] Year-safe: hanya hapus orphan dari tahun yang sedang aktif,
+        // BUKAN dari tahun lain yang datanya valid tapi tidak ter-load di state.
         const rabCurrentIds = rabCategories.map(r => r.id);
+        const yearPrefix = `rab-pagu-${currentRKKSYear}-`;
         const { data: allRabRows } = await supabase.from('rabs').select('id');
         if (allRabRows) {
-          const orphanIds = allRabRows.filter(r => !rabCurrentIds.includes(r.id)).map(r => r.id);
+          const orphanIds = allRabRows
+            .filter(r => r.id.startsWith(yearPrefix) && !rabCurrentIds.includes(r.id))
+            .map(r => r.id);
           if (orphanIds.length > 0) {
             await supabase.from('rabs').delete().in('id', orphanIds);
-            console.log(`🧹 RAB orphan cleanup: removed ${orphanIds.length} stale records`, orphanIds);
+            console.log(`🧹 RAB orphan cleanup (${currentRKKSYear}): removed ${orphanIds.length} stale records`, orphanIds);
           }
         }
 
@@ -643,13 +648,17 @@ const App: React.FC = () => {
         if (rpdsErr) throw rpdsErr;
 
         // Orphan cleanup: hapus record di DB yang tidak ada di current state
+        // [FIX 10 Mei 2026 v2] Year-safe: hanya hapus orphan dari tahun aktif
         const rpdCurrentIds = rpdSections.map(r => r.id);
+        const rpdYearPrefix = `rpd-pagu-${currentRKKSYear}-`;
         const { data: allRpdRows } = await supabase.from('rpds').select('id');
         if (allRpdRows) {
-          const orphanIds = allRpdRows.filter(r => !rpdCurrentIds.includes(r.id)).map(r => r.id);
+          const orphanIds = allRpdRows
+            .filter(r => r.id.startsWith(rpdYearPrefix) && !rpdCurrentIds.includes(r.id))
+            .map(r => r.id);
           if (orphanIds.length > 0) {
             await supabase.from('rpds').delete().in('id', orphanIds);
-            console.log(`🧹 RPD orphan cleanup: removed ${orphanIds.length} stale records`, orphanIds);
+            console.log(`🧹 RPD orphan cleanup (${currentRKKSYear}): removed ${orphanIds.length} stale records`, orphanIds);
           }
         }
 
