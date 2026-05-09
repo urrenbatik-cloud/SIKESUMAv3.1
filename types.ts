@@ -117,9 +117,20 @@ export interface Bill {
 }
 
 export interface PaguRow {
-  id: string; kode: string; description: string; volume: number; satuan: string;
-  hargaSatuanAwal: number; hargaSatuanRevisi: number; jumlahBiayaAwal: number;
-  jumlahBiayaRevisi: number; sumberDana: string; level: number;
+  id: string;
+  kode: string;          // SIKESUMA-internal code, mis. '521115.01' (boleh suffix sub-akun)
+  kode_bas?: string;     // [Sprint B.2] Canonical 6-digit BAS code (mis. '521115').
+                         // Optional saat ini; akan jadi required setelah backfill HITL approved by Angga.
+                         // Sumber: utils/basDictionary.ts (KEP-331/2021 + KEP-291/2022).
+  description: string;
+  volume: number;
+  satuan: string;
+  hargaSatuanAwal: number;
+  hargaSatuanRevisi: number;
+  jumlahBiayaAwal: number;
+  jumlahBiayaRevisi: number;
+  sumberDana: string;
+  level: number;
   // Note: realisasi adalah DERIVED dari bucketRegistry.absorptionMap (Sprint A1).
   // Tidak disimpan di PaguRow karena field zombie — selalu 0, tidak pernah dibaca.
 }
