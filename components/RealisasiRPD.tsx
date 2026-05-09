@@ -1,22 +1,18 @@
 
 import React, { useState, useMemo } from 'react';
-import { RPDSection, RPDRow } from '../types';
+import { RPDSection, RPDRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Database, Info } from 'lucide-react';
 
 // ============================================================================
 // RealisasiRPD — Laporan Realisasi Anggaran (LRA)
 // ============================================================================
-// FIX (9 Mei 2026): Bug E1.2 — realisasi sebelumnya auto-populate dari RPD
-// planned amounts. Sekarang hanya menampilkan data dari tagihan berstatus
-// "Lunas" (via absorptionMap zero-initialized di App.tsx).
+// FIX (9 Mei 2026): Bug E1.2 — realisasi hanya dari tagihan "Lunas".
+// FIX (10 Mei 2026): Pagu single source of truth — diambil dari paguSections
+//   (Tab 1.1 Pagu Anggaran), BUKAN dari RPDSection.totalBudget yang terpisah.
+//   Lookup via kode akun (leaf nodes only, anti double-count).
 //
-// ENHANCEMENT (C7/E2.4): Menampilkan:
-//   1. Pagu (semula/revisi)
-//   2. RPD Rencana (total planned)
-//   3. Realisasi per bulan (hanya Lunas)
-//   4. Delta (Realisasi - RPD Rencana)
-//   5. Sisa Pagu (Pagu - Realisasi)
+// ENHANCEMENT (C7/E2.4): Pagu + RPD Rencana + Realisasi + Delta + Sisa Pagu
 // ============================================================================
 
 interface RealisasiRPDProps {
@@ -24,12 +20,14 @@ interface RealisasiRPDProps {
   sections: RPDSection[];
   /** Sections RPD rencana asli (optional, untuk perbandingan) */
   rpdPlannedSections?: RPDSection[];
+  /** Pagu dari Tab 1.1 — single source of truth (optional, fallback ke RPD pagu) */
+  paguSections?: PaguSection[];
   onSectionsChange: (newSections: RPDSection[]) => void;
   viewMode: 'SEMULA' | 'REVISI' | 'SEMUA';
   selectedYear: number;
 }
 
-const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSections, onSectionsChange, viewMode, selectedYear }) => {
+const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSections, paguSections, onSectionsChange, viewMode, selectedYear }) => {
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
 
   const showRevisi = viewMode === 'REVISI' || viewMode === 'SEMUA';
@@ -67,6 +65,40 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
     return map;
   }, [rpdPlannedSections]);
 
+  // Lookup: kode akun → pagu { awal, revisi } from Tab 1.1 (single source of truth)
+  // Uses leaf-node-only logic to avoid double-counting parent rows
+  const paguByKode = useMemo(() => {
+    const map: Record<string, { awal: number; revisi: number }> = {};
+    if (paguSections) {
+      const allRows = paguSections.flatMap(s => s.rows);
+      paguSections.forEach(sec => {
+        sec.rows.forEach((row, idx) => {
+          const cleanCode = row.kode.trim();
+          if (!cleanCode) return;
+          // Check if this row has children (= parent/subtotal row)
+          const myGlobalIdx = allRows.findIndex(r => r.id === row.id);
+          const nextRow = allRows[myGlobalIdx + 1];
+          const hasChildren = nextRow && nextRow.level > row.level;
+          // Only count leaf nodes to avoid double-counting
+          if (!hasChildren) {
+            if (!map[cleanCode]) map[cleanCode] = { awal: 0, revisi: 0 };
+            map[cleanCode].awal += row.jumlahBiayaAwal || 0;
+            map[cleanCode].revisi += row.jumlahBiayaRevisi || 0;
+          }
+        });
+      });
+    }
+    return map;
+  }, [paguSections]);
+
+  // Helper: get pagu for a row — from paguSections if available, fallback to RPD's own value
+  const getPaguForRow = (row: RPDRow): { awal: number; revisi: number } => {
+    const kode = row.kode.trim();
+    if (paguByKode[kode]) return paguByKode[kode];
+    // Fallback: use RPD's own totalBudget (may differ from Tab 1.1)
+    return { awal: row.totalBudget || 0, revisi: row.totalBudgetRevisi || 0 };
+  };
+
   const getVisibleRows = (rows: RPDRow[]) => {
     const visible: RPDRow[] = [];
     let hiddenAboveLevel = Infinity;
@@ -81,20 +113,40 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
     return visible;
   };
 
-  // Grand totals for summary header
+  // Grand totals — pagu from paguSections (Tab 1.1), not from RPD
   const grandTotals = useMemo(() => {
     let totalPagu = 0, totalRencana = 0, totalRealisasi = 0;
+
+    if (paguSections && paguSections.length > 0) {
+      // Pagu from Tab 1.1 (single source of truth)
+      paguSections.forEach(sec => {
+        const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
+        sec.rows.filter(r => r.level === minLvl).forEach(r => {
+          totalPagu += (viewMode === 'SEMULA' ? r.jumlahBiayaAwal : r.jumlahBiayaRevisi) || 0;
+        });
+      });
+    } else {
+      // Fallback: from RPD rows (backward compat)
+      sections.forEach(sec => {
+        const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
+        sec.rows.filter(r => r.level === minLvl).forEach(row => {
+          totalPagu += (viewMode === 'SEMULA' ? row.totalBudget : row.totalBudgetRevisi) || 0;
+        });
+      });
+    }
+
+    // Realisasi + RPD Rencana from sections
     sections.forEach(sec => {
       const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
       sec.rows.filter(r => r.level === minLvl).forEach(row => {
-        totalPagu += (viewMode === 'SEMULA' ? row.totalBudget : row.totalBudgetRevisi) || 0;
         totalRealisasi += sumMonthly(row.monthly);
         const planned = plannedLookup[row.id];
         if (planned) totalRencana += sumMonthly(planned.monthly);
       });
     });
+
     return { totalPagu, totalRencana, totalRealisasi, delta: totalRealisasi - totalRencana, sisaPagu: totalPagu - totalRealisasi };
-  }, [sections, plannedLookup, viewMode]);
+  }, [sections, plannedLookup, viewMode, paguSections]);
 
   const hasPlanned = !!rpdPlannedSections;
 
@@ -185,7 +237,8 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                 <tbody className="divide-y divide-slate-100 font-bold">
                   {visibleRows.map((row) => {
                     const { t1, t2, t3, t4, total } = calculateRowSums(row);
-                    const currentPagu = viewMode === 'SEMULA' ? row.totalBudget : row.totalBudgetRevisi;
+                    const rowPagu = getPaguForRow(row);
+                    const currentPagu = viewMode === 'SEMULA' ? rowPagu.awal : rowPagu.revisi;
                     const planned = plannedLookup[row.id];
                     const totalPlanned = planned ? sumMonthly(planned.monthly) : 0;
                     const delta = total - totalPlanned;
@@ -202,8 +255,8 @@ const RealisasiRPD: React.FC<RealisasiRPDProps> = ({ sections, rpdPlannedSection
                           <span className={`${hasChildren ? 'font-black' : 'font-bold'} text-slate-700`}>{row.description}</span>
                           {hasChildren && <span className="ml-2 text-slate-400">{collapsedRows.has(row.id) ? '▶' : '▼'}</span>}
                         </td>
-                        {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400">{formatIDR(row.totalBudget).replace('Rp', '').trim()}</td>}
-                        {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800">{formatIDR(row.totalBudgetRevisi).replace('Rp', '').trim()}</td>}
+                        {showSemula && <td className="px-2 py-3 text-right font-mono font-bold text-slate-400">{formatIDR(rowPagu.awal).replace('Rp', '').trim()}</td>}
+                        {showRevisi && <td className="px-2 py-3 text-right font-mono font-black text-blue-800">{formatIDR(rowPagu.revisi).replace('Rp', '').trim()}</td>}
                         {hasPlanned && (
                           <td className="px-2 py-3 text-right font-mono font-bold text-indigo-600 bg-indigo-50/30">
                             {totalPlanned > 0 ? formatIDR(totalPlanned).replace('Rp', '').trim() : '-'}

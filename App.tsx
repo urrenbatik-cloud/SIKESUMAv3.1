@@ -1075,6 +1075,7 @@ const App: React.FC = () => {
                     }))
                   }))}
                   rpdPlannedSections={rpdSections}
+                  paguSections={paguSections}
                   onSectionsChange={setRpdSections}
                   viewMode={budgetViewMode}
                   selectedYear={currentRKKSYear}
