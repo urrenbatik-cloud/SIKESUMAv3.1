@@ -328,16 +328,22 @@ Jawab dalam JSON format berikut:
 
 // ─── §4. API Calls ─────────────────────────────────────────────────────────
 
+// CRITICAL: Vite's `define` does exact string replacement at build time.
+// `process.env.API_KEY` → replaced with literal value ✓
+// `process.env?.API_KEY` → NOT replaced (different token) ✗
+// These constants MUST use the exact `process.env.X` form without optional chaining.
+const _ANTHROPIC_KEY: string = process.env.ANTHROPIC_API_KEY || '';
+const _GEMINI_KEY: string = process.env.API_KEY || '';
+
 /** Call Claude API (Anthropic). */
 async function callClaude(prompt: string): Promise<string> {
-  const apiKey = (typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY) || '';
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!_ANTHROPIC_KEY) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
+      'x-api-key': _ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
@@ -356,12 +362,11 @@ async function callClaude(prompt: string): Promise<string> {
 
 /** Call Gemini API (Google). */
 async function callGemini(prompt: string): Promise<string> {
-  const apiKey = (typeof process !== 'undefined' && process.env?.API_KEY) || '';
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  if (!_GEMINI_KEY) throw new Error('GEMINI_API_KEY not configured');
 
   // Dynamic import to avoid bundling if not used
   const { GoogleGenAI } = await import('@google/genai');
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: _GEMINI_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: `${SYSTEM_PROMPT}\n\n${prompt}`,
@@ -372,10 +377,7 @@ async function callGemini(prompt: string): Promise<string> {
 /** Auto-detect available provider and call AI. */
 async function callAI(prompt: string): Promise<{ text: string; provider: 'claude' | 'gemini' }> {
   // Try Claude first (primary), fallback to Gemini
-  const hasAnthropicKey = !!(typeof process !== 'undefined' && process.env?.ANTHROPIC_API_KEY);
-  const hasGeminiKey = !!(typeof process !== 'undefined' && process.env?.API_KEY);
-
-  if (hasAnthropicKey) {
+  if (_ANTHROPIC_KEY) {
     try {
       const text = await callClaude(prompt);
       return { text, provider: 'claude' };
@@ -384,7 +386,7 @@ async function callAI(prompt: string): Promise<{ text: string; provider: 'claude
     }
   }
 
-  if (hasGeminiKey) {
+  if (_GEMINI_KEY) {
     try {
       const text = await callGemini(prompt);
       return { text, provider: 'gemini' };
