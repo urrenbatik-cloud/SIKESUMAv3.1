@@ -87,6 +87,51 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
     return Object.entries(map).sort();
   }, [processedSections]);
 
+  // [FIX 10 Mei 2026] Deteksi duplikasi kode akun lintas section
+  // Mencegah kode akun yang sama muncul di >1 section (inflate total RPD/LRA)
+  const duplicateKodeWarnings = useMemo(() => {
+    const kodeToSections: Record<string, { sectionTitles: string[]; sectionIds: string[] }> = {};
+    processedSections.forEach(sec => {
+      sec.rows.forEach(row => {
+        const cleanCode = row.kode.trim();
+        if (!cleanCode) return;
+        // Only check leaf nodes (non-parent rows)
+        const allRows = processedSections.flatMap(s => s.rows);
+        const myIdx = allRows.findIndex(r => r.id === row.id);
+        const nextRow = allRows[myIdx + 1];
+        const hasChildren = nextRow && nextRow.level > row.level;
+        if (hasChildren) return;
+
+        if (!kodeToSections[cleanCode]) kodeToSections[cleanCode] = { sectionTitles: [], sectionIds: [] };
+        if (!kodeToSections[cleanCode].sectionIds.includes(sec.id)) {
+          kodeToSections[cleanCode].sectionTitles.push(sec.title || sec.id);
+          kodeToSections[cleanCode].sectionIds.push(sec.id);
+        }
+      });
+    });
+    // Only return entries that appear in >1 section
+    const dupes: Record<string, string[]> = {};
+    Object.entries(kodeToSections).forEach(([kode, info]) => {
+      if (info.sectionIds.length > 1) dupes[kode] = info.sectionTitles;
+    });
+    return dupes;
+  }, [processedSections]);
+
+  // Deteksi duplikasi nama section
+  const duplicateTitleWarnings = useMemo(() => {
+    const titleCount: Record<string, number> = {};
+    sections.forEach(sec => {
+      const t = (sec.title || '').trim().toUpperCase();
+      if (t) titleCount[t] = (titleCount[t] || 0) + 1;
+    });
+    const dupes = new Set<string>();
+    Object.entries(titleCount).forEach(([t, count]) => { if (count > 1) dupes.add(t); });
+    return dupes;
+  }, [sections]);
+
+  const hasDuplicateKodes = Object.keys(duplicateKodeWarnings).length > 0;
+  const hasDuplicateTitles = duplicateTitleWarnings.size > 0;
+
   const handleRowChange = (sectionId: string, rowId: string, field: keyof PaguRow, value: any) => {
     const newSections = sections.map(sec => {
       if (sec.id === sectionId) {
@@ -179,6 +224,35 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
         </div>
       </div>
 
+      {/* DUPLICATE WARNINGS */}
+      {(hasDuplicateKodes || hasDuplicateTitles) && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 shadow-lg">
+          <p className="text-sm font-black text-amber-800 uppercase tracking-wide mb-3 flex items-center gap-2">
+            ⚠ Peringatan Duplikasi Data
+          </p>
+          {hasDuplicateKodes && (
+            <div className="mb-3">
+              <p className="text-xs font-bold text-amber-700 mb-2">Kode akun berikut muncul di lebih dari 1 section (menyebabkan double-count di RPD & LRA):</p>
+              <div className="space-y-1">
+                {Object.entries(duplicateKodeWarnings).map(([kode, sectionNames]) => (
+                  <p key={kode} className="text-xs font-mono bg-amber-100 rounded-lg px-3 py-1.5">
+                    <span className="font-black text-amber-900">{kode}</span>
+                    <span className="text-amber-600"> → </span>
+                    <span className="font-bold text-amber-700">{sectionNames.join(' & ')}</span>
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          {hasDuplicateTitles && (
+            <div>
+              <p className="text-xs font-bold text-amber-700">Nama section duplikat: {Array.from(duplicateTitleWarnings).join(', ')}</p>
+            </div>
+          )}
+          <p className="text-[10px] text-amber-600 mt-3 font-bold">Pindahkan kode akun ke satu section saja, atau rename section yang duplikat.</p>
+        </div>
+      )}
+
       {/* BUDGET SECTIONS */}
       {processedSections.map((section, idx) => {
         const minLvl = section.rows.length > 0 ? Math.min(...section.rows.map(r => r.level)) : 0;
@@ -194,9 +268,12 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                   <input 
                     value={section.title} 
                     onChange={(e) => onSectionsChange(sections.map(s => s.id === section.id ? { ...s, title: e.target.value } : s))} 
-                    className="bg-transparent border-none focus:ring-0 p-0 text-lg font-black text-white uppercase tracking-tight w-full outline-none" 
+                    className={`bg-transparent border-none focus:ring-0 p-0 text-lg font-black uppercase tracking-tight w-full outline-none ${duplicateTitleWarnings.has((section.title || '').trim().toUpperCase()) ? 'text-amber-400' : 'text-white'}`}
                     placeholder="Nama Seksi Anggaran..." 
                   />
+                  {duplicateTitleWarnings.has((section.title || '').trim().toUpperCase()) && (
+                    <p className="text-[9px] font-bold text-amber-400 mt-1">⚠ Nama section ini duplikat dengan section lain</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 no-print">
@@ -233,7 +310,10 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                       return (
                         <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
                           <td className="px-5 py-3 border-r border-slate-100 align-top">
-                            <input className="w-full bg-transparent border-none focus:ring-0 p-0 font-mono font-bold text-slate-500 uppercase" value={row.kode} onChange={e => handleRowChange(section.id, row.id, 'kode', e.target.value)} />
+                            <input className={`w-full bg-transparent border-none focus:ring-0 p-0 font-mono font-bold uppercase ${duplicateKodeWarnings[row.kode.trim()] ? 'text-amber-500' : 'text-slate-500'}`} value={row.kode} onChange={e => handleRowChange(section.id, row.id, 'kode', e.target.value)} />
+                            {duplicateKodeWarnings[row.kode.trim()] && (
+                              <p className="text-[8px] font-bold text-amber-500 mt-0.5" title={`Juga ada di: ${duplicateKodeWarnings[row.kode.trim()]?.join(', ')}`}>⚠ duplikat</p>
+                            )}
                           </td>
                           <td className="px-5 py-3 border-r border-slate-100 align-top relative" style={{ paddingLeft: `${indentation + 1}rem` }}>
                             <div className="flex items-start gap-3 relative z-10">
