@@ -579,6 +579,18 @@ const App: React.FC = () => {
       if (allSections.length > 0) {
         const { error: paguErr } = await supabase.from('pagu_sections').upsert(allSections);
         if (paguErr) throw paguErr;
+
+        // [FIX 10 Mei 2026] Orphan cleanup for pagu_sections
+        const paguCurrentIds = allSections.map(s => s.id);
+        const { data: allPaguRows } = await supabase.from('pagu_sections').select('id');
+        if (allPaguRows) {
+          const orphanIds = allPaguRows.filter(r => !paguCurrentIds.includes(r.id)).map(r => r.id);
+          if (orphanIds.length > 0) {
+            await supabase.from('pagu_sections').delete().in('id', orphanIds);
+            console.log(`🧹 Pagu orphan cleanup: removed ${orphanIds.length} stale records`, orphanIds);
+          }
+        }
+
         // [S3.2] Audit emit — diff dari last snapshot ke current flat state
         const paguFlat: PaguSection[] = (Object.values(dataByYear) as PaguSection[][]).flat();
         auditBuffer.push(...diffCollectionForAudit(
@@ -589,6 +601,7 @@ const App: React.FC = () => {
       }
 
       // [S3.3] RABS: envelope upsert. ID native dari INITIAL_RAB_CATEGORIES = `rab-{linkedPaguSectionId}` (year-implicit).
+      // [FIX 10 Mei 2026] Orphan cleanup — same pattern as RPDs.
       currentEntity = 'rabs';
       if (rabCategories.length > 0) {
         const rabsPayload = rabCategories.map(r => {
@@ -597,6 +610,18 @@ const App: React.FC = () => {
         });
         const { error: rabsErr } = await supabase.from('rabs').upsert(rabsPayload);
         if (rabsErr) throw rabsErr;
+
+        // Orphan cleanup: hapus record di DB yang tidak ada di current state
+        const rabCurrentIds = rabCategories.map(r => r.id);
+        const { data: allRabRows } = await supabase.from('rabs').select('id');
+        if (allRabRows) {
+          const orphanIds = allRabRows.filter(r => !rabCurrentIds.includes(r.id)).map(r => r.id);
+          if (orphanIds.length > 0) {
+            await supabase.from('rabs').delete().in('id', orphanIds);
+            console.log(`🧹 RAB orphan cleanup: removed ${orphanIds.length} stale records`, orphanIds);
+          }
+        }
+
         // [S3.3] Audit emit — D-S3.3-4: title primary, FK fallback
         auditBuffer.push(...diffCollectionForAudit(
           prevSnapshotRef.current.rabs, rabCategories, 'rab',
@@ -606,6 +631,8 @@ const App: React.FC = () => {
       }
 
       // [S3.3] RPDS: envelope upsert. ID native = `rpd-{linkedSectionId}` (year-implicit via pagu FK).
+      // [FIX 10 Mei 2026] Orphan cleanup — delete stale RPD records yang sudah tidak ada di state.
+      // Bug: upsert() hanya INSERT/UPDATE, tidak DELETE record lama saat pagu di-restructure.
       currentEntity = 'rpds';
       if (rpdSections.length > 0) {
         const rpdsPayload = rpdSections.map(r => {
@@ -614,6 +641,18 @@ const App: React.FC = () => {
         });
         const { error: rpdsErr } = await supabase.from('rpds').upsert(rpdsPayload);
         if (rpdsErr) throw rpdsErr;
+
+        // Orphan cleanup: hapus record di DB yang tidak ada di current state
+        const rpdCurrentIds = rpdSections.map(r => r.id);
+        const { data: allRpdRows } = await supabase.from('rpds').select('id');
+        if (allRpdRows) {
+          const orphanIds = allRpdRows.filter(r => !rpdCurrentIds.includes(r.id)).map(r => r.id);
+          if (orphanIds.length > 0) {
+            await supabase.from('rpds').delete().in('id', orphanIds);
+            console.log(`🧹 RPD orphan cleanup: removed ${orphanIds.length} stale records`, orphanIds);
+          }
+        }
+
         // [S3.3] Audit emit — D-S3.3-4: title primary, FK fallback
         auditBuffer.push(...diffCollectionForAudit(
           prevSnapshotRef.current.rpds, rpdSections, 'rpd',
