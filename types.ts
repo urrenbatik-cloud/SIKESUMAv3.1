@@ -221,6 +221,8 @@ export interface RPDRow {
 export interface RPDSection {
   id: string;
   title: string;
-  linkedSectionId: string;
+  /** [Sprint B.5] Renamed from linkedSectionId untuk konsistensi dengan
+   *  RABCategory.linkedPaguSectionId. FK ke PaguSection.id. */
+  linkedPaguSectionId: string;
   rows: RPDRow[];
 }

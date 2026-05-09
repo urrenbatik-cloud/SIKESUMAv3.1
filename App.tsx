@@ -309,17 +309,18 @@ const App: React.FC = () => {
         errors.push('rabs');
       }
 
-      // [S3.3] RPDS: envelope unwrap. ID pattern `rpd-{linkedSectionId}` = `rpd-pagu-{year}-{slug}`.
-      // RPDSection shape: {id, title, linkedSectionId, rows[]}. monthly defaults handled at render time.
+      // [S3.3] RPDS: envelope unwrap. ID pattern `rpd-{linkedPaguSectionId}` = `rpd-pagu-{year}-{slug}`.
+      // [Sprint B.5] Renamed linkedSectionId → linkedPaguSectionId. Loader masih
+      // accept old key untuk backward compat (untuk data Supabase yang belum di-migrate).
       try {
         const { data: rpds, error } = await supabase.from('rpds').select('*');
         if (error) throw error;
         if (rpds && rpds.length > 0) {
           const unwrapped: RPDSection[] = rpds.map((r: any) => ({
-            id:               r?.id ?? '',
-            title:            r?.data?.title ?? '',
-            linkedSectionId:  r?.data?.linkedSectionId ?? '',
-            rows:             Array.isArray(r?.data?.rows) ? r.data.rows : [],
+            id:                  r?.id ?? '',
+            title:               r?.data?.title ?? '',
+            linkedPaguSectionId: r?.data?.linkedPaguSectionId ?? r?.data?.linkedSectionId ?? '',
+            rows:                Array.isArray(r?.data?.rows) ? r.data.rows : [],
           }));
           setRpdSections(unwrapped);
           counts.rpds = rpds.length;
@@ -637,7 +638,7 @@ const App: React.FC = () => {
         prevSnapshotRef.current.rabs = rabCategories;
       }
 
-      // [S3.3] RPDS: envelope upsert. ID native = `rpd-{linkedSectionId}` (year-implicit via pagu FK).
+      // [S3.3] RPDS: envelope upsert. ID native = `rpd-{linkedPaguSectionId}` (year-implicit via pagu FK).
       // [FIX 10 Mei 2026] Orphan cleanup — delete stale RPD records yang sudah tidak ada di state.
       // Bug: upsert() hanya INSERT/UPDATE, tidak DELETE record lama saat pagu di-restructure.
       currentEntity = 'rpds';
@@ -667,7 +668,7 @@ const App: React.FC = () => {
         // [S3.3] Audit emit — D-S3.3-4: title primary, FK fallback
         auditBuffer.push(...diffCollectionForAudit(
           prevSnapshotRef.current.rpds, rpdSections, 'rpd',
-          (s) => 'RPD ' + ((s as any).title || (s as any).linkedSectionId || (s as any).id),
+          (s) => 'RPD ' + ((s as any).title || (s as any).linkedPaguSectionId || (s as any).id),
         ));
         prevSnapshotRef.current.rpds = rpdSections;
       }
@@ -916,7 +917,7 @@ const App: React.FC = () => {
     const rpdSectionsInitial = paguSections.map(sec => ({
       id: `rpd-${sec.id}`,
       title: sec.title,
-      linkedSectionId: sec.id,
+      linkedPaguSectionId: sec.id,
       rows: sec.rows.map(r => ({
         id: r.id,
         kode: r.kode,
@@ -928,7 +929,7 @@ const App: React.FC = () => {
     setRpdSections(prev => {
        if (prev.length === 0) return rpdSectionsInitial;
        return rpdSectionsInitial.map(newSec => {
-          const existing = prev.find(p => p.linkedSectionId === newSec.linkedSectionId);
+          const existing = prev.find(p => p.linkedPaguSectionId === newSec.linkedPaguSectionId);
           if (existing) {
             // Preserve existing monthly distribution; struktur baru ikut Pagu
             return { ...newSec, rows: newSec.rows.map(nr => {

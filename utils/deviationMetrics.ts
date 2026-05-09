@@ -196,8 +196,8 @@ export function computeDeviation(
     // Skip empty sections defensive
     if (!section.rows || section.rows.length === 0) continue;
 
-    // Match RPD section by linkedSectionId === paguSection.id
-    const rpdSection = rpdSections.find((rpd) => rpd.linkedSectionId === section.id);
+    // [Sprint B.5] Match RPD section by linkedPaguSectionId === paguSection.id
+    const rpdSection = rpdSections.find((rpd) => rpd.linkedPaguSectionId === section.id);
 
     // Collect kodes — only level > 0 (skip header). Trim whitespace.
     const itemRows = section.rows.filter((r) => r.level > 0);
