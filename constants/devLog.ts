@@ -1034,6 +1034,50 @@ Total estimasi sisa proyek: ~30-40 jam productive, ~7-9 chat sessions, ~4-6 ming
 
 **Status:** Code complete, save trigger v1.0 → v3.1 migration karena AI Studio limitation.`,
   },
+
+  {
+    id:    'log-2026-05-09-phase-6-0-ai-advisor',
+    date:  '2026-05-09',
+    phase: 'Step 6 / Phase 6.0',
+    title: 'Phase 6.0 — AI Advisory Optimization (Gemini→Claude, Enriched Prompts)',
+    type:  'feature',
+    author: 'AI Assistant',
+    description:
+`AI analysis engine rewritten from scratch. Previous: Gemini API with 2-number prompt (klaim + beban). Now: dual-provider (Claude primary, Gemini fallback), structured JSON output, full budget context.
+
+**Files created:**
+- utils/aiAdvisor.ts (290 LOC) — Core: collectBudgetBriefing, prompt engineering, dual API, JSON parsing, Markdown export
+- components/AIAdvisorPanel.tsx (230 LOC) — Reusable UI: idle/loading/error/result states, reallocation cards, priority badges
+
+**Files modified:**
+- components/ServiceDetails.tsx — Replaced raw Gemini call with AIAdvisorPanel (jasa_efficiency mode)
+- components/DeviationDashboard.tsx — Added AIAdvisorPanel (budget_reallocation mode) after EarlyWarningPanel
+- vite.config.ts — Added ANTHROPIC_API_KEY env var support
+
+**Data sent to AI (before vs after):**
+Before: Total Klaim + Total Beban (2 numbers)
+After: Pagu per kategori + RAB breakdown + RPD vs Realisasi bulanan + Deviasi trend + Early Warning alerts + Jasa pools + Margin + Jumlah pasien (~20+ data points)
+
+**Two analysis modes:**
+1. jasa_efficiency (ServiceDetails) — margin optimization, pool analysis, efficiency strategy
+2. budget_reallocation (DeviationDashboard) — POK revision, zero-sum reallocation suggestions
+
+**Bundle impact:** -275 KB (1019→744 KB) — Gemini SDK moved to dynamic import.`,
+    files: [
+      'utils/aiAdvisor.ts',
+      'components/AIAdvisorPanel.tsx',
+      'components/ServiceDetails.tsx',
+      'components/DeviationDashboard.tsx',
+      'vite.config.ts',
+    ],
+    decisions: [
+      '§S6.0-D1: Dual provider — Claude primary, Gemini fallback (auto-detect API key)',
+      '§S6.0-D2: Structured JSON output (not free-text)',
+      '§S6.0-D3: Two modes — jasa_efficiency + budget_reallocation',
+      '§S6.0-D4: Full context briefing (pagu+RAB+RPD+realisasi+deviasi+earlyWarning)',
+    ],
+    related: ['log-2026-05-08-phase-5-5-6-early-warning-revision'],
+  },
 ];
 
 // ─── §6. Helpers ──────────────────────────────────────────────────────────────

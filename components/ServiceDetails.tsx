@@ -1,10 +1,11 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { PatientClaim, Doctor, Employee, ServiceDetailState, BPJSCalcSettings } from '../types';
 import { calculatePatientFees, getEffectiveSettings } from '../utils/feeCalculation';
 import { formatIDR } from './Formatters';
-import { BrainCircuit, ShieldCheck, Info, TrendingDown, Landmark, ArrowRight, Wallet } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { ShieldCheck, Info, TrendingDown, Landmark, Wallet } from 'lucide-react';
+import AIAdvisorPanel from './AIAdvisorPanel';
+import type { BudgetBriefing } from '../utils/aiAdvisor';
 
 // Tooltip component to provide additional information on hover
 const Tooltip: React.FC<{ children: React.ReactNode; content: string }> = ({ children, content }) => (
@@ -29,8 +30,6 @@ interface ServiceDetailsProps {
 }
 
 const ServiceDetails: React.FC<ServiceDetailsProps> = ({ logs, doctors, staff, bpjsSettingsHistory, globalMonth, globalYear }) => {
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
-  const [loadingAI, setLoadingAI] = useState(false);
 
   const stats = useMemo(() => {
     const filtered = logs.filter(l => l.tahun === globalYear && l.bulan === globalMonth && l.status === 'Verifikasi');
@@ -81,22 +80,30 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ logs, doctors, staff, b
     };
   }, [logs, globalMonth, globalYear, bpjsSettingsHistory, doctors, staff]);
 
-  const handleAISuggestion = async () => {
-    setLoadingAI(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `Analisis keuangan Rumah Sakit bulan ${globalMonth}/${globalYear}. Total Klaim: ${formatIDR(stats.klaimTotal)}. Total Beban Jasa: ${formatIDR(stats.totalBeban)}. Berikan 3 poin saran strategis singkat.`;
-      const response = await ai.models.generateContent({ 
-        model: 'gemini-3-flash-preview', 
-        contents: prompt 
-      });
-      setAiSuggestion(response.text || "Saran tidak tersedia.");
-    } catch (e) { 
-      setAiSuggestion("Gagal menghubungi AI."); 
-    } finally { 
-      setLoadingAI(false); 
-    }
-  };
+  // Build briefing for AI Advisor Panel
+  const jasaBriefing = useMemo((): BudgetBriefing => ({
+    namaRS: 'RS Tk.IV 02.07.03 Batin Tikal',
+    tahun: globalYear,
+    bulan: globalMonth,
+    paguSections: [],
+    rpdVsRealisasi: [],
+    earlyWarnings: [],
+    totalPagu: 0,
+    totalRealisasi: stats.totalBeban,
+    totalDeviasi: 0,
+    jasaStats: {
+      klaimTotal: stats.klaimTotal,
+      totalBeban: stats.totalBeban,
+      profit: stats.profit,
+      margin: stats.margin,
+      bpjsPools: stats.bpjsPools,
+      totalTransportDoc: stats.totalTransportDoc,
+      totalHonorTKS: stats.totalHonorTKS,
+      subtotalBPJS: stats.subtotalBPJS,
+      subtotalYanmasum: stats.subtotalYanmasum,
+      jumlahPasien: logs.filter(l => l.tahun === globalYear && l.bulan === globalMonth && l.status === 'Verifikasi').length,
+    },
+  }), [stats, globalYear, globalMonth, logs]);
 
   return (
     <div className="space-y-10 animate-in slide-in-from-right duration-700">
@@ -200,29 +207,9 @@ const ServiceDetails: React.FC<ServiceDetailsProps> = ({ logs, doctors, staff, b
           </div>
         </div>
 
-        {/* AI PANEL */}
-        <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-xl h-fit sticky top-24">
-           <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
-              <BrainCircuit size={18} className="text-blue-500" /> AI Financial Advisory
-           </h3>
-           {loadingAI ? (
-             <div className="py-12 text-center animate-pulse">
-                <BrainCircuit className="mx-auto text-blue-500 mb-6 animate-bounce" size={48} />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Menganalisis Efisiensi...</p>
-             </div>
-           ) : aiSuggestion ? (
-             <div className="prose prose-sm text-slate-600 text-[11px] leading-relaxed bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 italic relative shadow-inner">
-                <div className="absolute -top-3 left-8 bg-blue-600 text-white px-4 py-1.5 rounded-full text-[8px] font-black uppercase shadow-lg">Gemini Intelligence</div>
-                <div className="whitespace-pre-line">{aiSuggestion}</div>
-             </div>
-           ) : (
-             <div className="text-center py-10 space-y-6">
-                <p className="text-[11px] font-bold text-slate-500 leading-relaxed px-6">Gunakan AI untuk mendapatkan strategi optimalisasi margin operasional jasa pelayanan bulan ini.</p>
-                <button onClick={handleAISuggestion} className="px-8 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-blue-600 hover:-translate-y-1 transition-all flex items-center gap-3 mx-auto active:scale-95">
-                   Jalankan Analisis AI <ArrowRight size={16} />
-                </button>
-             </div>
-           )}
+        {/* AI PANEL — Phase 6.0 Optimized */}
+        <div className="h-fit sticky top-24">
+          <AIAdvisorPanel briefing={jasaBriefing} mode="jasa_efficiency" compact={true} />
         </div>
       </div>
     </div>

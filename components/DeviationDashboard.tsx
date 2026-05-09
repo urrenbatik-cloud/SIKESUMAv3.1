@@ -56,6 +56,8 @@ import type { PaguSection, RPDSection, Bill } from '../types';
 import EarlyWarningPanel from './EarlyWarningPanel';
 import RevisionProposalGenerator from './RevisionProposalGenerator';
 import { analyzeWarnings, DEFAULT_WARNING_THRESHOLDS } from '../utils/earlyWarning';
+import AIAdvisorPanel from './AIAdvisorPanel';
+import { collectBudgetBriefing } from '../utils/aiAdvisor';
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
@@ -180,6 +182,15 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
     [data],
   );
 
+  // [S6.0] Budget briefing for AI Advisor Panel
+  const budgetBriefing = useMemo(
+    () => collectBudgetBriefing(
+      yearNum, paguSections, rpdSections, absorptionMap,
+      data, warningResult.alerts,
+    ),
+    [yearNum, paguSections, rpdSections, absorptionMap, data, warningResult],
+  );
+
   // ─── Render ─────────────────────────────────────────────────────────────
 
   if (paguSections.length === 0) {
@@ -245,6 +256,11 @@ const DeviationDashboard: React.FC<DeviationDashboardProps> = ({
           deviationData={data}
           onGenerateProposal={() => setShowProposal(true)}
         />
+      )}
+
+      {/* [S6.0] AI Budget Advisor — reallocation analysis */}
+      {!isLoading && data.categories.length > 0 && (
+        <AIAdvisorPanel briefing={budgetBriefing} mode="budget_reallocation" />
       )}
 
       {/* CHART 1: Stacked Bar — Realisasi per kategori per bulan */}
