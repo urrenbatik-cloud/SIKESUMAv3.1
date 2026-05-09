@@ -37,6 +37,7 @@ import {
   DUMMY_REVENUE_TARGETS, DUMMY_SPECIALTY_TARGETS
 } from './constants';
 import { calculatePatientFees, getEffectiveSettings } from './utils/feeCalculation';
+import { buildBucketRegistry, type BucketRegistry, type JasaMonthlyData } from './utils/realisasiBucket';
 import { supabase } from './lib/supabase';
 // [S3.2] Audit log foundation — sync-time logging via diff helpers
 import {
@@ -919,49 +920,45 @@ const App: React.FC = () => {
     });
   }, [paguSections]);
 
-  const realisasiMetrics = useMemo(() => {
-    const yearFilter = selectedYear === 'ALL' ? '' : selectedYear.toString();
-    const absorptionMap: Record<string, Record<string, number>> = {};
-    const addByCode = (kode: string, month: number, value: number) => {
-      const cleanCode = kode.trim(); if (!cleanCode) return;
-      const mKey = `m${month}`; if (!absorptionMap[cleanCode]) absorptionMap[cleanCode] = {};
-      absorptionMap[cleanCode][mKey] = (absorptionMap[cleanCode][mKey] || 0) + value;
-    };
-    allBills.filter(b => b.status === 'Lunas' && b.tanggal.startsWith(yearFilter)).forEach(b => {
-      const bDate = new Date(b.tanggal);
-      const monthNum = bDate.getMonth() + 1;
-      b.items.forEach(it => addByCode(it.akun, monthNum, (it.volume * it.hargaSatuan)));
-    });
+  // ── P3: RealisasiBucket — coexistence primitive ──
+  // Pre-compute jasa monthly data (bridge from BPJS module into bucket builder)
+  const jasaMonthlyData = useMemo((): JasaMonthlyData[] => {
     const filterYearNum = selectedYear === 'ALL' ? 2025 : selectedYear;
+    const result: JasaMonthlyData[] = [];
     for (let m = 1; m <= 12; m++) {
-      const monthlyTKS = staffList.filter(s => s.status === 'TKS').reduce((sum, s) => sum + (s.baseHonor || 0), 0);
-      addByCode(jasaAccountMap.tks, m, monthlyTKS);
+      const tksTotal = staffList.filter(s => s.status === 'TKS').reduce((sum, s) => sum + (s.baseHonor || 0), 0);
       const monthlyTransport = doctorsList.reduce((sum, d) => sum + (d.baseTransport || 0), 0);
       const monthlyLogs = logsList.filter(l => l.tahun === filterYearNum && l.bulan === m && l.status === 'Lunas');
-      const monthlyJasaNakes = monthlyLogs.reduce((sum, l) => {
+      const nakesTotal = monthlyTransport + monthlyLogs.reduce((sum, l) => {
         const s = getEffectiveSettings(l.tahun, l.bulan, bpjsSettingsHistory);
         const f = calculatePatientFees(l, s);
         return sum + (f.spesialis + f.anestesi + f.gp + f.konsul + f.paramOK + f.paramICU + f.paramGen + f.penataAnestesi);
       }, 0);
-      addByCode(jasaAccountMap.nakes, m, monthlyTransport + monthlyJasaNakes);
-      const monthlyJasaPengelola = monthlyLogs.reduce((sum, l) => {
+      const pengelolaTotal = monthlyLogs.reduce((sum, l) => {
         const s = getEffectiveSettings(l.tahun, l.bulan, bpjsSettingsHistory);
         const f = calculatePatientFees(l, s);
         return sum + (f.pengelola + f.manajemen + f.casemix);
       }, 0);
-      addByCode(jasaAccountMap.pengelola, m, monthlyJasaPengelola);
+      result.push({ bulan: m, tksTotal, nakesTotal, pengelolaTotal });
     }
-    let totalPagu = 0; let totalReal = 0;
-    paguSections.forEach(sec => {
-      const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
-      sec.rows.filter(r => r.level === minLvl).forEach(r => {
-        totalPagu += (budgetViewMode === 'SEMULA' ? r.jumlahBiayaAwal : r.jumlahBiayaRevisi) || 0;
-        const rowMonthlyData = absorptionMap[r.kode.trim()] || {};
-        totalReal += Object.values(rowMonthlyData).reduce((sum, val) => sum + val, 0);
-      });
+    return result;
+  }, [logsList, doctorsList, staffList, selectedYear, bpjsSettingsHistory]);
+
+  // Build bucket registry — replaces old absorptionMap with rich posting data + IV checks
+  const bucketRegistry = useMemo((): BucketRegistry => {
+    return buildBucketRegistry({
+      paguSections, rpdSections, bills: allBills,
+      jasaMonthlyData, jasaAccountMap,
+      selectedYear, budgetViewMode,
     });
-    return { totalPagu, totalReal, absorptionMap };
-  }, [paguSections, allBills, logsList, doctorsList, staffList, selectedYear, budgetViewMode, bpjsSettingsHistory, jasaAccountMap]);
+  }, [paguSections, rpdSections, allBills, jasaMonthlyData, jasaAccountMap, selectedYear, budgetViewMode]);
+
+  // Backward-compatible alias (drop-in replacement for old realisasiMetrics)
+  const realisasiMetrics = useMemo(() => ({
+    totalPagu: bucketRegistry.totalPagu,
+    totalReal: bucketRegistry.totalReal,
+    absorptionMap: bucketRegistry.absorptionMap,
+  }), [bucketRegistry]);
 
   const handleMainTabChange = (tab: MainTab) => {
     setMainTab(tab);
