@@ -889,7 +889,7 @@ const App: React.FC = () => {
       const monthlyTKS = staffList.filter(s => s.status === 'TKS').reduce((sum, s) => sum + (s.baseHonor || 0), 0);
       addByCode(jasaAccountMap.tks, m, monthlyTKS);
       const monthlyTransport = doctorsList.reduce((sum, d) => sum + (d.baseTransport || 0), 0);
-      const monthlyLogs = logsList.filter(l => l.tahun === filterYearNum && l.bulan === m && (l.status === 'Verifikasi' || l.status === 'Lunas'));
+      const monthlyLogs = logsList.filter(l => l.tahun === filterYearNum && l.bulan === m && l.status === 'Lunas');
       const monthlyJasaNakes = monthlyLogs.reduce((sum, l) => {
         const s = getEffectiveSettings(l.tahun, l.bulan, bpjsSettingsHistory);
         const f = calculatePatientFees(l, s);
@@ -1062,7 +1062,23 @@ const App: React.FC = () => {
                 <RPD sections={rpdSections} onSectionsChange={setRpdSections} viewMode={budgetViewMode} selectedYear={currentRKKSYear} />
               )}
               {activeTabType === TabType.REALISASI && (
-                <RealisasiRPD sections={rpdSections.map(sec => ({ ...sec, rows: sec.rows.map(row => ({ ...row, monthly: { ...row.monthly, ...(realisasiMetrics.absorptionMap[row.kode.trim()] || {}) } })) }))} onSectionsChange={setRpdSections} viewMode={budgetViewMode} selectedYear={currentRKKSYear} />
+                <RealisasiRPD
+                  sections={rpdSections.map(sec => ({
+                    ...sec,
+                    rows: sec.rows.map(row => ({
+                      ...row,
+                      monthly: {
+                        m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0,
+                        m7: 0, m8: 0, m9: 0, m10: 0, m11: 0, m12: 0,
+                        ...(realisasiMetrics.absorptionMap[row.kode.trim()] || {})
+                      }
+                    }))
+                  }))}
+                  rpdPlannedSections={rpdSections}
+                  onSectionsChange={setRpdSections}
+                  viewMode={budgetViewMode}
+                  selectedYear={currentRKKSYear}
+                />
               )}
               {subTab === SubTab.BELANJA_JASA && (
                 <BPJSModule 
