@@ -290,9 +290,11 @@ export const RECOMMENDATIONS: InternalRecommendation[] = [
     ],
     justification: '532111 (Belanja Modal Peralatan dan Mesin) adalah kode umum untuk pengadaan alat operasional. ' +
       'Untuk RS Batin Tikal sub-Satker non-BLU, pakai 532111 default (bukan variant 532113 BLU atau 532114 TNI/POLRI khusus). ' +
-      'Konvensi subkode internal: 532111.{nomor}.{kategori} dimana {kategori} = A (Alsintor: alat mesin kantor), ' +
-      'B (Alkes: alat kesehatan), C (Alsatri: alat kesatriaan). Konvensi ini KHUSUS untuk Belanja Pengadaan saja, ' +
-      'bukan global cross-section.',
+      'Konvensi subkode internal RS (KONFIRMASI ANGGA 10 Mei 2026): 532111.{nomor}.{kategori} dimana {kategori} = ' +
+      'A (Alsintor: alat mesin kantor), B (Alkes: alat kesehatan), C (Alsatri: alat kesatriaan). ' +
+      'Konvensi ini KHUSUS untuk Belanja Pengadaan saja, bukan global cross-section. ' +
+      'Reasoning: akun pengadaan sama (532111) tapi komponen pembelanjaan beda → butuh sub-categorization internal. ' +
+      'Akun lain tidak butuh ini karena beda komponen sudah ada beda akun di BAS.',
     source: SOURCE_DOCS.KLARIFIKASI_FOLLOWUP,
     approvedDate: '2026-05-10',
     confidence: 'high',
