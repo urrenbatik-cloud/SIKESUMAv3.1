@@ -20,7 +20,7 @@
 // ============================================================================
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Sparkles } from 'lucide-react';
 import {
   searchBas,
   isValidBasKode,
@@ -28,6 +28,10 @@ import {
   type BasEntry,
   type BasKategori,
 } from '../utils/basDictionary';
+import {
+  findRecommendations,
+  type InternalRecommendation,
+} from '../utils/internalRecommendations';
 
 // Generic suggestion type — covers both BAS entries dan Pagu kode list
 export interface KodeSuggestion {
@@ -35,6 +39,12 @@ export interface KodeSuggestion {
   uraian:      string;
   meta?:       string; // mis. "BELANJA" or "Pagu 2025 Bekkes"
   isInactive?: boolean; // true untuk BAS yang dinonaktifkan
+  /** [HITL] Bila suggestion datang dari internal recommendation, ada justifikasi Angga */
+  recommendation?: {
+    id: string;
+    justification: string;
+    source: string;
+  };
 }
 
 export interface KodeAutocompleteProps {
@@ -50,6 +60,10 @@ export interface KodeAutocompleteProps {
   paguOptions?: KodeSuggestion[];
   /** When mode='bas', filter by kategori (mis. ['BELANJA'] untuk Pagu Belanja-only) */
   basKategori?: BasKategori | BasKategori[];
+  /** [HITL] Description text untuk match internal recommendations (Angga's klarifikasi).
+   *  Optional — kalau di-pass, recommendations dengan justifikasi muncul di top dropdown
+   *  dengan badge khusus. Tidak depend mode (bisa untuk 'bas' maupun 'pagu'). */
+  description?: string;
   /** Show validation state (✓/⚠ icon) */
   showValidation?: boolean;
   /** Placeholder */
@@ -67,6 +81,7 @@ const KodeAutocomplete: React.FC<KodeAutocompleteProps> = ({
   mode,
   paguOptions = [],
   basKategori,
+  description = '',
   showValidation = true,
   placeholder = 'mis. 521115.01',
   className = '',
@@ -77,26 +92,56 @@ const KodeAutocomplete: React.FC<KodeAutocompleteProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Compute suggestions based on mode
+  // [HITL] Internal recommendations berdasarkan description (Angga's klarifikasi).
+  // Dimunculkan di top dropdown saat description matches pattern, sebelum BAS results.
+  const hitlRecommendations = useMemo<KodeSuggestion[]>(() => {
+    if (!description) return [];
+    const recs = findRecommendations(description, value);
+    return recs.map((r) => {
+      // Lookup BAS entry untuk uraian resmi
+      const result = searchBas(r.recommended_kode_bas, { activeOnly: false, limit: 1 });
+      const basEntry = result.find(e => e.kode === r.recommended_kode_bas);
+      return {
+        kode: r.recommended_kode_bas,
+        uraian: basEntry?.uraian || `Kode ${r.recommended_kode_bas}`,
+        meta: '⭐ REKOMENDASI ANGGA',
+        recommendation: {
+          id: r.id,
+          justification: r.justification,
+          source: r.source,
+        },
+      };
+    });
+  }, [description, value]);
+
+  // Compute suggestions based on mode (with HITL recs prepended)
   const suggestions = useMemo<KodeSuggestion[]>(() => {
     const q = value.trim();
-    if (!q) return [];
-    if (mode === 'bas') {
-      return searchBas(q, { kategori: basKategori, activeOnly: false, limit: 12 }).map(
-        (e: BasEntry) => ({
-          kode: e.kode,
-          uraian: e.uraian,
-          meta: e.kategori + (e.active ? '' : ' • NONAKTIF'),
-          isInactive: !e.active,
-        })
-      );
+    // Always show HITL recs first if any (even when input empty, as long as description matches)
+    let baseSuggestions: KodeSuggestion[] = [];
+    if (q || hitlRecommendations.length === 0) {
+      if (mode === 'bas') {
+        baseSuggestions = searchBas(q, { kategori: basKategori, activeOnly: false, limit: 10 }).map(
+          (e: BasEntry) => ({
+            kode: e.kode,
+            uraian: e.uraian,
+            meta: e.kategori + (e.active ? '' : ' • NONAKTIF'),
+            isInactive: !e.active,
+          })
+        );
+      } else {
+        const ql = q.toLowerCase();
+        baseSuggestions = paguOptions
+          .filter(o => o.kode.startsWith(q) || o.uraian.toLowerCase().includes(ql))
+          .slice(0, 10);
+      }
     }
-    // mode='pagu' — filter paguOptions by prefix or substring
-    const ql = q.toLowerCase();
-    return paguOptions
-      .filter(o => o.kode.startsWith(q) || o.uraian.toLowerCase().includes(ql))
-      .slice(0, 12);
-  }, [value, mode, basKategori, paguOptions]);
+
+    // Dedupe: kalau HITL rec kode sudah muncul di base, skip dari base
+    const hitlKodes = new Set(hitlRecommendations.map(r => r.kode));
+    const filteredBase = baseSuggestions.filter(s => !hitlKodes.has(s.kode));
+    return [...hitlRecommendations, ...filteredBase].slice(0, 12);
+  }, [value, mode, basKategori, paguOptions, hitlRecommendations]);
 
   // Validation icon
   const validationState = useMemo(() => {
@@ -170,27 +215,40 @@ const KodeAutocomplete: React.FC<KodeAutocompleteProps> = ({
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <ul className="absolute left-0 top-full mt-1 w-[28rem] max-w-[90vw] bg-white border border-slate-300 rounded-lg shadow-2xl z-50 max-h-72 overflow-y-auto">
-          {suggestions.map((sug, idx) => (
+        <ul className="absolute left-0 top-full mt-1 w-[32rem] max-w-[90vw] bg-white border border-slate-300 rounded-lg shadow-2xl z-50 max-h-96 overflow-y-auto">
+          {suggestions.map((sug, idx) => {
+            const isHitl = !!sug.recommendation;
+            return (
             <li
-              key={sug.kode}
+              key={sug.kode + (isHitl ? '-hitl' : '')}
               onMouseDown={(e) => { e.preventDefault(); pickSuggestion(sug); }}
               onMouseEnter={() => setHighlightIdx(idx)}
               className={`px-3 py-2 cursor-pointer text-[11px] border-b border-slate-100 last:border-b-0 ${
+                isHitl ? 'bg-amber-50/60 hover:bg-amber-100/60' :
                 idx === highlightIdx ? 'bg-blue-50' : 'hover:bg-slate-50'
               } ${sug.isInactive ? 'opacity-60' : ''}`}
+              title={sug.recommendation ? `Rekomendasi Angga (${sug.recommendation.id})\n\n${sug.recommendation.justification}\n\nSumber: ${sug.recommendation.source}` : undefined}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono font-black text-blue-700">{sug.kode}</span>
+                <span className="flex items-center gap-1.5">
+                  {isHitl && <Sparkles size={11} className="text-amber-600 flex-shrink-0" />}
+                  <span className={`font-mono font-black ${isHitl ? 'text-amber-800' : 'text-blue-700'}`}>{sug.kode}</span>
+                </span>
                 {sug.meta && (
                   <span className={`text-[9px] font-bold uppercase tracking-widest ${
+                    isHitl ? 'text-amber-700' :
                     sug.isInactive ? 'text-amber-600' : 'text-slate-400'
                   }`}>{sug.meta}</span>
                 )}
               </div>
               <div className="text-slate-700 mt-0.5 truncate">{sug.uraian}</div>
+              {isHitl && sug.recommendation && (
+                <div className="text-[9px] text-amber-700 mt-1 italic line-clamp-2">
+                  💬 {sug.recommendation.justification.slice(0, 140)}{sug.recommendation.justification.length > 140 ? '…' : ''}
+                </div>
+              )}
             </li>
-          ))}
+          );})}
         </ul>
       )}
 

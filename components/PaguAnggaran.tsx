@@ -315,13 +315,15 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                               mode="bas"
                               basKategori={['BELANJA', 'PENDAPATAN']}
                               value={row.kode}
+                              description={row.description}
                               onChange={v => handleRowChange(section.id, row.id, 'kode', v)}
                               onSelect={(sug) => {
-                                // [Sprint B.6] Auto-fill kode_bas (canonical 6-digit) saat user pick dari autocomplete.
-                                // Description tetap user-controlled — autocomplete punya BAS uraian standar
-                                // tapi user mungkin pakai uraian internal yang lebih spesifik.
+                                // [Sprint B.6] Auto-fill kode_bas saat user pick dari autocomplete.
+                                // [HITL] Kalau suggestion datang dari recommendation Angga,
+                                // kode yang di-fill ke `kode` adalah kode_bas (6-digit), DAN
+                                // kode_bas ter-set langsung. User bisa edit kode untuk tambah suffix .01 dst.
                                 const newKode = sug.kode;
-                                const kodeBas = deriveKodeBas(newKode) || newKode;
+                                const kodeBas = sug.recommendation?.id ? sug.kode : (deriveKodeBas(newKode) || newKode);
                                 const updatedRows = section.rows.map(r => r.id === row.id ? { ...r, kode: newKode, kode_bas: kodeBas } : r);
                                 onSectionsChange(sections.map(s => s.id === section.id ? { ...s, rows: updatedRows } : s));
                               }}
