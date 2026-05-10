@@ -216,7 +216,8 @@ export const RECOMMENDATIONS: InternalRecommendation[] = [
       { kode_bas: '522113', reason: 'Itu kode Air, bukan Listrik. BAS punya kode terpisah untuk masing-masing.' },
       { kode_bas: '521311', reason: '521311 tidak ada di BAS resmi.' },
     ],
-    justification: '522111 (Belanja Langganan Listrik) khusus untuk PLN. Saat tagihan listrik+air gabung di 1 invoice, split di stage Pagu (rasio default 75% Listrik / 25% Air per konfirmasi operasional RS), bukan di stage Bill.',
+    justification: '522111 (Belanja Langganan Listrik) khusus untuk PLN. Saat tagihan listrik+air gabung di 1 invoice, split di stage Pagu (rasio default 75% Listrik / 25% Air per konfirmasi operasional RS), bukan di stage Bill. ' +
+      'STATUS RS Batin Tikal (10 Mei 2026): kode 522111 sedang persiapan, belum dipakai aktif karena listrik masih disubsidi. Tetap encode kode_bas untuk readiness saat subsidi berakhir.',
     source: SOURCE_DOCS.RESPONS_ANGGA_B4,
     approvedDate: '2026-05-10',
     confidence: 'high',
@@ -261,11 +262,140 @@ export const RECOMMENDATIONS: InternalRecommendation[] = [
     approvedDate: '2026-05-10',
     confidence: 'high',
   },
+  // ──────────────────────────────────────────────────────────────────────
+  // Belanja Modal Peralatan dan Mesin — 532111 (Pengadaan)
+  // Catatan Konteks 4 (Angga 10 Mei 2026): konvensi subkode '.A'/'.B' di
+  // SIKESUMA RS Batin Tikal hanya berlaku untuk BELANJA PENGADAAN, BUKAN
+  // global standardization. Reasoning: akun Pengadaan sama (532111) tapi
+  // komponen pembelanjaan berbeda (alsintor/alkes/alsatri) — perlu sub-
+  // categorization internal. Akun lain tidak butuh ini karena beda komponen
+  // sudah ada beda akun di BAS.
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    id: 'PENGADAAN-MODAL-001',
+    trigger: {
+      descriptionKeywords: [
+        /pengadaan\s+(alsintor|alkes|alsatri)/i,
+        /\balsintor\b/i,
+        /\balsatri\b/i,
+        /\balat\s+kesehatan\b/i,
+        /\bperalatan\s+dan\s+mesin\b/i,
+        /tensimeter|stethoscope|stetoskop|o2\s+sensor|laptop|computer|showcase\s+cooler|kursi|meja/i,
+      ],
+    },
+    recommended_kode_bas: '532111',
+    rejected_alternatives: [
+      { kode_bas: '521411',
+        reason: '521411 tidak ada di BAS resmi. Pengadaan = Belanja Modal seri 53xxxx, bukan Belanja Barang & Jasa seri 52xxxx.' },
+    ],
+    justification: '532111 (Belanja Modal Peralatan dan Mesin) adalah kode umum untuk pengadaan alat operasional. ' +
+      'Untuk RS Batin Tikal sub-Satker non-BLU, pakai 532111 default (bukan variant 532113 BLU atau 532114 TNI/POLRI khusus). ' +
+      'Konvensi subkode internal: 532111.{nomor}.{kategori} dimana {kategori} = A (Alsintor: alat mesin kantor), ' +
+      'B (Alkes: alat kesehatan), C (Alsatri: alat kesatriaan). Konvensi ini KHUSUS untuk Belanja Pengadaan saja, ' +
+      'bukan global cross-section.',
+    source: SOURCE_DOCS.KLARIFIKASI_FOLLOWUP,
+    approvedDate: '2026-05-10',
+    confidence: 'high',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Belanja Modal Lainnya — 536111 (software, aplikasi, license)
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    id: 'MODAL-LAINNYA-001',
+    trigger: {
+      descriptionKeywords: [
+        /\baplikasi\b/i,
+        /\bsoftware\b/i,
+        /\blicense\b/i,
+        /\bxdr\b/i,
+        /belanja\s+modal\s+lainnya/i,
+      ],
+    },
+    recommended_kode_bas: '536111',
+    rejected_alternatives: [
+      { kode_bas: '53611', reason: '53611 hanya 5-digit, BAS minimal 6-digit. Yang dimaksud adalah 536111 (Belanja Modal Lainnya).' },
+      { kode_bas: '521411', reason: '521411 tidak valid BAS.' },
+    ],
+    justification: '536111 (Belanja Modal Lainnya) untuk pengadaan aset tak-berwujud seperti software, aplikasi, license. ' +
+      'Software XDR (Extended Detection and Response) = belanja modal karena dikapitalisasi sebagai aset di neraca, ' +
+      'bukan beban operasional langsung.',
+    source: SOURCE_DOCS.RESPONS_ANGGA_B4,
+    approvedDate: '2026-05-10',
+    confidence: 'high',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Pakaian Dinas / Seragam — 521219 (Belanja Bahan Lainnya / Pakaian Khusus)
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    id: 'SERAGAM-001',
+    trigger: {
+      descriptionKeywords: [
+        /\bseragam\b/i,
+        /\bpakaian\s+(dinas|kerja|khusus)\b/i,
+      ],
+    },
+    recommended_kode_bas: '521219',
+    justification: '521219 (Belanja Bahan Lainnya) digunakan untuk pakaian dinas/seragam pelaksana. ' +
+      'Bila ada kode lebih spesifik untuk pakaian, prefer yang itu.',
+    source: SOURCE_DOCS.KLARIFIKASI_FOLLOWUP,
+    approvedDate: '2026-05-10',
+    confidence: 'medium',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Belanja Operasional Lainnya — 521119 (Konteks 6: BUKAN 521112)
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    id: 'OPERASIONAL-LAINNYA-001',
+    trigger: {
+      descriptionKeywords: [
+        /belanja\s+(barang\s+)?operasional(\s+lainnya)?/i,
+        /\boperasional\s+kantor\b/i,
+      ],
+    },
+    recommended_kode_bas: '521119',
+    rejected_alternatives: [
+      { kode_bas: '521112',
+        reason: 'Konteks 6 (Angga 10 Mei 2026): 521112 SPESIFIK untuk Belanja Pengadaan Bahan Makanan, BUKAN operasional umum. Untuk operasional lainnya pakai 521119.' },
+    ],
+    justification: 'Konteks 6 dari Angga: akun "BELANJA BARANG OPERASIONAL LAINNYA" = 521119, dengan sub akun internal .03. ' +
+      'Klarifikasi penting: 521112 adalah kode KHUSUS untuk Belanja Pengadaan Bahan Makanan, bukan operasional lainnya. ' +
+      'Hindari salah klasifikasi di section "Operasional Lainnya".',
+    source: SOURCE_DOCS.KLARIFIKASI_FOLLOWUP,
+    approvedDate: '2026-05-10',
+    confidence: 'high',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Bahan Makanan (pasien, snacks, dll) — 521112
+  // ──────────────────────────────────────────────────────────────────────
+  {
+    id: 'BAHAN-MAKANAN-001',
+    trigger: {
+      descriptionKeywords: [
+        /makan\s+pasien/i,
+        /pengadaan\s+bahan\s+makanan/i,
+        /\bbahan\s+makanan\b/i,
+      ],
+    },
+    recommended_kode_bas: '521112',
+    justification: '521112 (Belanja Pengadaan Bahan Makanan) khusus untuk konsumsi pasien & operasional makanan. ' +
+      'JANGAN pakai untuk operasional non-makanan — itu pakai 521119.',
+    source: SOURCE_DOCS.KLARIFIKASI_FOLLOWUP,
+    approvedDate: '2026-05-10',
+    confidence: 'high',
+  },
+
+  // ──────────────────────────────────────────────────────────────────────
+  // CATATAN: Listrik 522111 (status: persiapan, belum aktif krn subsidi)
+  // Tidak ada perubahan trigger di sini, tapi tetap UTILITAS-001 berlaku.
+  // Field "approvedDate" + "confidence" tetap, hanya add note di justification.
+  // ──────────────────────────────────────────────────────────────────────
 ];
 
-// ────────────────────────────────────────────────────────────────────────────
-// Lookup API
-// ────────────────────────────────────────────────────────────────────────────
+
 
 /**
  * Cari rekomendasi internal yang cocok dengan deskripsi item.
