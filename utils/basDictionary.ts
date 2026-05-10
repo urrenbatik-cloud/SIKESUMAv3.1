@@ -38,6 +38,50 @@ export interface BasEntry {
 const _entries: BasEntry[] = basRaw as BasEntry[];
 const _byKode: Map<string, BasEntry> = new Map(_entries.map(e => [e.kode, e]));
 
+// ────────────────────────────────────────────────────────────────────────────
+// Keyword Aliases — Sprint B.4 HB#3 (per Angga 10 Mei 2026)
+// ────────────────────────────────────────────────────────────────────────────
+// Istilah lokal di RS Batin Tikal yang punya konteks khusus tidak tampak dari
+// uraian BAS literal. Mapping ini surface kode yang benar saat user typing
+// istilah lokal — autocomplete inclusivity.
+//
+// Contoh: "BMP" awalnya di-misinterpret sebagai "Bahan Makanan Pokok" (521112);
+// di Kemhan/TNI BMP = Bahan Bakar Minyak dan Pelumas (523122) per Permenhan 5/2020.
+const KEYWORD_ALIASES: Record<string, string[]> = {
+  // BMP/BBM Kemhan/TNI (Permenhan 5/2020)
+  'bmp':         ['523122', '523125'],
+  'bbm':         ['523122', '523125'],
+  'bahan bakar': ['523122', '523125'],
+  'pertamax':    ['523122'],
+  'solar':       ['523122'],
+  'pelumas':     ['523122', '523125'],
+  'avtur':       ['523122'],
+  // BMHP — Bahan Medis Habis Pakai
+  'bmhp':        ['521811'],
+  'obat':        ['521811'],
+  'persediaan medis': ['521811'],
+  // Honor (HB#2: continuous monthly = 521115 di RS Batin Tikal)
+  'tks':         ['521115'],
+  'honor tks':   ['521115'],
+  'nakes':       ['521115'],
+  'honor nakes': ['521115'],
+  'honor pengelola': ['521115'],
+  'casemix':     ['521115'],
+  // BPD/perjalanan
+  'bpd':         ['524111'],
+  'perjalanan dinas': ['524111', '524112', '524113', '524114', '524119'],
+  // ATK
+  'atk':         ['521111'],
+  // Utilities
+  'listrik':     ['522111'],
+  'pln':         ['522111'],
+  'air':         ['522113'],
+  'pdam':        ['522113'],
+  'internet':    ['522112'],
+  'telepon':     ['522112'],
+  'wifi':        ['522112'],
+};
+
 /**
  * Get all BAS entries as a (frozen) array.
  * Use for static enumeration; for lookups prefer lookupBas().
@@ -69,6 +113,10 @@ export function isActiveBasKode(kode: string): boolean {
 /**
  * Search BAS entries by partial kode prefix or uraian text (case-insensitive).
  * Used by autocomplete UI. Returns up to `limit` entries.
+ *
+ * [Sprint B.4 HB#3] Selain prefix/uraian match, sekarang juga match keyword
+ * aliases (KEYWORD_ALIASES map). Contoh: query "bmp" akan surface 523122
+ * (Belanja BMP Kemhan/TNI) sebelum partial match "bmpwah" yang tidak relevan.
  */
 export function searchBas(
   query: string,
@@ -83,31 +131,47 @@ export function searchBas(
     ? (Array.isArray(options.kategori) ? options.kategori : [options.kategori])
     : null;
 
-  const results: BasEntry[] = [];
-  // Prefer prefix matches on kode; then partial uraian match
+  const passesFilter = (e: BasEntry): boolean => {
+    if (activeOnly && !e.active) return false;
+    if (kategoriFilter && !kategoriFilter.includes(e.kategori)) return false;
+    return true;
+  };
+
+  // [HB#3] Step 1: alias hits — prepend kalau query exact-match keyword alias
+  const aliasResults: BasEntry[] = [];
+  const seenKodes = new Set<string>();
+  const aliasKodes = KEYWORD_ALIASES[q];
+  if (aliasKodes) {
+    for (const k of aliasKodes) {
+      const e = _byKode.get(k);
+      if (e && passesFilter(e)) {
+        aliasResults.push(e);
+        seenKodes.add(k);
+      }
+    }
+  }
+
+  // Step 2: prefix matches on kode
   const prefix: BasEntry[] = [];
   const partial: BasEntry[] = [];
-
   for (const e of _entries) {
-    if (activeOnly && !e.active) continue;
-    if (kategoriFilter && !kategoriFilter.includes(e.kategori)) continue;
-
+    if (seenKodes.has(e.kode)) continue;
+    if (!passesFilter(e)) continue;
     if (e.kode.startsWith(q)) {
       prefix.push(e);
     } else if (e.uraian.toLowerCase().includes(q)) {
       partial.push(e);
     }
-    if (prefix.length >= limit) break;
+    if (aliasResults.length + prefix.length >= limit) break;
   }
 
-  // Sort prefix matches by kode length asc (more specific first), then alphabetic
   prefix.sort((a, b) => a.kode.length - b.kode.length || a.kode.localeCompare(b.kode));
-  results.push(...prefix.slice(0, limit));
-  if (results.length < limit) {
-    partial.sort((a, b) => a.kode.localeCompare(b.kode));
-    results.push(...partial.slice(0, limit - results.length));
+  partial.sort((a, b) => a.kode.localeCompare(b.kode));
+  const out = [...aliasResults, ...prefix];
+  if (out.length < limit) {
+    out.push(...partial.slice(0, limit - out.length));
   }
-  return results;
+  return out.slice(0, limit);
 }
 
 /**
