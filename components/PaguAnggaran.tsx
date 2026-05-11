@@ -1,13 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PaguRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
-import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, ChevronRight, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks, ShieldCheck } from 'lucide-react';
 import { YEARS } from '../constants';
 import KodeAutocomplete from './KodeAutocomplete';
 import { deriveKodeBas, lookupBas } from '../utils/basDictionary';
 import PaguDiffDashboard from './PaguDiffDashboard';
 import LaporanRevisi, { type LaporanMode } from './LaporanRevisi';
 import { classifyRow, getHiddenRowIds, type RowFilterMode } from '../utils/paguDiff';
+// [Tier 3 Phase 3] Metadata recommendation UI
+import { recommendMetadata, aggregateConfidence } from '../utils/metadataRecommender';
+import MetadataDetailRow from './MetadataDetailRow';
+import MetadataApplyModal from './MetadataApplyModal';
+import MetadataOverrideModal from './MetadataOverrideModal';
 
 interface PaguAnggaranProps {
   sections: PaguSection[];
@@ -35,6 +40,90 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   const [showLaporan, setShowLaporan] = useState<LaporanMode | null>(null);
   // Sprint D Item #2 Phase 4 — Ringkasan Pagu list view filter (Sie Renbang request)
   const [ringkasanFilter, setRingkasanFilter] = useState('');
+
+  // [Tier 3 Phase 3] Metadata expandable rows — auto-expand untuk row dengan
+  // aggregate confidence MEDIUM/LOW (per Decision D2 Owner-approved 11 Mei 2026).
+  // User bisa toggle individual row via chevron di kolom Status Metadata.
+  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+
+  // [Tier 3 Phase 3] Modal state untuk apply (E2: preview→confirm) + override
+  // (warning sebelum set metadata_review per Owner direction 11 Mei 2026).
+  const [modalState, setModalState] = useState<
+    { type: 'apply' | 'override'; sectionId: string; row: PaguRow } | null
+  >(null);
+
+  // [Tier 3 Phase 3] Auto-expand effect: runs sekali saat sections pertama
+  // kali tersedia. Cek setiap leaf row → kalau aggregate confidence !== 'high',
+  // tambahkan ke expandedRowIds. User bisa collapse manual setelahnya.
+  useEffect(() => {
+    if (hasAutoExpanded || sections.length === 0) return;
+    const idsToExpand = new Set<string>();
+    sections.forEach(section => {
+      section.rows.forEach((row, idx) => {
+        const hasChildren = idx < section.rows.length - 1 && section.rows[idx + 1].level > row.level;
+        if (hasChildren) return;
+        if (!row.kode_bas && !row.kode) return; // skip empty rows
+        const rec = recommendMetadata(row);
+        if (aggregateConfidence(rec) !== 'high') idsToExpand.add(row.id);
+      });
+    });
+    setExpandedRowIds(idsToExpand);
+    setHasAutoExpanded(true);
+  }, [sections, hasAutoExpanded]);
+
+  // [Tier 3 Phase 3] Toggle expand untuk satu row (chevron click)
+  const toggleRowExpand = (rowId: string) => {
+    setExpandedRowIds(prev => {
+      const next = new Set(prev);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
+  };
+
+  // [Tier 3 Phase 3] Apply recommendation: merge updates ke row + close modal
+  const handleApplyRecommendation = (sectionId: string, rowId: string, updates: Partial<PaguRow>) => {
+    const newSections = sections.map(sec => {
+      if (sec.id !== sectionId) return sec;
+      return {
+        ...sec,
+        rows: sec.rows.map(r => (r.id === rowId ? { ...r, ...updates } : r)),
+      };
+    });
+    onSectionsChange(newSections);
+    setModalState(null);
+  };
+
+  // [Tier 3 Phase 3] Set / remove metadata_review (override flag)
+  const handleSetMetadataReview = (
+    sectionId: string,
+    rowId: string,
+    review: PaguRow['metadata_review'] | null
+  ) => {
+    const newSections = sections.map(sec => {
+      if (sec.id !== sectionId) return sec;
+      return {
+        ...sec,
+        rows: sec.rows.map(r => {
+          if (r.id !== rowId) return r;
+          if (review === null) {
+            const { metadata_review: _omit, ...rest } = r;
+            return rest as PaguRow;
+          }
+          return { ...r, metadata_review: review };
+        }),
+      };
+    });
+    onSectionsChange(newSections);
+    setModalState(null);
+  };
+
+  // [Tier 3 Phase 3] colSpan untuk MetadataDetailRow (tergantung viewMode)
+  // 4 fixed (Kode/Uraian/Vol/Satuan) + 2 if Semula + 2 if Revisi + 3 fixed
+  // (Sumber/StatusMetadata/Delete) = 7-11 columns total.
+  const computeDetailColSpan = (showSemula: boolean, showRevisi: boolean) =>
+    4 + (showSemula ? 2 : 0) + (showRevisi ? 2 : 0) + 3;
 
   // FUNGSI UTAMA: Menghitung total biaya berdasarkan hierarki (Bubble Up)
   const processedSections = useMemo(() => {
@@ -375,6 +464,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                       <th colSpan={(showSemula ? 1 : 0) + (showRevisi ? 1 : 0)} className="px-4 py-3 text-center border-b border-r border-slate-700 bg-slate-800">Harga Satuan</th>
                       <th colSpan={(showSemula ? 1 : 0) + (showRevisi ? 1 : 0)} className="px-5 py-3 text-center border-b border-r border-slate-700 bg-emerald-900/20">Jumlah Biaya</th>
                       <th rowSpan={2} className="px-4 py-5 w-24 text-center border-r border-slate-700">Sumber</th>
+                      <th rowSpan={2} className="px-3 py-5 w-32 text-center border-r border-slate-700">Status Metadata</th>
                       <th rowSpan={2} className="px-2 py-5 w-12 text-center no-print"></th>
                     </tr>
                     <tr className="bg-slate-800 text-[8px]">
@@ -409,7 +499,8 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                         'TIDAK_BERUBAH': `Tidak Berubah: ${formatIDR(classification.revisi)}`,
                       } as const)[classification.category] : '';
                       return (
-                        <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
+                        <React.Fragment key={row.id}>
+                        <tr className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
                           <td className="px-5 py-3 border-r border-slate-100 align-top">
                             <div className="flex items-start gap-2">
                               {/* Sprint D Item #2 Phase 2 — Inline indicator pill (Opsi A) */}
@@ -477,10 +568,47 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                           <td className="px-4 py-3 border-r border-slate-100 text-center align-top">
                             <input className="w-full bg-transparent border-none focus:ring-0 p-0 text-center font-black uppercase text-slate-300" value={row.sumberDana} onChange={e => handleRowChange(section.id, row.id, 'sumberDana', e.target.value)} />
                           </td>
+                          <td className="px-2 py-3 border-r border-slate-100 text-center align-top no-print">
+                            {hasChildren ? (
+                              <span className="text-slate-300 text-xs">—</span>
+                            ) : (() => {
+                              const rec = recommendMetadata(row);
+                              const agg = aggregateConfidence(rec);
+                              const isReviewed = row.metadata_review?.override_to === 'high';
+                              const expanded = expandedRowIds.has(row.id);
+                              const stylesMap = {
+                                high:   { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'High'   },
+                                medium: { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Medium' },
+                                low:    { bg: 'bg-rose-100',    text: 'text-rose-700',    label: 'Low'    },
+                              } as const;
+                              const s = stylesMap[agg];
+                              return (
+                                <button
+                                  onClick={() => toggleRowExpand(row.id)}
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${s.bg} ${s.text} hover:opacity-80 transition-opacity`}
+                                  title={`Aggregate confidence: ${s.label}${isReviewed ? ' (manually reviewed)' : ''} — klik untuk ${expanded ? 'tutup' : 'expand'}`}
+                                >
+                                  {isReviewed && <ShieldCheck size={10} />}
+                                  {isReviewed ? 'Reviewed' : s.label}
+                                  {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                                </button>
+                              );
+                            })()}
+                          </td>
                           <td className="px-2 py-3 text-center align-top no-print">
                             <button onClick={() => onSectionsChange(sections.map(s => s.id === section.id ? { ...s, rows: s.rows.filter(r => r.id !== row.id) } : s))} className="text-slate-200 hover:text-rose-500 opacity-0 group-hover/row:opacity-100 transition-all"><Trash2 size={14} /></button>
                           </td>
                         </tr>
+                        {!hasChildren && expandedRowIds.has(row.id) && (
+                          <MetadataDetailRow
+                            row={row}
+                            recommendation={recommendMetadata(row)}
+                            colSpan={computeDetailColSpan(showSemula, showRevisi)}
+                            onOpenApplyModal={() => setModalState({ type: 'apply', sectionId: section.id, row })}
+                            onOpenOverrideModal={() => setModalState({ type: 'override', sectionId: section.id, row })}
+                          />
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -489,7 +617,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                       <td colSpan={4} className="px-8 py-5 text-right uppercase tracking-[0.2em] opacity-40">Subtotal Seksi TA {selectedYear}:</td>
                       {showSemula && <td className="px-5 py-5 text-right font-mono text-emerald-400 border-r border-slate-800" colSpan={2}>{formatIDR(totalAwal)}</td>}
                       {showRevisi && <td className="px-5 py-5 text-right font-mono text-emerald-300" colSpan={2}>{formatIDR(totalRevisi)}</td>}
-                      <td colSpan={2}></td>
+                      <td colSpan={3}></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -646,6 +774,23 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
           selectedYear={selectedYear}
           mode={showLaporan}
           onClose={() => setShowLaporan(null)}
+        />
+      )}
+
+      {/* [Tier 3 Phase 3] Metadata recommendation modals (apply preview / override warning) */}
+      {modalState?.type === 'apply' && (
+        <MetadataApplyModal
+          row={modalState.row}
+          recommendation={recommendMetadata(modalState.row)}
+          onConfirm={(updates) => handleApplyRecommendation(modalState.sectionId, modalState.row.id, updates)}
+          onCancel={() => setModalState(null)}
+        />
+      )}
+      {modalState?.type === 'override' && (
+        <MetadataOverrideModal
+          row={modalState.row}
+          onConfirm={(review) => handleSetMetadataReview(modalState.sectionId, modalState.row.id, review)}
+          onCancel={() => setModalState(null)}
         />
       )}
     </div>
