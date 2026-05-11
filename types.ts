@@ -146,6 +146,64 @@ export interface PaguRow {
   level: number;
   // Note: realisasi adalah DERIVED dari bucketRegistry.absorptionMap (Sprint A1).
   // Tidak disimpan di PaguRow karena field zombie — selalu 0, tidak pernah dibaca.
+
+  // ────────────────────────────────────────────────────────────────────────
+  // [Tier 3] Metadata BAS untuk validasi 12 hard constraints Revisi POK
+  // ────────────────────────────────────────────────────────────────────────
+  // Per Perdirjen Renhan Kemhan 7/2025 Pasal 22 + Lampiran I Bagian 5.
+  // Seed values dari RKKS 2025 (vKoreksi v3 §12.2):
+  //   Program 012.01.AC, Kegiatan 6507, Sub-Komp F (RS Batin Tikal),
+  //   KROs aktif: CAB (Sarana), CCB (OM Sarana), EBA (Layanan Dukungan),
+  //   ROs: 1, 4, 5, 962.
+  // Field-field di bawah ENVELOPE JSONB-native (lihat SSOT §0.7.5 AP-8) —
+  // tidak butuh DDL, langsung persist via App.tsx upsert pagu_sections.
+  // Filled via utils/metadataRecommender.ts pattern matching + manual edit
+  // oleh Sie Renbang via UI PaguAnggaran.tsx (NO auto-fill, Konteks 4 dr Ferry).
+  kro_code?: string;           // mis. "EBA", "CAB", "CCB" (3 huruf)
+  kro_name?: string;           // mis. "Layanan Dukungan Manajemen Internal"
+  kegiatan_code?: string;      // mis. "6507"
+  kegiatan_name?: string;      // mis. "Penyelenggaraan Kesehatan Matra Darat"
+  ro_code?: string;            // mis. "962" (Layanan Umum), "1" (Pengadaan Alkes),
+                               //      "4" (Pemeliharaan Gedung), "5" (Pengadaan Alsintor).
+                               //      Per RKKS 2025 §12.2 mapping: 521xxx/522xxx/524xxx → RO 962,
+                               //      523111 → RO 4, 532111.A → RO 5, 532111.B → RO 1.
+                               //      (Note: ro_name belum ada — pattern code+name pair konsisten
+                               //       untuk kro_*/kegiatan_*/komponen_*, RO khusus hanya code per
+                               //       owner spec. Add ro_name if descriptive lookup diperlukan.)
+  komponen_code?: string;      // mis. "3" (Dukungan Operasional Hankam), "52" (Pengadaan)
+  komponen_name?: string;      // mis. "Dukungan Operasional Pertahanan dan Keamanan"
+  volume_ro?: number;          // volume RO dari DIPA Petikan (untuk C5 validation)
+  satuan_ro?: string;          // satuan RO mis. "Layanan", "Unit", "Tahun" (untuk C5)
+  sumber_dana_kode?:           // canonical kode sumber dana per BAS (untuk C7 validation)
+    | 'RM'                     // Rupiah Murni (APBN)
+    | 'PNBP'                   // Penerimaan Negara Bukan Pajak (BPJS, YANMASUM)
+    | 'PHLN'                   // Pinjaman/Hibah Luar Negeri
+    | 'PLN'                    // Pinjaman Luar Negeri (Perdirjen Renhan Pasal 1.24)
+    | 'PDN'                    // Pinjaman Dalam Negeri (Pasal 1.25)
+    | 'SBSN'                   // Surat Berharga Syariah Negara (Pasal 1.27)
+    | 'HIBAH'                  // Hibah (Pasal 1.26)
+    | string;                  // escape hatch — tapi prefer canonical literal
+
+  // ────────────────────────────────────────────────────────────────────────
+  // [Tier 3] Manual Review Override (per Owner direction 11 Mei 2026)
+  // ────────────────────────────────────────────────────────────────────────
+  // Untuk row yang recommender return MEDIUM/LOW confidence tapi Angga
+  // sudah review manual dan confirm mapping benar — set field ini untuk
+  // **override confidence ke HIGH**. Affects Tier 4 validation logic.
+  //
+  // UI (Phase 3) WAJIB tampilkan warning modal sebelum set:
+  // > "Marking this row as manually reviewed will override recommendation
+  // >  confidence to HIGH for all metadata fields. This affects Tier 4
+  // >  validation. Confirm only after verifying KRO/RO/Komponen/Sumber Dana."
+  //
+  // Recommender behavior: jika row.metadata_review is set, all confidence
+  // levels di output dipaksa = 'high' (lihat utils/metadataRecommender.ts).
+  metadata_review?: {
+    reviewed_at: string;       // ISO 8601 timestamp (when override was set)
+    reviewed_by?: string;      // optional user identifier ("Angga", "Sie Renbang RS")
+    override_to: 'high';       // confidence level forced (only 'high' supported v1)
+    note?: string;             // optional reasoning ("verified vs DIPA Petikan", etc.)
+  };
 }
 
 export interface PaguSection {
