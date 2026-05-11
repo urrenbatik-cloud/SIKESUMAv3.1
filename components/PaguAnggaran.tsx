@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { PaguRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, ChevronRight, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks, ShieldCheck } from 'lucide-react';
@@ -14,6 +14,14 @@ import MetadataDetailRow from './MetadataDetailRow';
 import MetadataApplyModal from './MetadataApplyModal';
 import MetadataOverrideModal from './MetadataOverrideModal';
 import { toast } from './Toast';
+// [Tier 4a Phase 3c] Inline validation indicators (colored dot per row)
+import type { ConstraintId } from '../utils/validators/types';
+import { runAllValidators } from '../utils/validators/runAllValidators';
+import {
+  buildRowConstraintMap,
+  pickPriorityIndicator,
+  buildTooltipText,
+} from '../utils/validators/rowConstraintMap';
 
 interface PaguAnggaranProps {
   sections: PaguSection[];
@@ -23,6 +31,26 @@ interface PaguAnggaranProps {
   viewMode: 'SEMULA' | 'REVISI' | 'SEMUA';
   selectedYear: number;
   onYearChange: (year: number) => void;
+  /**
+   * [Tier 4a Phase 3c] Callback saat user klik validation dot di kolom Kode.
+   * Parent (App.tsx) handle navigate ke sub-tab 1.5 Validasi + auto-expand
+   * detail panel untuk constraint yang priority. Optional — kalau tidak
+   * passed, dot tetap visible tapi tidak clickable.
+   */
+  onNavigateToValidasi?: (constraintId: ConstraintId) => void;
+  /**
+   * [Tier 4a Phase 3d] Row yang harus di-scroll dan di-highlight saat
+   * Pagu Anggaran tab di-mount (consumed dari pendingPaguRowHighlight di
+   * App.tsx). Diset saat user klik "→ Pagu Anggaran" di Validasi detail
+   * panel. UseEffect handle scrollIntoView + temporary highlight glow.
+   * Silent no-op kalau row hidden (section collapsed/filtered).
+   */
+  pendingRowHighlight?: { sectionId: string; rowId: string } | null;
+  /**
+   * Callback untuk clear pendingPaguRowHighlight di parent setelah
+   * di-consume. Mencegah re-trigger highlight saat re-render.
+   */
+  onRowHighlightConsumed?: () => void;
   metrics: {
     total: { budget: number; real: number };
   };
@@ -30,7 +58,8 @@ interface PaguAnggaranProps {
 
 const PaguAnggaran: React.FC<PaguAnggaranProps> = ({ 
   sections, onSectionsChange, onAddSection, onDeleteSection, 
-  viewMode, selectedYear, onYearChange, metrics 
+  viewMode, selectedYear, onYearChange, metrics,
+  onNavigateToValidasi, pendingRowHighlight, onRowHighlightConsumed
 }) => {
 
   // Sprint D Item #2 Phase 2 — Inline filter (Opsi A)
@@ -256,6 +285,54 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
 
   const hasDuplicateKodes = Object.keys(duplicateKodeWarnings).length > 0;
   const hasDuplicateTitles = duplicateTitleWarnings.size > 0;
+
+  // ─── [Tier 4a Phase 3c] Inline validation indicators ─────────────────
+  // Compute validation result + row→constraints map untuk render dot
+  // di kolom Kode per leaf row. Light recompute on data changes (~5ms
+  // for 304 leaves); useMemo memoize per sections + year change.
+  // Per Decision Q7: full re-run on demand (no caching layer beyond
+  // React memoization).
+  const validationResult = useMemo(
+    () => runAllValidators({ ta: selectedYear, sections, evaluatedAt: new Date() }),
+    [sections, selectedYear]
+  );
+  const rowConstraintMap = useMemo(
+    () => buildRowConstraintMap(validationResult),
+    [validationResult]
+  );
+
+  // ─── [Tier 4a Phase 3d] Scroll + highlight row on cross-tab navigation ──
+  // Saat user click "→ Pagu Anggaran" di Validasi detail panel, parent
+  // (App.tsx) set pendingRowHighlight + switch sub-tab. Tab ini mount,
+  // useEffect cari element via data-row-id, scroll into view + add ring
+  // glow class ~2s, lalu clear.
+  //
+  // Silent no-op kalau:
+  //   - pendingRowHighlight null (normal mount, tidak ada highlight request)
+  //   - Element tidak ada di DOM (section/row hidden via filter atau collapse)
+  useEffect(() => {
+    if (!pendingRowHighlight) return;
+    // Defer ke next tick supaya DOM stable setelah mount + filter logic
+    const timeoutId = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-row-id="${pendingRowHighlight.rowId}"]`
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add highlight glow — Tailwind ring + transition
+        el.classList.add('ring-4', 'ring-emerald-400', 'ring-offset-2', 'transition-all', 'duration-500');
+        // Remove highlight after 2s
+        setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-emerald-400', 'ring-offset-2');
+          onRowHighlightConsumed?.();
+        }, 2000);
+      } else {
+        // Row not in DOM (hidden by filter/collapse) — silent clear
+        onRowHighlightConsumed?.();
+      }
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [pendingRowHighlight, onRowHighlightConsumed]);
 
   const handleRowChange = (sectionId: string, rowId: string, field: keyof PaguRow, value: any) => {
     const newSections = sections.map(sec => {
@@ -521,16 +598,30 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                         'BARU':          `Item Baru / Breakdown: +${formatIDR(classification.revisi)}`,
                         'TIDAK_BERUBAH': `Tidak Berubah: ${formatIDR(classification.revisi)}`,
                       } as const)[classification.category] : '';
+                      // [Tier 4a Phase 3c] Validation indicator — dot color = highest severity
+                      const rowConstraints = !hasChildren ? (rowConstraintMap.get(row.id) ?? []) : [];
+                      const validationIndicator = pickPriorityIndicator(rowConstraints);
+                      const validationTooltip = validationIndicator ? buildTooltipText(rowConstraints) : '';
                       return (
                         <React.Fragment key={row.id}>
-                        <tr className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
+                        <tr data-row-id={row.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
                           <td className="px-5 py-3 border-r border-slate-100 align-top">
                             <div className="flex items-start gap-2">
-                              {/* Sprint D Item #2 Phase 2 — Inline indicator pill (Opsi A) */}
+                              {/* Sprint D Item #2 Phase 2 — Inline indicator pill (diff) */}
                               {indicatorColor && (
                                 <span
                                   className={`${indicatorColor} w-2 h-2 rounded-full mt-1.5 shrink-0`}
                                   title={indicatorTitle}
+                                />
+                              )}
+                              {/* Tier 4a Phase 3c — Validation indicator dot */}
+                              {validationIndicator && (
+                                <button
+                                  type="button"
+                                  onClick={() => onNavigateToValidasi?.(validationIndicator.priorityConstraintId)}
+                                  className={`${validationIndicator.color} w-2 h-2 rounded-full mt-1.5 shrink-0 hover:scale-150 transition-transform cursor-pointer ${onNavigateToValidasi ? '' : 'cursor-default'}`}
+                                  title={validationTooltip}
+                                  aria-label={`Validation issue: ${validationIndicator.topStatus.toUpperCase()}, klik untuk detail`}
                                 />
                               )}
                               <div className="flex-1 min-w-0">

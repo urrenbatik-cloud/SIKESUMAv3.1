@@ -1,0 +1,475 @@
+{
+  "$schema": "tier-4a-validation-fixture-v1",
+  "generated_at": "2026-05-11T08:00:00Z",
+  "description": "Test scenarios untuk Tier 4a Phase 2b validators (C1-C5). Setiap skenario = simulated Revisi POK kecil dengan expected outcome yang sudah pasti (ground truth). Pattern analogi: simulated patient training cases — mahasiswa kedokteran latihan diagnosa di kasus simulasi sebelum praktik di pasien beneran. Validator akan di-test pakai fixture ini untuk verifikasi correctness.",
+  "ta": 2025,
+  "satker": "685784 Kesdam II/Sriwijaya",
+  "reference": {
+    "constraint_specs": "utils/validators/types.ts CONSTRAINT_SPECS",
+    "master_domain": "docs/REVISI-POK-PAGU-vKoreksi.md §3.3",
+    "design_doc": "docs/TIER-4-DESIGN.md §3.1 Tier 4a"
+  },
+  "scenarios": {
+    "c1": [
+      {
+        "name": "C1 pass — pure shift between accounts (Semula = Revisi)",
+        "description": "Anggaran HONOR turun 1jt, OPERASIONAL naik 1jt → total tetap 10jt. Klasik 'pergeseran' POK yang valid.",
+        "sections": [
+          {
+            "id": "test-c1-pass-shift",
+            "tahun": 2025,
+            "title": "TEST C1 PASS — Pure Shift",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C1 fail — pagu bertambah (Revisi > Semula)",
+        "description": "Total Revisi 12jt > total Semula 10jt. Net change = +2jt → C1 violated.",
+        "sections": [
+          {
+            "id": "test-c1-fail-positive",
+            "tahun": 2025,
+            "title": "TEST C1 FAIL — Pagu Bertambah",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 7000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 7000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C1",
+              "severity": "blocker",
+              "detail": { "totalAwal": 10000000, "totalRevisi": 12000000, "selisih": 2000000 }
+            }
+          ]
+        }
+      },
+      {
+        "name": "C1 fail — pagu berkurang (Revisi < Semula)",
+        "description": "Total Revisi 8jt < total Semula 10jt. Net change = -2jt → C1 violated.",
+        "sections": [
+          {
+            "id": "test-c1-fail-negative",
+            "tahun": 2025,
+            "title": "TEST C1 FAIL — Pagu Berkurang",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 3000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 3000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C1",
+              "severity": "blocker",
+              "detail": { "totalAwal": 10000000, "totalRevisi": 8000000, "selisih": -2000000 }
+            }
+          ]
+        }
+      },
+      {
+        "name": "C1 pass — Konteks 1 fallback (hargaSatuanRevisi=0 → treat as no revision)",
+        "description": "Row dengan hargaSatuanRevisi=0 = 'belum direvisi' (per normative logic Angga, Sprint D Item #1). Fallback ke hargaSatuanAwal untuk calc effective value. Total tetap 10jt.",
+        "sections": [
+          {
+            "id": "test-c1-pass-konteks1",
+            "tahun": 2025,
+            "title": "TEST C1 PASS — Konteks 1 Fallback",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR (no revision)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 0,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 0,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL (revised)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": [],
+          "note": "Effective Revisi r1 = fallback 5jt (dari Awal). Total Effective Revisi = 5+5 = 10jt = Semula. Pass."
+        }
+      }
+    ],
+    "c2": [
+      {
+        "name": "C2 pass — semua changed rows share kro_code 'EBA'",
+        "description": "2 row di-revisi, kedua-duanya KRO EBA. Pergeseran dalam 1 KRO sama → C2 pass.",
+        "sections": [
+          {
+            "id": "test-c2-pass-same-kro",
+            "tahun": 2025,
+            "title": "TEST C2 PASS — Same KRO",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kro_code": "EBA", "kro_name": "Layanan Dukungan Manajemen Internal",
+                "ro_code": "962", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "kro_code": "EBA", "kro_name": "Layanan Dukungan Manajemen Internal",
+                "ro_code": "962", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C2 fail — changed rows have mixed kro_code (EBA vs CAB)",
+        "description": "Row 1 di KRO EBA (Layanan), row 2 di KRO CAB (Sarana). Pergeseran antar-KRO → C2 violated.",
+        "sections": [
+          {
+            "id": "test-c2-fail-mixed",
+            "tahun": 2025,
+            "title": "TEST C2 FAIL — Mixed KRO",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "532111.B", "kode_bas": "532111", "description": "ALKES",
+                "kro_code": "CAB", "ro_code": "1", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "PAKET",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C2",
+              "severity": "blocker",
+              "affectedRowIds": ["r1", "r2"],
+              "detail": { "distinctKroCodes": ["EBA", "CAB"], "count": 2 }
+            }
+          ]
+        }
+      },
+      {
+        "name": "C2 pending — changed row tanpa kro_code (need manual fill)",
+        "description": "Row 1 punya kro_code, row 2 tanpa kro_code (Tier 3 LOW confidence). Belum bisa decide pass/fail sampai user fill atau set metadata_review override.",
+        "sections": [
+          {
+            "id": "test-c2-pending-missing",
+            "tahun": 2025,
+            "title": "TEST C2 PENDING — Missing kro_code",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "532111.C", "kode_bas": "532111", "description": "ALSATRI (Alsatri belum di §12.2)",
+                "volume": 1, "satuan": "PAKET",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pending",
+          "violations": [
+            {
+              "constraintId": "C2",
+              "severity": "blocker",
+              "affectedRowIds": ["r2"],
+              "detail": { "reason": "missing_kro_code", "rowIds": ["r2"] }
+            }
+          ]
+        }
+      }
+    ],
+    "c3": [
+      {
+        "name": "C3 pass — semua changed rows share kegiatan_code '6507'",
+        "description": "Semua row Kegiatan 6507 (Penyelenggaraan Kesehatan Matra Darat). Deterministic untuk RS Batin Tikal.",
+        "sections": [
+          {
+            "id": "test-c3-pass",
+            "tahun": 2025,
+            "title": "TEST C3 PASS",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kegiatan_code": "6507", "kro_code": "EBA",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "kegiatan_code": "6507", "kro_code": "EBA",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C3 fail — mixed kegiatan_code (theoretical, untuk verify detection)",
+        "description": "Hypothetical: row 1 Kegiatan 6507, row 2 Kegiatan 6508. Pergeseran antar-Kegiatan → C3 violated.",
+        "sections": [
+          {
+            "id": "test-c3-fail",
+            "tahun": 2025,
+            "title": "TEST C3 FAIL — Mixed Kegiatan",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR Kegiatan 6507",
+                "kegiatan_code": "6507", "kro_code": "EBA",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL Kegiatan 6508",
+                "kegiatan_code": "6508", "kro_code": "EBA",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C3",
+              "severity": "blocker",
+              "detail": { "distinctKegiatanCodes": ["6507", "6508"], "count": 2 }
+            }
+          ]
+        }
+      }
+    ],
+    "c4": [
+      {
+        "name": "C4 pass — single-satker app (deterministic)",
+        "description": "App SIKESUMA hanya melayani 1 satker (685784 Kesdam II/Sriwijaya). C4 selalu pass karena tidak ada cross-satker data path.",
+        "sections": [
+          {
+            "id": "test-c4-pass",
+            "tahun": 2025,
+            "title": "TEST C4 PASS — Single Satker",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": [],
+          "note": "C4 deterministic pass — app scope adalah Satker 685784. Validator akan check app-level config, bukan per-row."
+        }
+      }
+    ],
+    "c5": [
+      {
+        "name": "C5 pass — volume_ro + satuan_ro konsisten dalam tiap RO",
+        "description": "Rows di RO 962 share volume_ro=1 satuan_ro='Layanan'. Tidak ada perubahan target output.",
+        "sections": [
+          {
+            "id": "test-c5-pass",
+            "tahun": 2025,
+            "title": "TEST C5 PASS — RO Consistent",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume_ro": 1, "satuan_ro": "Layanan",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume_ro": 1, "satuan_ro": "Layanan",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C5 fail — inconsistent volume_ro dalam RO yang sama",
+        "description": "Row 1 dan row 2 di RO 962, tapi declare volume_ro berbeda (1 vs 2). Inkonsisten → C5 fail (artinya user mengubah volume target output).",
+        "sections": [
+          {
+            "id": "test-c5-fail-volume",
+            "tahun": 2025,
+            "title": "TEST C5 FAIL — Inconsistent Volume RO",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR (claim volume_ro=1)",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume_ro": 1, "satuan_ro": "Layanan",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL (claim volume_ro=2)",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume_ro": 2, "satuan_ro": "Layanan",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C5",
+              "severity": "blocker",
+              "affectedRowIds": ["r1", "r2"],
+              "detail": { "roCode": "962", "field": "volume_ro", "distinctValues": [1, 2] }
+            }
+          ]
+        }
+      },
+      {
+        "name": "C5 na — volume_ro/satuan_ro missing (Tier 3 LOW confidence)",
+        "description": "Rows tidak punya volume_ro/satuan_ro (DIPA Petikan data belum di-fill). C5 skip dengan status N/A — bukan fail, hanya 'tidak bisa di-evaluasi'.",
+        "sections": [
+          {
+            "id": "test-c5-na",
+            "tahun": 2025,
+            "title": "TEST C5 N/A — Missing volume_ro Data",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "kro_code": "EBA", "ro_code": "962", "kegiatan_code": "6507",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "na",
+          "violations": [],
+          "note": "volume_ro/satuan_ro belum diisi → skip evaluation. UI prompt user untuk fill DIPA Petikan data agar C5 bisa dieksekusi."
+        }
+      }
+    ]
+  }
+}

@@ -283,6 +283,173 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4) untuk full decision log.
 
   {
+    id:    'log-2026-05-11-tier-4a-phase-3-complete',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4a',
+    title: 'Tier 4a Phase 3 COMPLETE — UI Integration (Dashboard + Inline Indicators + Bidirectional Nav)',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Phase 3 UI integration **selesai** sub-phase 3a (design) + 3b (dashboard) + 3c (inline indicators) + 3d (wiring polish). Branch \`feature/tier-4a-pagu-structure\` siap untuk Phase 4 (Owner Vercel preview E2E test → squash merge ke main).
+
+**Branch state:** \`feature/tier-4a-pagu-structure\` (HEAD post Phase 3d, 13 commits ahead of main)
+
+**Phase 3 commits (audit trail):**
+- \`9c836b8\` Phase 3a: UI design draft \`docs/TIER-4A-PHASE-3-UI-DESIGN.md\` (421 lines)
+- \`25adbd5\` Phase 3b: Dashboard tab "Validasi Revisi POK" + 12-card grid + 4 file baru (901 insertions)
+- \`2246b3c\` Phase 3c: Inline validation indicators di Pagu Anggaran + bidirectional Pagu↔Validasi nav (269 insertions)
+- HEAD next: Phase 3d wiring polish — row-level scroll/highlight + auto-revalidate
+
+**Functional scope delivered Phase 3:**
+
+UI Architecture (Phase 3a design, all Q-UI-1..Q-UI-7 defaults approved):
+- New sub-tab "1.5 Validasi Revisi POK" di MainTab 1 (sibling 1.1 Pagu / 1.2 RAB / 1.3 RPD / 1.4 LRA)
+- 6 card visual states: pass (emerald) / warn (amber) / fail (red) / pending (blue) / na (slate solid) / todo (slate dashed)
+- 12-card grid grouped by sub-branch 4a/4b/4c — current state: 5 implemented (C1-C5) + 7 placeholder "Belum Tersedia"
+- Inline detail panel below grid (per Q-UI-2 default — not modal)
+- Submit Revisi POK button disabled selama todo > 0 (visibility roadmap)
+
+Components delivered (Phase 3b — 4 file baru, 901 lines):
+- \`utils/validators/runAllValidators.ts\` — orchestrator: run C1-C5 + placeholder C6-C12 dengan TODO_MARKER. Helpers isTodoState/getTodoSubBranch
+- \`components/ValidationConstraintCard.tsx\` — single card 6 visual states (STATE_STYLES Record)
+- \`components/ValidationDashboardHeader.tsx\` — 5 counter chips + progress bar + Validate Now + Submit button
+- \`components/ValidasiRevisiPOK.tsx\` — main orchestrator + inline DetailPanel sub-component
+- Integration: \`types.ts\` SubTab.VALIDASI + TabType.VALIDASI; \`App.tsx\` SubTabButton + render branch
+
+Inline Indicators (Phase 3c — 1 file baru + 4 modified, 269 lines):
+- \`utils/validators/rowConstraintMap.ts\` — buildRowConstraintMap + pickPriorityIndicator + buildTooltipText helpers
+- \`components/PaguAnggaran.tsx\` — validation dot di kolom Kode (right of existing Sprint D diff dot, 2 dots side-by-side); useMemo auto-recompute on sections change; click → onNavigateToValidasi(priorityConstraintId)
+- Severity priority: fail > warn > pending; tie-break by canonical ConstraintId order
+- Hover tooltip multi-line: list affected constraints dengan status icons (❌/⚠️/⏸️)
+- Bidirectional navigation: Pagu dot click → Validasi tab dengan detail panel auto-expand; Validasi "→ Pagu Anggaran" → back ke tab 1.1
+
+Wiring Polish (Phase 3d):
+- Row-level scroll + highlight glow saat navigate dari Validasi DetailPanel → Pagu Anggaran tab (~2s emerald ring glow, scrollIntoView smooth center)
+- data-row-id attribute pada \`<tr>\` element untuk DOM query target
+- Silent no-op kalau row hidden (section collapsed/filtered)
+- ValidasiRevisiPOK useEffect deps cleanup: [handleValidate] lint-correct
+- Auto-revalidate setelah Apply Recommendation / Override Modal commit sudah implicit via useMemo PaguAnggaran (Phase 3c) — Phase 3d formalize lint correctness
+
+**State management architecture:**
+- \`pendingValidasiConstraint\` (App state) — Pagu dot → Validasi auto-select handoff
+- \`pendingPaguRowHighlight\` (App state) — Validasi → Pagu scroll target handoff
+- Both consumed via useEffect + cleared via callback (one-shot pattern)
+- PaguAnggaran validation: local useMemo on (sections + selectedYear)
+- ValidasiRevisiPOK validation: local useState + useEffect on mount (component unmount/remount preserve fresh data fetch)
+- Slight duplicate computation (~5ms × 2) acceptable; lift to App.tsx noted as future cleanup post-merge
+
+**Verification post Phase 3d:**
+- TS baseline: 8 errors maintained (7 App.tsx + 1 PaguAnggaran.tsx pre-existing — Konteks 1 finding line 434 ".join() on unknown" carried)
+- Vitest baseline: 304 tests pass maintained (UI components no coverage per existing pattern)
+- Vite build: success, 5.82s, ~1.53MB bundle (~294KB gzipped)
+- Functional E2E flow verified Owner Vercel preview Phase 3b + 3c (confirmation 11 Mei 2026)
+
+**Real-world signal validation (RS Batin Tikal 2025 case study):**
+- C1 FAIL detection di production data — total pagu satker net change != 0 karena Sie Renbang trial mencoba add pagu Rp 1.7M untuk service expansion (layanan bedah saraf full operasional Trisemester 2-3 2025: equipment Alsintor/Alkes + BMHP/Obat + jasa nakes)
+- Validator catch wrong-mechanism risk — pathway harus DIPA Halaman III via KAPK Kakesdam II/Sriwijaya, BUKAN revisi POK kewenangan KPA (Pasal 22 b angka 1 prohibit total ubah pagu)
+- Pertumbuhan signifikan pasien BPJS post-operasionalisasi bedah saraf langka di Pulau Bangka (dr Ferry neurosurgeon, full-operational Tr 2-3 2025)
+- High-value Tier 4 outcome — validator working as intended, catch risk BEFORE dokumen di-submit oleh KPA
+- C1 violation message UX enhancement captured §0.9.5 sebagai low-priority post-merge task
+
+**Open items captured §0.9.5:**
+- C1 violation message helper text (alternative pathway guidance) — defer post-Tier-4a-merge
+- C11 cross-tab navigation note — Tier 4c implementation harus support RPD tab 1.3 routing
+- Konteks 1 finding PaguAnggaran:50-51 (UNRESOLVED, UI display bug carry)
+- C8 LHR APIP storage shape (Tier 4b)
+- C10 SBM dictionary shape (Tier 4c)
+
+**Phase 4 readiness:**
+- All 5 validators functional di production data
+- UI integration complete: dashboard + inline indicators + bidirectional navigation + scroll/highlight
+- Decision H1 single-squash-merge pattern preserved
+- Owner action items: visual E2E test Vercel preview → authorize squash merge \`feature/tier-4a-pagu-structure\` → main → start \`feature/tier-4b-revisi-mechanism\` (C6-C9)
+
+**Cross-references:**
+- Design doc: \`docs/TIER-4A-PHASE-3-UI-DESIGN.md\` §1-13 (placement, states, panels, indicators, Q-UI-1..7)
+- SSOT log: \`SSOT-REFACTOR-LOG.md\` §0.9.5 open items
+- Predecessor: \`log-2026-05-11-tier-4a-phase-2b-complete\` (5 validators)
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 + §12.2`,
+    decisions: ['§Tier4-O3', '§Tier4-Q1', '§Tier4-Q2', '§Tier4-Q3', '§Tier4-Q4', '§Tier4-Q5', '§Tier4-Q6', '§Tier4-Q7', '§Tier4-UI1', '§Tier4-UI2', '§Tier4-UI3', '§Tier4-UI4', '§Tier4-UI5', '§Tier4-UI6', '§Tier4-UI7'],
+    related: ['log-2026-05-11-tier-4a-phase-2b-complete', 'log-2026-05-11-tier-4a-foundation', 'log-2026-05-11-tier-4-design'],
+  },
+
+  {
+    id:    'log-2026-05-11-tier-4a-phase-2b-complete',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4a',
+    title: 'Tier 4a Phase 2b COMPLETE — All 5 Validators (C1-C5) + 103 Tests',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Phase 2b sub-branch 4a (Pagu Structure C1-C5) **selesai sepenuhnya** dengan kelima validator implementeed + comprehensive test coverage. Branch \`feature/tier-4a-pagu-structure\` siap untuk Phase 3 (UI integration dashboard "Validasi Revisi POK") sebelum eventual squash merge ke main.
+
+**Branch state:** \`feature/tier-4a-pagu-structure\` (HEAD \`e76284a\`, 8 commits ahead of main)
+
+**Turn 1-4 Phase 2b commits (audit trail):**
+- \`4191915\` Phase 1: validation types + 12-constraint specs catalogue
+- \`ed4650b\` Phase 2a: validation fixture 13 scenarios C1-C5
+- \`52ed3a3\` Phase 2b: validators C1 + C4 + 32 tests (Turn 1)
+- \`a5e9d0b\` Phase 2b Turn 2: C3 + helpers extraction (+ 20 tests)
+- \`f94b27f\` State-sync merge main → feature (bring §0.9 + devLog cleanup)
+- \`f7ccfc3\` SSOT §0.9 R1-R5 decisions + Turn 2 status sync pre-Turn 3
+- \`ab83c06\` Phase 2b Turn 3: C2 validator + 27 tests (Pergeseran 1 KRO)
+- \`86fff4c\` Phase 2b Turn 4: C5 validator + helpers.collectAllLeaves + 24 tests
+- \`e76284a\` SSOT §0.9 batch update post Phase 2b complete + R4 fix (8 akun)
+
+**5 Validators delivered (utils/validators/):**
+
+| File | Lines | Tests | Algorithm |
+|---|---|---|---|
+| \`c1.ts\` | 127 | 24 | Sum-based: totalAwal vs totalRevisi via leaf traversal + epsilon Rp 0.50 |
+| \`c2.ts\` | 213 | 27 | Group by kro_code distinct count (skema 5.a, v1) |
+| \`c3.ts\` | 164 | 20 | Group by kegiatan_code distinct count |
+| \`c4.ts\` | 62 | 8 | Deterministic pass (single-satker app scope) |
+| \`c5.ts\` | 270 | 24 | Group by ro_code, NA strict + MIXED warn per R5 |
+| \`helpers.ts\` | 153 | — | isLeaf §0.7.2, effectiveAwal/Revisi §0.7.3, isChangedRow, collectAllLeaves, collectChangedLeaves, formatRupiah, EPSILON_RUPIAH |
+
+**Test baseline progress:**
+- Pre-Turn 1: 201 tests (Tier 3 only)
+- Post-Turn 1 (52ed3a3): 233 tests (+24 C1, +8 C4)
+- Post-Turn 2 (a5e9d0b): 253 tests (+20 C3)
+- Post-Turn 3 (ab83c06): 280 tests (+27 C2)
+- **Post-Turn 4 (86fff4c): 304 tests (+24 C5)** ← current baseline
+
+**Phase 2b cumulative validator tests: 103** (24+27+20+8+24)
+
+**TS baseline maintained:** 8 errors (7 App.tsx + 1 PaguAnggaran.tsx pre-existing — unrelated ke Tier 4 work)
+
+**Governance decisions captured (§0.9.1 R1-R5):**
+- R1: "changed row" pakai effective values via \`helpers.isChangedRow\` (Konteks 1 consistent)
+- R2: strict pending (ANY changed row missing grouping field → pending)
+- R3: \`metadata_review.override_to='high'\` only forces confidence, BUKAN fill data fields
+- R4: C5 grouping per leaf row dalam ro_code yang sama (verified 8 akun BAS RO 962 per §12.2)
+- R5: C5 NA strict (ALL missing → na); MIXED → warn evaluate yang ada
+
+**Architectural patterns established:**
+- **Plain-language docblock** dengan analogi medis di tiap validator (Owner background friendly)
+- **Mirror pattern**: c2/c3 grouping logic share struktur, c5 extends untuk multi-field check
+- **Shared helpers** di \`helpers.ts\` — reuse across C1-C5 + ready untuk future C6/C7/C9 (jenis belanja, sumber dana, akun minus)
+- **Fixture-driven baseline tests** + inline edge cases (defensive coverage pattern Tier 3 \`metadataRecommender\`)
+- **JSONB-native zero-DDL** maintained — semua field consumption via existing PaguRow optional metadata fields
+
+**Next steps:**
+- **Phase 3** — UI integration dashboard "Validasi Revisi POK" 12-card grid + inline indicators di Pagu Anggaran tab (per Decision O3)
+- **Phase 4** — Owner Vercel preview test → squash merge \`feature/tier-4a-pagu-structure\` → main
+- **Sub-branch 4b** — C6-C9 (Revisi Mechanism) sequential setelah 4a merged
+
+**Open finding (carry-forward dari §0.9.5):**
+- \`components/PaguAnggaran.tsx:50-51\` Konteks 1 overwrite bug — affecting UI display, BUKAN validator logic (C1 handle correctly via \`effectiveRevisi\`). Worth investigating saat Phase 3 UI work.
+
+**Cross-references:**
+- SSOT log: \`SSOT-REFACTOR-LOG.md\` §0.9.1-§0.9.7 (decisions + technical + open items)
+- Design doc: \`docs/TIER-4-DESIGN.md\` §3.1 Tier 4a constraint specs
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 C1-C12 verbatim + §3.5 skema 5.a/b/c + §12.2 BAS RKKS Batin Tikal
+- Predecessor entries: \`log-2026-05-11-tier-4a-foundation\` (Phase 1+2a+2b partial), \`log-2026-05-11-tier-4-design\` (architecture spec), \`log-2026-05-11-tier-3-metadata-merge\` (Tier 3 consumer)`,
+    decisions: ['§Tier4-R1', '§Tier4-R2', '§Tier4-R3', '§Tier4-R4', '§Tier4-R5'],
+    related: ['log-2026-05-11-tier-4a-foundation', 'log-2026-05-11-tier-4-design', 'log-2026-05-11-tier-3-metadata-merge'],
+  },
+
+  {
     id:    'log-2026-05-11-tier-4a-foundation',
     date:  '2026-05-11',
     phase: 'SSOT Refactor / Tier 4a',

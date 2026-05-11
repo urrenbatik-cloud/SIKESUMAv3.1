@@ -454,13 +454,18 @@ Untuk prevent re-litigation di spoke session baru, ini decision-decision alterna
 
 ### 0.9 Tier 4 Implementation Decisions Log (11 Mei 2026)
 
-Tier 4 Validation Engine C1-C12 sedang berjalan dalam **3 sub-branch sequential** per Decision N2 Owner-approved. Sub-branch 4a (`feature/tier-4a-pagu-structure`) currently active dengan Phase 1+2a complete + Phase 2b partial (C1+C4 done, C2/C3/C5 pending).
+Tier 4 Validation Engine C1-C12 sedang berjalan dalam **3 sub-branch sequential** per Decision N2 Owner-approved. Sub-branch 4a (`feature/tier-4a-pagu-structure`) currently active dengan **Phase 1 + 2a + 2b COMPLETE** (semua 5 validator C1-C5 done, 103 tests Phase 2b cumulative). Phase 3 (UI integration) + Phase 4 (Owner test + squash merge) pending.
 
 **Status:** 🚧 IN-PROGRESS — Sub-branch 4a Phase 2b partial. Belum merge ke main.
 
 **Phase commits di feature branch (audit trail):**
 
 ```
+86fff4c feat phase 2b Turn 4: C5 + helpers.collectAllLeaves (+ 24 tests)
+ab83c06 feat phase 2b Turn 3: C2 validator (+ 27 tests)
+f7ccfc3 docs ssot §0.9: R1-R5 + Turn 2 status sync pre-Turn 3
+f94b27f merge state-sync: bring main into feature branch
+a5e9d0b feat phase 2b Turn 2: C3 + helpers extraction (+ 20 tests)
 52ed3a3 feat phase 2b: validators C1 + C4 + 32 tests (partial Q3)
 ed4650b feat phase 2a: validation fixture 13 scenarios C1-C5
 4191915 feat phase 1: validation types + 12-constraint specs catalogue
@@ -481,6 +486,11 @@ ed4650b feat phase 2a: validation fixture 13 scenarios C1-C5
 | **Q4** | Validation timing: manual "Validate Now" button + auto-refresh setelah Apply Recommendation. Avoid noise saat user sedang edit | ✓ 11 Mei 2026 (default) |
 | **Q5** | Sub-branch sequence: sequential (4a → merge → 4b → merge → 4c), bukan parallel | ✓ 11 Mei 2026 (default) |
 | **Q6** | UI tab name: **"Validasi Revisi POK"** (domain-friendly Indonesian) | ✓ 11 Mei 2026 (default) |
+| **R1** | Definisi "changed row" untuk C2/C3 (dan future C5 grouping) = pakai **effective values**: row dianggap "changed" jika `Math.abs(effectiveAwal(row) − effectiveRevisi(row)) > EPSILON_RUPIAH` (via `helpers.isChangedRow`). Row dengan `hargaSatuanRevisi=0` → fallback ke Awal per Konteks 1 → effective values equal → **TIDAK** dihitung sebagai changed. Consistent dengan C1 logic. | ✓ 11 Mei 2026 |
+| **R2** | Pending threshold untuk C2/C3 = **strict**. ANY changed row dengan grouping field (`kro_code` untuk C2, `kegiatan_code` untuk C3) yang null/undefined → status `pending` dengan affected row IDs list. BUKAN tunggu semua row missing. Pesan pending harus guide user fill metadata via tombol "Terima Rekomendasi" atau "Tandai Manual Reviewed". | ✓ 11 Mei 2026 |
+| **R3** | Override behavior: `row.metadata_review.override_to='high'` HANYA force confidence ke high, **TIDAK** fill kode/data fields. Kalau `kro_code` / `kegiatan_code` / `ro_code` tetap null setelah override → validator masih return `pending`. Override bukan magic wildcard. | ✓ 11 Mei 2026 |
+| **R4** | C5 grouping behavior: cek `volume_ro` + `satuan_ro` consistency **per leaf row dalam RO yang sama** (group by `ro_code`). Per master domain §12.2: RO 962 Layanan Umum Sub-Komponen F (RS Batin Tikal) terdiri dari **8 akun BAS** (521111, 521112, 521115, 521119, 521811, 522112, 523122, 524111) tersebar lintas 6 section SikeSuma — kedelapan akun tersebut harus declare `volume_ro` + `satuan_ro` yang sama. Mismatched values dalam grup → `fail`. | ✓ 11 Mei 2026 |
+| **R5** | C5 N/A threshold: **strict** — kalau SEMUA leaf rows missing `volume_ro` AND `satuan_ro` → status `na` (skip evaluation). Mixed case (sebagian rows ada data, sebagian tidak) → status `warn` dengan evaluate yang ada + flag rows missing. Bukan na, bukan fail. | ✓ 11 Mei 2026 |
 
 #### 0.9.2 Sub-Branch Categorization
 
@@ -498,7 +508,7 @@ Per Decision N2, 12 constraints dibagi 3 kategori berdasarkan sifat validasi:
 |---|---|---|
 | Phase 1 | `utils/validators/types.ts` (inclusive untuk ALL 12 constraint untuk avoid drift antar branches) | Done di 4a — types catalogue 336 lines |
 | Phase 2a | `utils/fixtures/validation-scenarios-{4a/4b/4c}.json` (ground truth scenarios) | Done di 4a — 13 scenarios |
-| Phase 2b | `utils/validators/c{N}.ts` + tests (≥30 tests per constraint) | 4a Partial — C1 (24 tests) + C4 (8 tests) done; C2/C3/C5 pending |
+| Phase 2b | `utils/validators/c{N}.ts` + tests (≥30 tests per constraint) | **4a COMPLETE** — C1 (24) + C4 (8) + C3 (20) + C2 (27) + C5 (24) = **103 tests cumulative** |
 | Phase 3 | UI integration — dashboard tab + inline indicators | Pending |
 | Phase 4 | Owner Vercel preview test → squash merge ke main | Pending |
 
@@ -536,8 +546,41 @@ Setiap validator (c1.ts, c4.ts) include comment block dengan:
 
 Contoh analogi:
 - C1: "conservation of mass" — total cairan masuk = keluar
+- C2: "department transfer constraint" — pergeseran dalam KRO sama OK, lintas KRO eskalasi
+- C3: "service line consistency check" — anggaran tidak boleh lintas Kegiatan
 - C4: "patient identity check" — selalu RS yang sama
+- C5: "ward census consistency" — semua akun di RO sama declare volume target output sama
 - Konteks 1 fallback: "kalau dokter belum input hasil ulang, pakai hasil awal sebagai default"
+
+**Changed-Row Detection (R1) — Reused in C2/C3:**
+```typescript
+// helpers.ts isChangedRow — Decision R1 (§0.9.1)
+export function isChangedRow(row: PaguRow): boolean {
+  const eAwal = effectiveAwal(row);
+  const eRevisi = effectiveRevisi(row);
+  return Math.abs(eAwal - eRevisi) > EPSILON_RUPIAH;
+}
+```
+Pakai effective values (Konteks 1-consistent), bukan raw `jumlahBiayaRevisi`.
+Row dengan `hargaSatuanRevisi=0` fallback ke Awal → effective values equal →
+TIDAK terhitung changed. Konsisten dengan C1 sum logic.
+
+**Leaf Collection Helpers (Turn 2 + Turn 4 extraction):**
+```typescript
+// helpers.ts — extracted di Turn 2, generalized di Turn 4
+export function collectAllLeaves(sections): PaguRow[] {
+  // Iterate semua section → isLeaf check (traversal-based §0.7.2)
+  // Returns ALL leaves regardless of changed status
+  // Used by: C5 (volume_ro/satuan_ro consistency), future C6/C7/C9
+}
+
+export function collectChangedLeaves(sections): PaguRow[] {
+  return collectAllLeaves(sections).filter(isChangedRow);
+  // Used by: C2 (kro_code grouping), C3 (kegiatan_code grouping)
+}
+```
+Centralized leaf iteration prevents AP-1 (level>0 anti-pattern) duplication
+across validators. Single source of truth untuk traversal logic.
 
 #### 0.9.5 Open Items untuk Future Sessions
 
@@ -545,8 +588,9 @@ Contoh analogi:
 |---|---|---|
 | **C8 LHR APIP field storage** | 4b | Boolean flag — dimana disimpan? (App-level state? PaguSection field? New `revisi_submission` envelope?) Decide di Phase 1 of 4b |
 | **C10 SBM dictionary shape** | 4c | Currently placeholder `unknown` di types.ts — define proper interface di Phase 1 of 4c |
-| **C11 RPD cross-table** | 4c | Butuh investigation `rpds` table structure (current types.ts has RPDSection — verify shape) |
+| **C11 RPD cross-table** | 4c | Butuh investigation `rpds` table structure (current types.ts has RPDSection — verify shape). **Cross-tab navigation note (Phase 3c future):** saat C11 implemented, affected-rows navigation harus bisa link ke RPD tab (sub-tab 1.3), BUKAN hanya Pagu Anggaran (1.1). Adjust DetailPanel + onNavigateToPagu signature di ValidasiRevisiPOK untuk support route per row type (pagu_row vs rpd_row). |
 | **Konteks 1 finding (UNRESOLVED)** | Pre-existing | `components/PaguAnggaran.tsx:50-51` overwrites `jumlahBiayaRevisi=0` jika `hargaSatuanRevisi=0` — affects C1 evaluation via UI vs validator. C1 validator handle correctly via `effectiveRevisi` helper, tapi UI display tetap potential bug |
+| **C1 violation message enhancement (UX)** | Post-4a-merge atau Tier 4b enhancement | Low priority. Saat C1 FAIL detected (net change != 0), tambah guidance text di violation message: *"Untuk menambah/mengurangi total pagu satker, gunakan Revisi DIPA Halaman III (kewenangan KAPK/Eselon I) atau revisi DIPA penuh — bukan Revisi POK kewenangan KPA."* Source rationale: case study RS Batin Tikal 2025 — layanan bedah saraf baru full operasional Trisemester 2-3, butuh add pagu ~Rp 1.7M (equipment Alsintor/Alkes + BMHP + jasa nakes). Validator C1 correctly catch wrong-mechanism risk — Sie Renbang harus pakai pathway DIPA Halaman III via KAPK Kakesdam II/Sriwijaya, BUKAN revisi POK. Validator working as intended, high-value outcome dari Tier 4 engine. Defer enhancement post Tier 4a squash merge atau batch di Tier 4b enhancement turn. |
 
 #### 0.9.6 TS Baseline Update (post-cleanup)
 
@@ -561,14 +605,22 @@ Future docs cross-references should use **baseline 8** as the maintained thresho
 
 - Design doc: [`docs/TIER-4-DESIGN.md`](./docs/TIER-4-DESIGN.md) — full C1-C12 spec + phasing + UI plan
 - Constraint specs canonical: `utils/validators/types.ts` CONSTRAINT_SPECS
-- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3
+- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3 (constraints) + §3.5 (skema akun sama) + §12.2 (struktur BAS RS Batin Tikal)
+- Validator implementations (Phase 2b complete):
+  - `utils/validators/c1.ts` — Total Pagu net change (Konteks 1 + epsilon)
+  - `utils/validators/c2.ts` — Pergeseran 1 KRO (group by kro_code, v1 skema 5.a)
+  - `utils/validators/c3.ts` — Pergeseran 1 Kegiatan (group by kegiatan_code)
+  - `utils/validators/c4.ts` — Single Satker (deterministic pass per app scope)
+  - `utils/validators/c5.ts` — Volume + Satuan RO consistency (NA/MIXED/PASS/FAIL)
+- Shared helpers: `utils/validators/helpers.ts` — `isLeaf`, `effectiveAwal/Revisi`, `isChangedRow`, `collectAllLeaves`, `collectChangedLeaves`, `formatRupiah`, `EPSILON_RUPIAH`
+- Fixture ground truth: `utils/fixtures/validation-scenarios-4a.json` — 13 scenarios across C1-C5
 - Tier 3 metadata fields (consumed by Tier 4): `types.ts` PaguRow extension
 - Tier 3 implementation log: §0.8 above
 - DevLog entries (in-app visibility): `constants/devLog.ts` entries `log-2026-05-11-tier-4-design` + `log-2026-05-11-tier-4a-foundation`
 
 ---
 
-*§0.9 ditambahkan 11 Mei 2026 setelah Tier 4a Phase 1+2a+2b-partial complete + post-compaction consistency sync. Akan di-update saat: (1) Tier 4a Phase 2b complete (semua 5 validators), (2) Phase 3 UI lands, (3) sub-branch 4a squash merge ke main, (4) start sub-branch 4b.*
+*§0.9 ditambahkan 11 Mei 2026 setelah Tier 4a Phase 1+2a+2b-partial complete + post-compaction consistency sync. Updated saat checkpoint: ✓ (1) Tier 4a Phase 2b complete (semua 5 validators C1-C5, 103 tests cumulative, R1-R5 governance locked). Pending: (2) Phase 3 UI lands, (3) sub-branch 4a squash merge ke main, (4) start sub-branch 4b.*
 
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 

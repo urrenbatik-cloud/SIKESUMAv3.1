@@ -15,6 +15,8 @@ import BPJSModule from './components/BPJSModule';
 import OperationalBilling from './components/OperationalBilling';
 import RevenueModule from './components/RevenueModule';
 import DeviationDashboard from './components/DeviationDashboard';
+// [Tier 4a Phase 3b] Validasi Revisi POK dashboard (sub-tab 1.5)
+import ValidasiRevisiPOK from './components/ValidasiRevisiPOK';
 // [S3.2.3] Settings overlay (gear icon di header) — Riwayat Aktivitas + future config tabs
 import SettingsModule from './components/SettingsModule';
 // [Komunikasi] Konstanta key localStorage untuk read-state — single source of truth
@@ -72,6 +74,14 @@ const App: React.FC = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
   // [S3.2.3] Settings overlay open/close state — wired ke gear icon di header
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // [Tier 4a Phase 3c] Pending constraint untuk auto-expand di Validasi tab.
+  // Diset saat user click validation dot di Pagu Anggaran tab; consumed
+  // (read once + cleared) saat ValidasiRevisiPOK mount/update.
+  const [pendingValidasiConstraint, setPendingValidasiConstraint] = useState<import('./utils/validators/types').ConstraintId | null>(null);
+  // [Tier 4a Phase 3d] Pending row untuk scroll + highlight di Pagu Anggaran tab.
+  // Diset saat user click "→ Pagu Anggaran" di Validasi detail panel; consumed
+  // setelah scroll + 2s highlight glow selesai.
+  const [pendingPaguRowHighlight, setPendingPaguRowHighlight] = useState<{ sectionId: string; rowId: string } | null>(null);
   // [Komunikasi] Unread message count untuk badge di gear icon. Simplified MVP:
   // count phase_messages WHERE created_at > localStorage last_global_read.
   // Per-discussion granularity = future (TD-15 / Phase 3).
@@ -997,6 +1007,7 @@ const App: React.FC = () => {
       case SubTab.RAB: setActiveTabType(TabType.RAB); break;
       case SubTab.RPD: setActiveTabType(TabType.RPD); break;
       case SubTab.REALISASI: setActiveTabType(TabType.REALISASI); break;
+      case SubTab.VALIDASI: setActiveTabType(TabType.VALIDASI); break;
       case SubTab.BELANJA_JASA: setActiveTabType(TabType.JASA_BPJS); break;
       case SubTab.BELANJA_OPERASIONAL: setActiveTabType(TabType.BEKKES); break;
       case SubTab.BELANJA_MODAL: setActiveTabType(TabType.MODAL_DETAIL); break;
@@ -1083,6 +1094,7 @@ const App: React.FC = () => {
                 <SubTabButton active={subTab === SubTab.RAB} onClick={() => handleSubTabChange(SubTab.RAB)} label="1.2 RAB Detail" icon={<Layers size={14} />} />
                 <SubTabButton active={subTab === SubTab.RPD} onClick={() => handleSubTabChange(SubTab.RPD)} label="1.3 RPD (Rencana Tarik)" icon={<Calendar size={14} />} />
                 <SubTabButton active={subTab === SubTab.REALISASI} onClick={() => handleSubTabChange(SubTab.REALISASI)} label="1.4 LRA (Realisasi)" icon={<BarChart3 size={14} />} />
+                <SubTabButton active={subTab === SubTab.VALIDASI} onClick={() => handleSubTabChange(SubTab.VALIDASI)} label="1.5 Validasi Revisi POK" icon={<ShieldCheck size={14} />} />
               </>
             )}
             {mainTab === MainTab.BELANJA && (
@@ -1120,7 +1132,7 @@ const App: React.FC = () => {
         <div className="max-w-[98%] mx-auto px-6 py-6 pb-32">
            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
               {activeTabType === TabType.PAGU && (
-                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, tahun: currentRKKSYear, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} />
+                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, tahun: currentRKKSYear, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} onNavigateToValidasi={(constraintId) => { setPendingValidasiConstraint(constraintId); handleSubTabChange(SubTab.VALIDASI); }} pendingRowHighlight={pendingPaguRowHighlight} onRowHighlightConsumed={() => setPendingPaguRowHighlight(null)} />
               )}
               {activeTabType === TabType.RAB && (
                 <RAB paguSections={paguSections} categories={rabCategories} onCategoriesChange={setRabCategories} selectedYear={currentRKKSYear} />
@@ -1146,6 +1158,20 @@ const App: React.FC = () => {
                   onSectionsChange={setRpdSections}
                   viewMode={budgetViewMode}
                   selectedYear={currentRKKSYear}
+                />
+              )}
+              {activeTabType === TabType.VALIDASI && (
+                <ValidasiRevisiPOK
+                  paguSections={paguSections}
+                  selectedYear={currentRKKSYear}
+                  onNavigateToPagu={(sectionId, rowId) => {
+                    if (sectionId && rowId) {
+                      setPendingPaguRowHighlight({ sectionId, rowId });
+                    }
+                    handleSubTabChange(SubTab.PAGU_ANGGARAN);
+                  }}
+                  initialSelectedConstraint={pendingValidasiConstraint}
+                  onPendingConsumed={() => setPendingValidasiConstraint(null)}
                 />
               )}
               {subTab === SubTab.BELANJA_JASA && (

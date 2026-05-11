@@ -18,7 +18,7 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
 - **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration. Owner-tested + verified. 92.1% high confidence acceptance, 201 Vitest tests pass. Lihat `SSOT-REFACTOR-LOG.md §0.8`.
-- **Tier 4 IN-PROGRESS** di `feature/tier-4a-pagu-structure` — Phase 1+2a complete + Phase 2b partial (C1+C4 done, C2/C3/C5 pending). 32 new tests, 233 total. Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md`.
+- **Tier 4a Phase 3 COMPLETE** di `feature/tier-4a-pagu-structure` — semua 5 validators (C1-C5) + UI integration full (dashboard tab "1.5 Validasi Revisi POK" + 12-card grid + inline indicators di Pagu Anggaran + bidirectional Pagu↔Validasi navigation + row-level scroll/highlight). **304 total tests pass** (201 Tier 3 + 103 Tier 4a). Ready Phase 4 (Owner E2E test → squash merge ke main). Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
 - **Tier 4b/4c pending** — `feature/tier-4b-revisi-mechanism` (C6-C9) + `feature/tier-4c-procedural-references` (C10-C12), sequential setelah 4a merged.
 - **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
 - TS baseline: **8 errors** (turun dari 11 post-devLog.ts cleanup 11 Mei 2026)
@@ -26,15 +26,27 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9` untuk full detail):**
 ```
-main:                                    32bb1d7 (TIER-4-DESIGN.md draft)
+main:                                    6922508 (SESSION-START-HERE.md anti-drift)
+  ├── 6922508 docs(handover): SESSION-START-HERE.md
+  ├── 05335f5 docs(post-compaction sync): SSOT §0.9 + devLog + TS 11→8
   ├── 32bb1d7 docs(tier-4): TIER-4-DESIGN.md
   ├── 73c7afb docs(post-merge): Tier 3 status sync
-  ├── 6c8f640 feat(tier-3): metadata schema squashed merge
-  └── 83248b8 docs(handover): pre-merge SSOT §0.8
+  └── 6c8f640 feat(tier-3): metadata schema squashed merge
 
 feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
-feature/tier-4a-pagu-structure:          52ed3a3 (3 commits ahead of main, ACTIVE)
-  ├── 52ed3a3 feat phase 2b: C1 + C4 validators + 32 tests (partial Q3)
+feature/tier-4a-pagu-structure:          (13+ commits ahead of main, Phase 3 COMPLETE — ready squash merge)
+  ├── (HEAD) feat phase 3d wiring polish: row-level scroll/highlight + nav wire
+  ├── 2246b3c feat phase 3c: inline validation indicators di Pagu Anggaran
+  ├── 25adbd5 feat phase 3b: Validasi Revisi POK dashboard tab + 12-card grid
+  ├── 9c836b8 docs phase 3a: UI design draft (421 lines)
+  ├── 9daac90 docs handover sync: Phase 2b COMPLETE
+  ├── e76284a docs(ssot §0.9): batch update post Phase 2b + R4 fix (5→8 akun)
+  ├── 86fff4c feat phase 2b Turn 4: C5 + helpers.collectAllLeaves + 24 tests
+  ├── ab83c06 feat phase 2b Turn 3: C2 + 27 tests (Pergeseran 1 KRO)
+  ├── f7ccfc3 docs(ssot §0.9): R1-R5 decisions + Turn 2 status sync
+  ├── f94b27f merge(state-sync): bring main into feature pre-Turn 3
+  ├── a5e9d0b feat phase 2b Turn 2: C3 + helpers extraction + 20 tests
+  ├── 52ed3a3 feat phase 2b: C1 + C4 + 32 tests (partial Q3)
   ├── ed4650b feat phase 2a: 13 fixture scenarios
   └── 4191915 feat phase 1: types + 12 constraint specs catalogue
 
@@ -56,7 +68,7 @@ feature/tier-4c-procedural-references:   TBD (later)
 - Vitest 2.1.9 (devDep). Run: `npm test` / `npm run test:watch` / `npm run test:fixture`
 - Tests location: colocated `*.test.ts` next to source (mis. `utils/metadataRecommender.test.ts`)
 - Fixtures: `utils/fixtures/` (mis. `pagu-leaves-ta2025.json` = 38 leaves ground truth)
-- Baseline: 201 tests pass post-Tier 3 Phase 2b
+- Baseline: **304 tests pass** post-Phase 2b complete (201 Tier 3 + 103 Tier 4a: C1 24 + C2 27 + C3 20 + C4 8 + C5 24)
 
 ---
 
