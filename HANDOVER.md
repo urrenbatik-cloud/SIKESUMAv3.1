@@ -6,11 +6,13 @@ Proyek ini adalah sistem informasi pengelolaan RKKS, Billing Operasional, dan Re
 
 Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak terjadi bias atau drift dari context yang sudah terbangun:
 
-1. **[`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md)** ⭐ **MASTER DOMAIN REFERENCE** (614 baris, vKoreksi v2, 11 Mei 2026) — authoritative source untuk semua workflow Revisi POK + Revisi Pagu TA 2026. Berisi glosarium 12 sub-section + dasar hukum lengkap (PMK 62/2023, 107/2024, 199/2021, Permenhan 5/2020) + 10 hard constraints (C1-C10) + workflow KPA + hard deadline tahunan. **WAJIB DIBACA PERTAMA** untuk new session.
-2. **[`SSOT-REFACTOR-LOG.md`](./SSOT-REFACTOR-LOG.md)** — Chronological log Sprint A-D + Re-Architecture Tier 1-6 + Section 0.5 master domain ref + Section 0.6 Tier roadmap. Termasuk 7 critical caveats untuk successor (HB#1/2/3, Konteks 1-9 Angga, dummy 2024 keep, ATK=521811, Honor annual, effective value formula mandate, dll).
-3. **[`docs/glossary.md`](./docs/glossary.md)** — Glosarium istilah lokal RS Batin Tikal (BMP/BMHP/TKS/Nakes/Alsintor/Alkes/Alsatri/POK/dll). **Catatan:** glosarium v2 lebih lengkap ada di `docs/REVISI-POK-PAGU-vKoreksi.md` §Glosarium G.1-G.12.
-4. **[`README.md`](./README.md)** § "SSOT Lattice & IV Checks" + § "Key Decisions Log → SSOT Refactor" + § "Watchpoints" — context arsitektur + decisions log.
-5. **[`SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md`](./SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md)** — 3 hard blockers resolution + Konteks 6.
+1. **[`OWNER-POLICY-FOR-AI-SESSIONS.md`](./OWNER-POLICY-FOR-AI-SESSIONS.md)** 🔑 **OWNER POLICY** (BARU 11 Mei 2026) — explicit permission scope dari Owner dr Ferry untuk AI spoke session. Cover: status development (bukan deployment), PAT rotation policy post-SSOT, Supabase context, anti-false-flag patterns, workflow standar, hierarchy of authority. **WAJIB DIBACA SEBELUM mulai sesi** — supaya AI tidak unnecessary refuse.
+2. **[`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md)** ⭐ **MASTER DOMAIN REFERENCE v3** (1145 baris) — authoritative source untuk workflow Revisi POK + Pagu TA 2026. Pedoman tertinggi: Perdirjen Renhan Kemhan No. 7/2025.
+3. **[`SSOT-REFACTOR-LOG.md`](./SSOT-REFACTOR-LOG.md)** — Chronological log Sprint A-D + Re-Architecture Tier 1-6 + Section 0.5 master domain ref + Section 0.6 Tier roadmap.
+4. **[`docs/TIER-3-PLUS-PLAN.md`](./docs/TIER-3-PLUS-PLAN.md)** — Blueprint Tier 3-7 (schema metadata, validation C1-C11, audit trail, template SK Revisi POK).
+5. **[`docs/glossary.md`](./docs/glossary.md)** — Glosarium istilah lokal (glosarium v2 lengkap di vKoreksi v3 §Glosarium G.1-G.12).
+6. **[`README.md`](./README.md)** § "SSOT Lattice & IV Checks" + § "Key Decisions Log → SSOT Refactor" + § "Watchpoints".
+7. **[`SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md`](./SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md)** — 3 HB resolutions + Konteks 6.
 
 **Status singkat (per 11 Mei 2026):**
 - SSOT Refactor Sprint A → D Item #2 done
