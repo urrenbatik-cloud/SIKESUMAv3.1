@@ -56,7 +56,7 @@ Data konkret ini menjadi **seed values** untuk recommendation engine. Sie Renban
 
 **Branching:**
 - Tier 3 → `feature/tier-3-metadata-schema`
-- Tier 4 → `feature/tier-4-validation-c1-c10` (depends Tier 3)
+- Tier 4 → `feature/tier-4-validation-c1-c12` (depends Tier 3)
 - Tier 5 → `feature/tier-5-audit-trail` (depends Tier 4)
 - Tier 6 → `feature/tier-6-template-sk-revisi-pok` (depends Tier 5; ⭐ NEW priority dari v3 §13)
 - Squash merge ke main setelah tested + Angga/Karumkit approved
@@ -76,7 +76,7 @@ Data konkret ini menjadi **seed values** untuk recommendation engine. Sie Renban
 ## Tier 3 — Schema Metadata Migration
 
 ### Goal
-Tambah master metadata di `pagu_row` untuk enable validasi 10 hard constraints (C1-C10) Revisi POK kewenangan KPA per PMK 62/2023.
+Tambah master metadata di `pagu_row` untuk enable validasi **12 hard constraints (C1-C12)** Revisi POK kewenangan KPA per **Perdirjen Renhan Kemhan 7/2025 Pasal 22** (sebagai *lex specialis* dari PMK 62/2023).
 
 ### Scope
 
@@ -145,16 +145,16 @@ export function recommendMetadata(row: PaguRow): {
 
 ---
 
-## Tier 4 — Validation Engine C1-C11
+## Tier 4 — Validation Engine C1-C12
 
 ### Goal
-Pre-flight check sebelum cetak Usulan Revisi POK. Block jika hard violation. Soft warning untuk lainnya. Per Pasal 22 Perdirjen Renhan Kemhan No. 7 Tahun 2025.
+Pre-flight check sebelum cetak Usulan Revisi POK. Block jika hard violation. Soft warning untuk lainnya. Per **Pasal 22 Perdirjen Renhan Kemhan No. 7 Tahun 2025** (canonical numbering ikut master domain doc `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3).
 
 ### File: `utils/revisiPOKValidator.ts` (BARU)
 
 ```typescript
 export interface ConstraintViolation {
-  constraint: 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'C10' | 'C11';
+  constraint: 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'C10' | 'C11' | 'C12';
   pasal: string;  // mis. "Pasal 22 huruf a angka 1 Perdirjen Renhan 7/2025"
   severity: 'ERROR' | 'WARNING' | 'INFO';
   message: string;
@@ -162,40 +162,46 @@ export interface ConstraintViolation {
 }
 
 export function validateRevisiPOK(sections: PaguSection[]): ConstraintViolation[] {
-  // C1: Net change = 0 (PMK 62/2023 + Perdirjen Renhan 7/2025 Pasal 22)
-  // C2: All rows in same KRO (Pasal 22 huruf a angka 1)
-  // C3: All rows in same Kegiatan (Pasal 22 huruf a angka 1)
-  // C4: All rows in same Satker (685784 Kesdam II/SWJ — trivial single-satker)
-  // C5: Volume RO tidak berubah (Pasal 22 huruf a angka 2)
-  // C6: 1 jenis belanja sama (Pasal 22 huruf a angka 2)
-  // C7: Sumber dana sama (Pasal 22 huruf a angka 2)
-  // C8: 1 komponen sama untuk belanja operasional (FAQ DJA)
-  // C9: Tidak boleh pagu minus pasca revisi
-  // C10: Patuh SBM (PMK Standar Biaya tahunan)
-  // C11: Memperhatikan LHR APIP (Pasal 22 huruf b angka 4) — ⭐ BARU v3
+  // Canonical C1-C12 per vKoreksi v3 §3.3:
+  // C1: Net change = 0                                          (Pasal 22 huruf b angka 1)
+  // C2: 1 KRO sama (skema 5.a) atau 1 RO sama (5.b, 5.c)        (Pasal 22 huruf a)
+  // C3: 1 Kegiatan sama                                         (Pasal 22 huruf a angka 1)
+  // C4: 1 Satker sama (trivial — 685784 Kesdam II/SWJ)          (Pasal 22 huruf a)
+  // C5: Volume + satuan RO tidak berubah                        (Pasal 22 huruf b angka 1)
+  // C6: Jenis belanja sama (2 digit: 51/52/53/57)               (Pasal 22 huruf b angka 1)
+  // C7: Sumber dana sama (RM/PNBP/PLN/PDN/Hibah/SBSN)           (Pasal 22 huruf b angka 1)
+  // C8: Memperhatikan LHR APIP atas RKA TA berkenaan            (Pasal 22 huruf b angka 2) ⭐ BARU PR7/2025
+  // C9: Tidak boleh ada mata anggaran/akun minus pasca revisi   (Prinsip umum pelaksanaan APBN)
+  // C10: Patuh SBM/SBK                                          (PMK Standar Biaya tahunan)
+  // C11: Tidak ubah Halaman III DIPA / RPD                      (Lampiran I Bagian 5 kode 5.d)
+  //      — jika ya, naik ke Pasal 23 / pengesahan Kanwil DJPb
+  // C12: Diajukan sebelum 27 Desember TA berkenaan              (Pasal 24 ayat 11 huruf d + Lamp I 5.d)
 }
 ```
 
 ### Severity Classification
 
-| Constraint | Pasal Reference | Severity Default | Rationale |
+| Constraint | Pasal Reference (PR7/2025 = Perdirjen Renhan 7/2025) | Severity Default | Rationale |
 |---|---|---|---|
-| C1 (net=0) | PMK 62/2023 + Pasal 22 PR7/2025 | ERROR (block) | Hard requirement |
-| C2-C4 (KRO/Kegiatan/Satker) | Pasal 22(a)(1) PR7/2025 | ERROR (block) | Hard requirement |
-| C5 (volume RO) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
-| C6 (jenis belanja 2-digit) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
-| C7 (sumber dana) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
-| C8 (komponen) | FAQ DJA | WARNING | Hanya untuk belanja operasional |
-| C9 (pagu minus) | Prinsip umum APBN | ERROR (block) | |
-| C10 (SBM) | PMK Standar Biaya tahunan | INFO (defer) | Butuh SBM master data |
-| C11 (LHR APIP) | Pasal 22(b)(4) PR7/2025 | WARNING | ⭐ BARU v3 — butuh interaction LHR submission |
+| C1 (net=0) | Pasal 22 huruf b angka 1 PR7/2025 | ERROR (block) | Hard requirement |
+| C2 (1 KRO/RO sama) | Pasal 22 huruf a PR7/2025 | ERROR (block) | Hard requirement |
+| C3 (1 Kegiatan) | Pasal 22 huruf a angka 1 PR7/2025 | ERROR (block) | Hard requirement |
+| C4 (1 Satker) | Pasal 22 huruf a PR7/2025 | ERROR (block) | Trivial untuk 685784 single-satker, tetap auto-check |
+| C5 (volume + satuan RO) | Pasal 22 huruf b angka 1 PR7/2025 | ERROR (block) | Hard requirement |
+| C6 (jenis belanja 2-digit) | Pasal 22 huruf b angka 1 PR7/2025 | ERROR (block) | Hard requirement |
+| C7 (sumber dana) | Pasal 22 huruf b angka 1 PR7/2025 | ERROR (block) | Hard requirement |
+| **C8 (LHR APIP)** | **Pasal 22 huruf b angka 2 PR7/2025** | WARNING | ⭐ BARU PR7/2025 — butuh interaction LHR submission (akses via Palembang, lihat vKoreksi v3 §12) |
+| C9 (pagu minus) | Prinsip umum pelaksanaan APBN | ERROR (block) | |
+| C10 (SBM/SBK) | PMK Standar Biaya tahunan | INFO (defer) | Butuh SBM master data; tier 7 future |
+| **C11 (tidak ubah Hal III DIPA / RPD)** | **Lampiran I Bagian 5 kode 5.d PR7/2025** | ERROR (block) | Kalau RPD bulanan berubah, kasus naik ke Pasal 23 (kewenangan Kanwil DJPb), BUKAN Pasal 22 KPA |
+| **C12 (deadline 27 Des)** | **Pasal 24 ayat 11 huruf d + Lamp I 5.d** | WARNING (H-7) → ERROR (post-deadline) | Soft warning di H-7, hard block setelah lewat |
 
 ### UI
 
 1. **Pre-flight banner** di top `PaguAnggaran.tsx`: "✓ Pagu valid untuk Revisi POK" atau "⚠ X violation: ..." dengan list.
 2. **Disable button "Usulan Revisi POK"** kalau ada ERROR violation. Show tooltip violation summary.
 3. **Validation modal** klik banner: full list violations + affected rows dengan link click-to-row + reference Pasal.
-4. **C11 LHR APIP**: special UI untuk input LHR reference (nomor LHR, tanggal) — link ke usulan_revisi.
+4. **C8 LHR APIP**: special UI untuk input LHR reference (nomor LHR, tanggal) — link ke usulan_revisi (akses LHR via Palembang per vKoreksi v3 §12).
 
 ### Acceptance Criteria
 
@@ -263,7 +269,7 @@ ditolak       ditolak         ditolak       ditolak
 ```
 
 Transitions:
-- `draft → direkomendasi`: Sie Renbang submit + validasi C1-C10 pass
+- `draft → direkomendasi`: Sie Renbang submit + validasi C1-C12 pass
 - `direkomendasi → diteruskan`: Karumkit approve
 - `diteruskan → ditetapkan`: Palembang upload SK + tanggal_penetapan
 - `ditetapkan → berlaku_efektif`: auto pada tanggal_berlaku_efektif (snapshot_pok created)
@@ -322,7 +328,7 @@ Per Section 13 vKoreksi v3, ada 5 sub-templates yang harus di-generate:
 - Tanggal penetapan + tanda tangan Kakesdam
 
 **13.4 — Surat Pernyataan Tanggung Jawab KPA** (Lampiran SK)
-- Pernyataan KPA bahwa revisi POK telah memenuhi C1-C11
+- Pernyataan KPA bahwa revisi POK telah memenuhi C1-C12
 - Tanda tangan + materai
 
 **13.5 — Template Kop Surat RS Batin Tikal** (PROPOSAL v3)
@@ -352,13 +358,13 @@ Sub-components untuk setiap template, print-ready dengan kop dinamis sesuai jeni
 - [ ] Template 13.1-13.4 generate-able sesuai data real `usulan_revisi` (Tier 5)
 - [ ] Print preview match contoh di Section 13 vKoreksi v3
 - [ ] Tanggal + nomor SK auto-generated
-- [ ] Verification check: data SK match dengan validated revisi POK (C1-C11 pass)
+- [ ] Verification check: data SK match dengan validated revisi POK (C1-C12 pass)
 - [ ] Template 13.5 (Kop RS Batin Tikal) optional — pending approval format
 
 ### Dependencies
 
 - Tier 3 (metadata KRO/Kegiatan/Komponen untuk pertimbangan SK)
-- Tier 4 (validasi C1-C11 pass sebelum bisa generate SK)
+- Tier 4 (validasi C1-C12 pass sebelum bisa generate SK)
 - Tier 5 (usulan_revisi entity sebagai data source)
 
 ---

@@ -11,8 +11,8 @@
 - ✅ Sprint C (lattice enforcement)
 - ✅ Sprint D Item #1 (Konteks 1 + Schema Integrity)
 - ✅ Sprint D Item #2 (UX Pagu Diff Visibility — 4 phases: Dashboard, Sintesis, Filter+Indicator, Print Laporan dual-mode, Ringkasan list)
-- ✅ **Re-Architecture Tier 1+2 (11 Mei 2026)** — Master domain doc `REVISI-POK-PAGU-vKoreksi.md` integrated + LaporanRevisi.tsx fixed (workflow KPA Palembang, disclaimer C1-C10)
-- ⏳ Tier 3+ (feature branches, fresh session) — Schema metadata + Validation C1-C10 + Audit trail
+- ✅ **Re-Architecture Tier 1+2 (11 Mei 2026)** — Master domain doc `REVISI-POK-PAGU-vKoreksi.md` integrated + LaporanRevisi.tsx fixed (workflow KPA Kakesdam II/Sriwijaya, disclaimer C2-C12 manual)
+- ⏳ Tier 3+ (feature branches, fresh session) — Schema metadata + Validation C1-C12 + Audit trail
 - ⏳ Sprint D Item #3+ (deferred) — Year handling bug, multi-year, audit log CRUD
 - ⏳ Sprint E (Priority Angga, deferred) — LRA regression test, audit doc original update
 
@@ -96,7 +96,7 @@ Dokumen master dari Sie Renbang via dr Ferry yang menjadi **authoritative source
 **Koreksi v3 atas v2:**
 1. **KPA = Kakesdam II/Sriwijaya** spesifik (sebelumnya hanya generic "pejabat Palembang")
 2. **Pasal references**: Pasal 22 (Revisi POK), Pasal 12-15 (Mekanisme Berjenjang), Pasal 24 (Batas Waktu) — semua Perdirjen Renhan 7/2025
-3. **Constraint baru C11**: "Memperhatikan LHR APIP" (audit recommendations) — Pasal 22 huruf b angka 4 Perdirjen Renhan
+3. **Constraint baru C8**: "Memperhatikan LHR APIP" (audit recommendations) — **Pasal 22 huruf b angka 2** Perdirjen Renhan 7/2025. Plus 2 constraint struktural yang sebelumnya tidak eksplisit di v2: **C11** (tidak ubah Halaman III DIPA / RPD — Lampiran I 5.d) dan **C12** (deadline 27 Desember — Pasal 24 ayat 11 huruf d).
 4. **Deadline pemutakhiran POK = 27 Desember** (bukan 26 Desember seperti v2)
 5. **5 sub-kategori Revisi POK** dari Lampiran I Bagian 5 (Section 3.2 v3)
 6. **Rute formal**: Satker → UO Asren Kasad → Dirjen Renhan Kemhan (Pasal 12)
@@ -105,7 +105,7 @@ Dokumen master dari Sie Renbang via dr Ferry yang menjadi **authoritative source
 
 **Koreksi fundamental atas pemahaman lama (carried over from v2):**
 1. **Karumkit BUKAN KPA** — hanya pemberi rekomendasi internal
-2. **Revisi POK butuh 10 hard constraints** (C1-C10) + tambah C11 v3
+2. **Revisi POK punya 12 hard constraints (C1-C12)** per vKoreksi v3 §3.3 — canonical numbering aligned ke master domain doc (11 Mei 2026). C8 LHR APIP, C11 tidak ubah RPD, C12 deadline 27 Des = 3 yang baru atau dieksplisitkan di Perdirjen Renhan 7/2025 dibanding pedoman lama.
 3. **Revisi POK yang menyentuh RPD bulanan otomatis naik** jadi Revisi DIPA Hal III (Kanwil DJPb)
 4. **Forward-looking**: revisi berlaku sejak tanggal penetapan KPA
 5. **BMP = Bahan Bakar Minyak dan Pelumas** (Permenhan 5/2020) → `523122` (BUKAN bahan makanan)
@@ -136,9 +136,9 @@ Konteks: TA 2025 sudah lewat (data historis), TA 2026 belum mulai. Window yang t
 | Tier | Scope | Branch | Status |
 |---|---|---|---|
 | **1** | Docs refresh — `docs/REVISI-POK-PAGU-vKoreksi.md` + SSOT log + README | main | ✅ DONE (11 Mei 2026) |
-| **2** | Fix `LaporanRevisi.tsx` — title "Laporan"→"Usulan", signature 3-kolom (Sie Renbang + Karumkit rekomendasi + KPA Palembang penetap), disclaimer C2-C10 belum auto-checked | main | ✅ DONE (11 Mei 2026) |
+| **2** | Fix `LaporanRevisi.tsx` — title "Laporan"→"Usulan", signature 3-kolom (Sie Renbang + Karumkit rekomendasi + KPA Kakesdam II/Sriwijaya penetap), disclaimer C2-C12 manual aligned ke vKoreksi v3 §3.3 (post-align 11 Mei 2026) | main | ✅ DONE (11 Mei 2026) |
 | **3** | Schema migration: add `kro_code`, `kegiatan_code`, `komponen_code`, `volume_ro`, `satuan_ro`, `sumber_dana_kode` (nullable) + recommendation engine pattern matching | `feature/tier-3-metadata-schema` | ⏳ Fresh session |
-| **4** | Validation engine C1-C10 + live pre-flight check banner + block laporan jika hard violation | `feature/tier-4-validation-c1-c10` | ⏳ Fresh session (depends Tier 3) |
+| **4** | Validation engine C1-C12 + live pre-flight check banner + block laporan jika hard violation | `feature/tier-4-validation-c1-c12` | ⏳ Fresh session (depends Tier 3) |
 | **5** | Workflow state machine (Draft → Direkomendasi → Diteruskan → Ditetapkan → Berlaku Efektif) + audit trail per pengajuan + snapshot per tanggal penetapan + deadline H-7/H-1 | `feature/tier-5-audit-trail` | ⏳ Fresh session (depends Tier 4) |
 | **6** | Future — sistem jendela revisi pagu (admin Palembang activation), multi-role permission, SBM check (C10), integrasi SAKTI | `feature/tier-6-*` (TBD) | ⏳ Far future |
 

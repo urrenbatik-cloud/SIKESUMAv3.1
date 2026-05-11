@@ -106,18 +106,20 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
           </div>
         )}
 
-        {/* Tier 2 (vKoreksi v2) — Disclaimer C2-C10 belum dicek otomatis */}
+        {/* Tier 2 vKoreksi v3 — Disclaimer C2-C12 manual (post-align 11 Mei 2026) */}
         {mode === 'pergeseran' && (
           <div className="no-print-laporan max-w-[210mm] mx-auto mb-3 bg-blue-50 border-2 border-blue-200 rounded-2xl px-5 py-3 flex items-start gap-3">
             <AlertTriangle size={18} className="text-blue-600 shrink-0 mt-0.5" />
             <div className="text-[11px] text-blue-800">
-              <p className="font-black mb-1">⚠ Verifikasi Manual Diperlukan (10 Hard Constraints per PMK 62/2023):</p>
+              <p className="font-black mb-1">⚠ Verifikasi Manual Diperlukan (12 Hard Constraints per Perdirjen Renhan 7/2025 Pasal 22):</p>
               <p className="leading-relaxed">
                 SIKESUMA saat ini hanya cek <strong>C1 (net change = 0)</strong>. Sebelum diajukan ke Kakesdam II/Sriwijaya selaku KPA, Sie Renbang <strong>wajib verifikasi manual</strong>:
-                C2 (1 KRO sama), C3 (1 Kegiatan), C4 (1 Satker), C5 (volume RO tidak berubah),
-                C6 (1 jenis belanja: 2 digit pertama akun sama), C7 (sumber dana sama),
-                C8 (1 komponen sama untuk belanja operasional), C9 (tidak ada pagu minus pasca-revisi), C10 (patuh SBM).
-                Rujukan: <code className="font-mono bg-blue-100 px-1 rounded">docs/REVISI-POK-PAGU-vKoreksi.md §3.2</code>.
+                C2 (1 KRO/RO sama), C3 (1 Kegiatan), C4 (1 Satker), C5 (volume + satuan RO tidak berubah),
+                C6 (jenis belanja sama: 2 digit pertama akun 51/52/53/57), C7 (sumber dana sama),
+                C8 (memperhatikan LHR APIP atas RKA TA — Pasal 22 huruf b angka 2, BARU PR7/2025), C9 (tidak ada pagu minus pasca-revisi),
+                C10 (patuh SBM/SBK), C11 (tidak ubah Halaman III DIPA / RPD — jika ya naik ke Pasal 23 / Kanwil DJPb),
+                C12 (sebelum 27 Desember TA berkenaan — Pasal 24 ayat 11 huruf d).
+                Rujukan: <code className="font-mono bg-blue-100 px-1 rounded">docs/REVISI-POK-PAGU-vKoreksi.md §3.3</code>.
               </p>
             </div>
           </div>
