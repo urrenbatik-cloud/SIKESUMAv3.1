@@ -183,6 +183,27 @@ export interface PaguRow {
     | 'SBSN'                   // Surat Berharga Syariah Negara (Pasal 1.27)
     | 'HIBAH'                  // Hibah (Pasal 1.26)
     | string;                  // escape hatch — tapi prefer canonical literal
+
+  // ────────────────────────────────────────────────────────────────────────
+  // [Tier 3] Manual Review Override (per Owner direction 11 Mei 2026)
+  // ────────────────────────────────────────────────────────────────────────
+  // Untuk row yang recommender return MEDIUM/LOW confidence tapi Angga
+  // sudah review manual dan confirm mapping benar — set field ini untuk
+  // **override confidence ke HIGH**. Affects Tier 4 validation logic.
+  //
+  // UI (Phase 3) WAJIB tampilkan warning modal sebelum set:
+  // > "Marking this row as manually reviewed will override recommendation
+  // >  confidence to HIGH for all metadata fields. This affects Tier 4
+  // >  validation. Confirm only after verifying KRO/RO/Komponen/Sumber Dana."
+  //
+  // Recommender behavior: jika row.metadata_review is set, all confidence
+  // levels di output dipaksa = 'high' (lihat utils/metadataRecommender.ts).
+  metadata_review?: {
+    reviewed_at: string;       // ISO 8601 timestamp (when override was set)
+    reviewed_by?: string;      // optional user identifier ("Angga", "Sie Renbang RS")
+    override_to: 'high';       // confidence level forced (only 'high' supported v1)
+    note?: string;             // optional reasoning ("verified vs DIPA Petikan", etc.)
+  };
 }
 
 export interface PaguSection {
