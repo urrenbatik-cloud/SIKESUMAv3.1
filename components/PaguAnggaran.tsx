@@ -33,6 +33,8 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   // 'pergeseran'   = Laporan Revisi POK (bulanan, net change 0)
   // 'tambah_pagu'  = Laporan Tambah Pagu (semesteran, net change positif)
   const [showLaporan, setShowLaporan] = useState<LaporanMode | null>(null);
+  // Sprint D Item #2 Phase 4 — Ringkasan Pagu list view filter (Sie Renbang request)
+  const [ringkasanFilter, setRingkasanFilter] = useState('');
 
   // FUNGSI UTAMA: Menghitung total biaya berdasarkan hierarki (Bubble Up)
   const processedSections = useMemo(() => {
@@ -497,32 +499,124 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
       })}
 
       {/* SUMMARY PER KODE AKUN - Dasar Utama Pembayaran */}
+      {/* Sprint D Item #2 Phase 4 (Sie Renbang request 11 Mei 2026):
+          refactor dari 4-col card grid → tabel list. Cards sulit dibaca
+          saat ada 30+ kode akun. Tabel + search filter lebih praktis. */}
       <div className="bg-[#0f172a] rounded-[3rem] shadow-2xl p-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 p-10 opacity-5"><ListChecks size={200} /></div>
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-emerald-500 rounded-2xl shadow-lg"><ListChecks size={28} /></div>
-            <div>
-              <h3 className="text-2xl font-black uppercase tracking-tighter">Ringkasan Pagu Per Kode Akun</h3>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Konsolidasi Mata Anggaran Dasar Pembayaran Tagihan</p>
+          <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-500 rounded-2xl shadow-lg"><ListChecks size={28} /></div>
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Ringkasan Pagu Per Kode Akun</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Konsolidasi Mata Anggaran Dasar Pembayaran Tagihan</p>
+              </div>
             </div>
+            <input
+              type="text"
+              value={ringkasanFilter}
+              onChange={e => setRingkasanFilter(e.target.value)}
+              placeholder="Cari kode atau uraian..."
+              className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm font-bold text-white placeholder:text-slate-500 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all min-w-[260px]"
+            />
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            {summaryByAccount.map(([code, data]) => (
-              <div key={code} className="bg-white/5 border border-white/10 p-6 rounded-[2rem] hover:bg-white/10 transition-all group">
-                <div className="flex justify-between items-start mb-4">
-                  <span className="font-mono text-xl font-black text-emerald-400 group-hover:scale-110 transition-transform">{code}</span>
-                  <span className="text-[8px] font-black bg-white/10 px-2 py-1 rounded uppercase tracking-widest text-slate-500">Mata Anggaran</span>
-                </div>
-                <p className="text-[10px] font-bold text-slate-300 uppercase mb-4 line-clamp-1">{data.desc}</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-500"><span>Target Semula</span><span>{formatIDR(data.awal).replace('Rp','')}</span></div>
-                  <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-emerald-400"><span>Target Revisi</span><span>{formatIDR(data.revisi).replace('Rp','')}</span></div>
+
+          {(() => {
+            // Filter + classify
+            const filter = ringkasanFilter.trim().toLowerCase();
+            const filtered = filter
+              ? summaryByAccount.filter(([code, data]) =>
+                  code.toLowerCase().includes(filter) ||
+                  (data.desc || '').toLowerCase().includes(filter))
+              : summaryByAccount;
+
+            const totalSemula = filtered.reduce((s, [, d]) => s + d.awal, 0);
+            const totalRevisi = filtered.reduce((s, [, d]) => s + d.revisi, 0);
+            const totalDelta = totalRevisi - totalSemula;
+
+            const classify = (awal: number, revisi: number) => {
+              if (awal === 0 && revisi > 0) return { label: 'BARU',   color: 'bg-blue-500/15 text-blue-300 border-blue-400/30' };
+              const d = revisi - awal;
+              if (d > 0) return { label: 'TAMBAH', color: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30' };
+              if (d < 0) return { label: 'KURANG', color: 'bg-red-500/15 text-red-300 border-red-400/30' };
+              return         { label: 'TETAP',  color: 'bg-slate-500/15 text-slate-400 border-slate-400/30' };
+            };
+
+            return (
+              <div className="bg-white/5 border border-white/10 rounded-[2rem] overflow-hidden mb-10">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-white/5 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                      <tr>
+                        <th className="px-5 py-4 w-32 border-b border-white/10">Kode Akun</th>
+                        <th className="px-4 py-4 border-b border-white/10">Uraian Komponen</th>
+                        <th className="px-4 py-4 w-40 text-right border-b border-white/10">Target Semula</th>
+                        <th className="px-4 py-4 w-40 text-right border-b border-white/10 bg-emerald-500/5">Target Revisi</th>
+                        <th className="px-4 py-4 w-40 text-right border-b border-white/10">Δ Selisih</th>
+                        <th className="px-4 py-4 w-24 text-center border-b border-white/10">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-12 text-center text-slate-500 italic text-sm">
+                            Tidak ada kode yang cocok dengan "{ringkasanFilter}"
+                          </td>
+                        </tr>
+                      ) : filtered.map(([code, data], idx) => {
+                        const delta = data.revisi - data.awal;
+                        const status = classify(data.awal, data.revisi);
+                        const deltaColor = delta > 0 ? 'text-emerald-300' : delta < 0 ? 'text-red-300' : 'text-slate-500';
+                        const deltaSign  = delta > 0 ? '+' : delta < 0 ? '−' : '';
+                        return (
+                          <tr key={code} className={`${idx % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.02]'} hover:bg-emerald-500/5 transition-colors`}>
+                            <td className="px-5 py-3.5 border-b border-white/5 font-mono text-sm font-black text-emerald-400">{code}</td>
+                            <td className="px-4 py-3.5 border-b border-white/5 text-[11px] font-bold text-slate-200 uppercase tracking-wide">
+                              {data.desc || <span className="italic text-slate-500 normal-case">(tanpa uraian)</span>}
+                            </td>
+                            <td className="px-4 py-3.5 border-b border-white/5 font-mono text-[11px] text-slate-400 text-right">
+                              {formatIDR(data.awal).replace('Rp','').trim()}
+                            </td>
+                            <td className="px-4 py-3.5 border-b border-white/5 font-mono text-[12px] font-black text-emerald-400 text-right bg-emerald-500/[0.03]">
+                              {formatIDR(data.revisi).replace('Rp','').trim()}
+                            </td>
+                            <td className={`px-4 py-3.5 border-b border-white/5 font-mono text-[11px] font-black text-right ${deltaColor}`}>
+                              {delta === 0 ? '0' : `${deltaSign}${formatIDR(Math.abs(delta)).replace('Rp','').trim()}`}
+                            </td>
+                            <td className="px-4 py-3.5 border-b border-white/5 text-center">
+                              <span className={`inline-block px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    {filtered.length > 0 && (
+                      <tfoot className="bg-emerald-500/5 text-[10px] font-black uppercase tracking-widest">
+                        <tr>
+                          <td colSpan={2} className="px-5 py-4 text-slate-400">
+                            Total {filtered.length} kode akun {filter && `(filter: "${ringkasanFilter}")`}
+                          </td>
+                          <td className="px-4 py-4 font-mono text-right text-slate-400">
+                            {formatIDR(totalSemula).replace('Rp','').trim()}
+                          </td>
+                          <td className="px-4 py-4 font-mono text-right text-emerald-300 bg-emerald-500/5">
+                            {formatIDR(totalRevisi).replace('Rp','').trim()}
+                          </td>
+                          <td className={`px-4 py-4 font-mono text-right ${totalDelta > 0 ? 'text-emerald-300' : totalDelta < 0 ? 'text-red-300' : 'text-slate-500'}`}>
+                            {totalDelta === 0 ? '0' : `${totalDelta > 0 ? '+' : '−'}${formatIDR(Math.abs(totalDelta)).replace('Rp','').trim()}`}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           <div className="p-8 bg-emerald-500/10 rounded-[2.5rem] border border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-6">

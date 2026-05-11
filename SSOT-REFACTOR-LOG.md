@@ -10,7 +10,8 @@
 - ✅ Sprint B (BAS whitelist + HITL, 4 rounds)
 - ✅ Sprint C (lattice enforcement)
 - ✅ Sprint D Item #1 (Konteks 1 + Schema Integrity)
-- ⏳ Sprint D Item #2+ (Year handling bug, multi-year, audit log CRUD)
+- ✅ **Sprint D Item #2 (UX Pagu Diff Visibility — 4 phases: Dashboard, Sintesis, Filter+Indicator, Print Laporan dual-mode, Ringkasan list)**
+- ⏳ Sprint D Item #3+ (Year handling bug, multi-year, audit log CRUD)
 - ⏳ Sprint E (LRA regression test, audit doc original update)
 
 **Total Pagu TA 2025:** Rp 2,709,935,000.40 (verified after Sprint D Item #1, UI = DB synced)
@@ -193,33 +194,183 @@ Setelah cross-check dengan Angga: aplikasi treat `hargaSatuanRevisi=0` sebagai l
 
 ---
 
-## 5. Pending Work
+## 5. Sprint D Item #2 — UX Pagu Diff Visibility (4 phases, 11 Mei 2026)
 
-### 5.1 Sprint D Item #2+ (Belum Mulai)
+**Trigger:** dr Ferry (successor) request — Sie Renbang + Karumkit perlu cara cepat melihat pagu Semula vs Revisi (nilai maupun item), bukan harus scroll 60+ rows.
+
+**Domain context dari Konteks 3 dr Ferry:** Revisi bisa berarti:
+1. **Perubahan** — penambahan / pengurangan / penggantian (numeric shift)
+2. **Breakdown** — disintegrasi akun general jadi akun lebih kecil (struktural)
+
+UI harus cover keduanya. Setelah falsifikasi accounting check, framing dr Ferry accurate per standar DIPA/POK Indonesia (umbrella term: Pagu Bertambah / Berkurang / Pergeseran / Rincian Breakdown).
+
+### 5.1 Phase 1 + 2 — Dashboard + Sintesis + Filter + Indicator (commit `6e8419d`)
+
+**Files baru:**
+- [`utils/paguDiff.ts`](./utils/paguDiff.ts) (215 lines)
+  - `classifyRow(row)` → `'BERTAMBAH' | 'BERKURANG' | 'BARU' | 'TIDAK_BERUBAH'`
+  - Pakai `getEffectiveValue` helper (Sprint D Item #1) untuk Konteks 1 fallback
+  - `computeSintesis(sections)` → aggregate: totalSemula, totalRevisi, netChange, rowsAffected, groups per category
+  - `getHiddenRowIds(rows, mode)` — filter helper untuk inline filter
+
+- [`components/PaguDiffDashboard.tsx`](./components/PaguDiffDashboard.tsx) (239 lines)
+  - **Opsi C — 4 summary cards** di top: Pagu Semula | Pagu Revisi | Net Change | Rows Affected
+  - **Opsi B — Sintesis Revisi table** dengan 4 expandable groups:
+    - Pagu Bertambah (green, TrendingUp)
+    - Item Baru / Breakdown (blue, Plus) — handles Konteks 3 breakdown case
+    - Pagu Berkurang (red, TrendingDown)
+    - Tidak Berubah (slate, Equal) — Konteks 1 baseline holdovers
+  - Click group untuk drill-down per-row dengan Semula → Revisi flow
+
+**Files diubah:**
+- [`components/PaguAnggaran.tsx`](./components/PaguAnggaran.tsx)
+  - Import PaguDiffDashboard + paguDiff helpers
+  - Render dashboard di atas section list (setelah duplicate warnings)
+  - **Opsi A — Filter chips** di atas section list: `Semua | Hanya Direvisi | Item Baru Saja`
+  - **Opsi A — Per-row indicator pill** (2px colored dot di kode cell, hover tooltip dengan delta info)
+  - Auto-hide parent saat semua children hidden
+
+### 5.2 Phase 3 — Print-ready Laporan Revisi (commit `c0e43bb` + refactor `026cb56`)
+
+**Initial (`c0e43bb`):** Single-mode "Laporan Revisi POK" — print-styled modal A4 portrait dengan kop TNI AD + tabel detail + signature block.
+
+**Critical refactor (`026cb56`)** per masukan Sie Renbang via dr Ferry:
+
+> **ADA DUA jenis laporan revisi yang substantif berbeda:**
+> 1. Laporan Revisi POK (net change = 0): bisa kapan saja, biasanya per BULAN
+> 2. Laporan Tambah Pagu (net change > 0): setelah habis 1 SEMESTER
+
+**File:** [`components/LaporanRevisi.tsx`](./components/LaporanRevisi.tsx) (renamed dari `LaporanRevisiPOK.tsx`)
+
+**Props:**
+```typescript
+type LaporanMode = 'pergeseran' | 'tambah_pagu';
+interface LaporanRevisiProps {
+  sections: PaguSection[];
+  selectedYear: number;
+  mode: LaporanMode;
+  onClose: () => void;
+}
+```
+
+**Mode `pergeseran` (Laporan Revisi POK — bulanan):**
+- Title: "Laporan Revisi POK Tahun Anggaran {YEAR}"
+- Subtitle: "Pergeseran Antar Akun (Net Change = 0)"
+- Periode field: "Bulan: ........ (diisi manual)"
+- Validation warning: warn jika net != 0
+- Format: **2-column side-by-side**
+  - Kiri merah "Dari Akun (Pengurangan)" → list category BERKURANG dengan total signed −
+  - Kanan hijau "Ke Akun (Penambahan)" → list BERTAMBAH + BARU (labeled `[BARU]`) dengan total signed +
+- Signature block: **2-column** (Sie Renbang + Karumkit) — internal approval saja
+- Justifikasi placeholder: "alasan operasional, urgensi, dampak ke pelayanan"
+
+**Mode `tambah_pagu` (Laporan Tambah Pagu — semesteran):**
+- Title: "Laporan Penambahan Pagu Tahun Anggaran {YEAR}"
+- Subtitle: "Permohonan Penambahan Pagu Semester"
+- Periode field: "Semester ........ TA {YEAR}"
+- Validation warning: warn jika net <= 0
+- Format: **per-section breakdown** dengan 7-kolom (Kode | Uraian | Vol | Semula | Revisi | Selisih | Jenis)
+- Subtotal section di footer setiap tabel
+- Signature block: **3-column** (Sie Renbang + Karumkit + Diketahui Palembang)
+- Justifikasi placeholder: "...plus sumber pendanaan tambahan"
+
+**Toolbar PaguAnggaran:**
+- State `showLaporan` boolean → `LaporanMode | null`
+- Replace 1 button "Laporan Revisi" dengan 2 buttons:
+  - "Laporan Revisi POK" (tooltip: Pergeseran antar akun, biasanya bulanan)
+  - "Laporan Tambah Pagu" (tooltip: Penambahan pagu, biasanya semesteran)
+
+### 5.3 Cleanup — .gitignore Fix (commit `9b9699c`)
+
+Saat commit `026cb56` (refactor dual-mode), accidentally tertimbun 3,052 file `node_modules/` di tracking. Root cause: `.gitignore` line 1 ada typo prefix `-e node_modules/` — prefix `-e ` invalid bikin pattern tidak match.
+
+**Fix:**
+- `.gitignore` rewritten clean: `node_modules/`, `dist/`, `package-lock.json`, `.DS_Store`, `*.log`, `.env`, `.env.local`, `.vercel`
+- `git rm -r --cached node_modules/` → 3,052 files removed dari tracking
+- Future commits tidak akan track node_modules lagi
+- ⚠ History commit `026cb56` masih punya blob node_modules (~beberapa MB bloat). Opsional purge dengan `git filter-branch` butuh force-push, untuk RS Batin Tikal context tidak urgent.
+
+### 5.4 Phase 4 — Ringkasan Pagu List View (Sie Renbang request)
+
+**Trigger:** Sie Renbang via dr Ferry, 11 Mei 2026 — "Ringkasan Pagu Per Kode Akun (Konsolidasi Mata Anggaran Dasar Pembayaran Tagihan), saat ini berbentuk kartu (sulit dibaca), lebih mudah jika berbentuk list."
+
+Visual: 30+ kode akun (post Sprint D Item #1) dalam grid 4-kolom card layout. Untuk scan/comparison antar kode susah.
+
+**File:** [`components/PaguAnggaran.tsx`](./components/PaguAnggaran.tsx)
+
+Replace grid 4-kolom cards → tabel list 6-kolom:
+
+| Kolom | Konten |
+|---|---|
+| Kode Akun | Mono font hijau emerald |
+| Uraian Komponen | Description, uppercase tracking |
+| Target Semula | Right-align, slate-400 |
+| Target Revisi | Right-align, emerald-400 bold, subtle bg |
+| Δ Selisih | Signed, colored (emerald +/red −/slate 0) |
+| Status | Badge — TAMBAH / KURANG / BARU / TETAP |
+
+**Features:**
+- **Search input** di header section — filter by kode atau uraian (case-insensitive). Penting saat 30+ rows.
+- **Zebra striping** alternating rows (transparent / white/[0.02]) untuk readability
+- **Hover row** emerald glow
+- **Sticky footer row** dengan total Semula, Revisi, Delta (recompute on filter)
+- **Empty state** kalau filter tidak match: "Tidak ada kode yang cocok dengan ..."
+
+**Status badge color:**
+- TAMBAH → emerald (delta > 0, semula > 0)
+- KURANG → red (delta < 0)
+- BARU → blue (semula = 0, revisi > 0)
+- TETAP → slate (semula = revisi)
+
+State baru: `ringkasanFilter: string`. Filtered + total computed inline dalam IIFE.
+
+**Tetap dipertahankan:** "Total Pagu Keseluruhan RS TA {YEAR}" summary card di bawah list (showing Rp 2,709,935,000.40 untuk TA 2025).
+
+### 5.5 Commit Trail Lengkap Sprint D Item #2
+
+| Commit | Konten |
+|---|---|
+| `6e8419d` | Phase 1+2 — Dashboard Cards + Sintesis Table + Inline Indicator + Filter Chip |
+| `c0e43bb` | Phase 3 initial — single-mode Laporan POK (print-ready) |
+| `026cb56` | Phase 3 refactor — dual-mode LaporanRevisi (pergeseran + tambah_pagu) per Sie Renbang input. **Accidentally included node_modules.** |
+| `9b9699c` | .gitignore cleanup — remove 3,052 node_modules files dari tracking |
+| (this) | Phase 4 — Ringkasan Pagu list view (Sie Renbang request) |
+
+---
+
+## 6. Pending Work
+
+### 6.1 Sprint D Item #3+ (Belum Mulai)
 
 1. **Year handling bug** di `utils/realisasiBucket.ts` line 153 — default `tahun = 2025` saat `selectedYear='ALL'`. Perlu fix supaya bucket aggregator handle multi-year correctly.
 2. **Multi-year `paguByKode` lookup** — saat ini single-year only. Untuk regression test LRA multi-tahun, butuh extend.
 3. **Audit log CRUD** — per Angga Section 4 saran: `IV-OVER-PAGU` upgrade butuh override mechanism dengan `audit_log` entry yang justifikasi.
 
-### 5.2 Sprint E (Priority Angga — Belum Mulai)
+### 6.2 Sprint E (Priority Angga — Belum Mulai)
 
 1. **LRA aggregator regression test** — Angga's explicit Section 4 concern: angka LRA per Lampiran sebelum & sesudah B.4 backfill harus identik. Butuh snapshot before/after dan compare.
 2. **Update audit doc original** — `SIKESUMA-Audit-BAS-Konformitas.md` Section 1.2 + 3 dengan HB#1/2/3 corrections per CORRIGENDUM.
 
-### 5.3 Sprint F (Proposal Future)
+### 6.3 Sprint F (Proposal Future)
 
 1. **Workflow approval Palembang gate** — revisi POK / restrukturisasi section pagu / upgrade kode lintas seri 52→53 → trigger notifikasi Palembang via staging table sebelum commit. Audit log per change dengan reasoning.
 2. **HITL UI di Settings tab** — Angga input HITL recommendations langsung via UI (saat ini perlu edit `utils/internalRecommendations.ts` di repo).
+3. **Periode/header field laporan** — kalau Sie Renbang reports preferensi format spesifik, tambah input fields untuk nomor surat, bulan/semester, dll (saat ini placeholder "diisi manual").
+
+### 6.4 Cleanup Items
+
+1. **Optional purge node_modules dari history** — commit `026cb56` masih punya 3,052 file node_modules di blob (~bloat repo size). `git filter-branch` / `git-filter-repo` bisa purge, tapi butuh force-push. Tidak urgent untuk RS Batin Tikal team kecil.
+2. **PAT rotation** setelah Sprint E complete.
 
 ---
 
-## 6. Important Caveats untuk New Spoke Sessions
+## 7. Important Caveats untuk New Spoke Sessions
 
-### 6.1 ⚠️ Data is Disposable (Saat Ini)
+### 7.1 ⚠️ Data is Disposable (Saat Ini)
 
 Per user statement: data Pagu TA 2025 di Supabase live akan **di-wipe dan reload** setelah roadmap A-E stable. Jadi current values bisa berubah; **logic + code adalah yang penting**, bukan specific numbers.
 
-### 6.2 ⚠️ Pre-existing TS Errors (Tidak Touched)
+### 7.2 ⚠️ Pre-existing TS Errors (Tidak Touched)
 
 Beberapa TS errors yang **bukan dari Sprint A-D** dan **tidak boleh** di-fix tanpa konfirmasi:
 - `App.tsx` line 573, 805, 818 — `forEach/tks/nakes/pengelola` on unknown type
@@ -233,29 +384,29 @@ npx tsc --noEmit --skipLibCheck 2>&1 | \
   grep -v -E "App\.tsx\((573|805|818)|PaguAnggaran\.tsx\(272|devLog\.ts\((287|315|1044)"
 ```
 
-### 6.3 ⚠️ Tab 1.2 RAB Belum di-Review
+### 7.3 ⚠️ Tab 1.2 RAB Belum di-Review
 
 Per Angga: "sementara fokus pada 1.1 Pagu Anggaran dulu". **Jangan ekspansi ke tab 1.2 RAB review** tanpa request explicit. HITL infrastructure (autocomplete + recommendations) sudah ready untuk diaktifkan di RAB — tinggal pass `description` prop saat siap.
 
-### 6.4 ⚠️ Dummy TA 2024 Dipertahankan
+### 7.4 ⚠️ Dummy TA 2024 Dipertahankan
 
 Per user keputusan (11 Mei 2026): **dummy TA 2024 di-keep untuk regression test Sprint E**. **Jangan hapus** sampai Sprint E selesai. Coverage 96% (59/61) memang ada 2 orphan parents di dummy 2024 (kode 521311, 521411 invalid BAS — by design).
 
-### 6.5 ⚠️ Honor Nominal Confirmed Annual (BUKAN Monthly)
+### 7.5 ⚠️ Honor Nominal Confirmed Annual (BUKAN Monthly)
 
 Pernah ada false alarm di doc v2.0 yang bilang "Honor monthly nominal". **FALSE.** Honor TKS/Nakes/Pengelola di RS Batin Tikal **semua annual** (TKS Rp 195jt, Nakes Rp 786jt, Pengelola Rp 48jt). False alarm dulu karena baca field `jumlahBiayaRevisi` yang stale (sebelum Sprint D Item #1 fix). Successor sessions jangan terjebak lagi.
 
-### 6.6 ⚠️ ATK = 521811 (BUKAN 521111)
+### 7.6 ⚠️ ATK = 521811 (BUKAN 521111)
 
 Per Angga konfirmasi: di RS Batin Tikal, ATK di-bundle dengan Bekkes (`521811.03`) bukan dipisah ke `521111` (Belanja Keperluan Perkantoran). Reasoning: di RS, ATK adalah konsumsi sehari-hari bagian dari Bekkes operasional. HITL ATK-001 sudah encode ini.
 
-### 6.7 ⚠️ Effective Value Formula (Aggregator Mandate)
+### 7.7 ⚠️ Effective Value Formula (Aggregator Mandate)
 
 **JANGAN baca `jumlahBiayaAwal`/`jumlahBiayaRevisi` field langsung di aggregator/IV check.** Pakai `getEffectiveValue(row, mode)` dari `utils/paguLookup.ts`. Field DB bisa stale di future (bug-resilient). Helper sudah handle Konteks 1 fallback + schema integrity.
 
 ---
 
-## 7. File Reference Map
+## 8. File Reference Map
 
 ### Source code (touched by Sprint A-D)
 
@@ -291,4 +442,4 @@ Per Angga konfirmasi: di RS Batin Tikal, ATK di-bundle dengan Bekkes (`521811.03
 
 ---
 
-*Maintained by tim AI-Assisted Dev. Last updated: 11 Mei 2026 setelah Sprint D Item #1 closed.*
+*Maintained by tim AI-Assisted Dev. Last updated: 11 Mei 2026 setelah Sprint D Item #2 closed (4 phases: Dashboard + Sintesis + Filter + Indicator, Print Laporan dual-mode, Ringkasan list view per masukan Sie Renbang).*
