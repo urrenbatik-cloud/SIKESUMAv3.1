@@ -1,3 +1,8 @@
--e node_modules/
+node_modules/
 dist/
 package-lock.json
+.DS_Store
+*.log
+.env
+.env.local
+.vercel
