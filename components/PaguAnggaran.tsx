@@ -6,7 +6,7 @@ import { YEARS } from '../constants';
 import KodeAutocomplete from './KodeAutocomplete';
 import { deriveKodeBas, lookupBas } from '../utils/basDictionary';
 import PaguDiffDashboard from './PaguDiffDashboard';
-import LaporanRevisiPOK from './LaporanRevisiPOK';
+import LaporanRevisi, { type LaporanMode } from './LaporanRevisi';
 import { classifyRow, getHiddenRowIds, type RowFilterMode } from '../utils/paguDiff';
 
 interface PaguAnggaranProps {
@@ -29,8 +29,10 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
 
   // Sprint D Item #2 Phase 2 — Inline filter (Opsi A)
   const [rowFilter, setRowFilter] = useState<RowFilterMode>('all');
-  // Sprint D Item #2 Phase 3 — Laporan Revisi POK modal (Opsi D)
-  const [showLaporan, setShowLaporan] = useState(false);
+  // Sprint D Item #2 Phase 3 — Laporan Revisi modal (dual-mode per Sie Renbang)
+  // 'pergeseran'   = Laporan Revisi POK (bulanan, net change 0)
+  // 'tambah_pagu'  = Laporan Tambah Pagu (semesteran, net change positif)
+  const [showLaporan, setShowLaporan] = useState<LaporanMode | null>(null);
 
   // FUNGSI UTAMA: Menghitung total biaya berdasarkan hierarki (Bubble Up)
   const processedSections = useMemo(() => {
@@ -255,13 +257,17 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 no-print relative z-10">
-          <button onClick={() => setShowLaporan(true)} className="bg-white border-2 border-slate-200 text-slate-700 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 active:scale-95">
-            <Printer size={16} />
-            Laporan Revisi
+        <div className="flex items-center gap-2 no-print relative z-10 flex-wrap justify-end">
+          <button onClick={() => setShowLaporan('pergeseran')} className="bg-white border-2 border-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 active:scale-95" title="Pergeseran antar akun (net change 0), biasanya bulanan">
+            <Printer size={14} />
+            Laporan Revisi POK
           </button>
-          <button onClick={onAddSection} className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center gap-3 active:scale-95 group">
-            <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+          <button onClick={() => setShowLaporan('tambah_pagu')} className="bg-white border-2 border-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 active:scale-95" title="Penambahan pagu (net change positif), biasanya semesteran">
+            <Printer size={14} />
+            Laporan Tambah Pagu
+          </button>
+          <button onClick={onAddSection} className="bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center gap-2 active:scale-95 group">
+            <Plus size={16} className="group-hover:rotate-90 transition-transform duration-300" />
             Seksi Baru
           </button>
         </div>
@@ -539,12 +545,13 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
         </div>
       </div>
 
-      {/* Sprint D Item #2 Phase 3 — Laporan Revisi POK modal (Opsi D) */}
+      {/* Sprint D Item #2 Phase 3 — Laporan Revisi modal (dual-mode) */}
       {showLaporan && (
-        <LaporanRevisiPOK
+        <LaporanRevisi
           sections={processedSections}
           selectedYear={selectedYear}
-          onClose={() => setShowLaporan(false)}
+          mode={showLaporan}
+          onClose={() => setShowLaporan(null)}
         />
       )}
     </div>
