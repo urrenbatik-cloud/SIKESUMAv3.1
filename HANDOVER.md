@@ -17,18 +17,20 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 **Status singkat (per 11 Mei 2026):**
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
-- **Tier 3 Phase 1-3 DONE** di branch `feature/tier-3-metadata-schema` (4 commits, 92.1% high confidence acceptance, 201 tests pass) — **Phase 4 pending Owner test di Vercel preview**. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full decision log.
-- **Tier 4-6 pending** — feature branches: `feature/tier-4-validation-c1-c12` (next setelah Tier 3 merged), `feature/tier-5-audit-trail` (later).
+- **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration. Owner-tested + verified. 92.1% high confidence acceptance, 201 Vitest tests pass. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full decision log.
+- **Tier 4 NEXT** — `feature/tier-4-validation-c1-c12` (akan dimulai per Decision I1 Owner-approved). Tier 4 akan validate 12 hard constraints Revisi POK menggunakan metadata fields dari Tier 3.
+- **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full detail):**
 ```
-main:                            5f92a4d (synced ke origin)
-feature/tier-3-metadata-schema:  4bcffc1 (4 commits ahead of main)
-  ├── 91c5691 phase 1: types.ts PaguRow + 10 metadata fields + metadata_review
-  ├── 7b55d3c phase 2a: fixture 38 leaves, 92.1% high acceptance
-  ├── e0480ef phase 2b: metadataRecommender.ts + Vitest framework (201 tests)
-  └── 4bcffc1 phase 3: UI integration (column + expandable + Apply/Override modals)
+main:                                    6c8f640 (Tier 3 merged squash commit)
+  ├── 6c8f640 feat(tier-3): metadata schema + recommender + UI (squashed 5 commits)
+  ├── 83248b8 docs(handover): SSOT §0.8 + status across all docs
+  └── 5f92a4d docs: pre-Tier3 cleanup — JSONB-native + AP-8
+
+feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
+feature/tier-4-validation-c1-c12:        TBD (next session, per Owner direction)
 ```
 
 **Data policy (Konteks 4 dr Ferry, 11 Mei 2026):**

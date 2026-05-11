@@ -323,18 +323,21 @@ Saat melapor analisis hasil ke owner, gunakan **clear confidence levels**:
 
 ### 0.8 Tier 3 Implementation Decisions Log (11 Mei 2026)
 
-Tier 3 Metadata Schema Extension diimplementasi dalam **4 phase** di branch `feature/tier-3-metadata-schema`. Section ini capture semua decision Owner-approved untuk prevent spoke session bias / re-litigation di session selanjutnya.
+Tier 3 Metadata Schema Extension diimplementasi dalam **4 phase** di branch `feature/tier-3-metadata-schema`, di-squash merge ke main sebagai **`6c8f640`** (11 Mei 2026). Section ini capture semua decision Owner-approved untuk prevent spoke session bias / re-litigation di session selanjutnya.
 
-**Commits di branch (urut chronological):**
+**Status:** ✅ **MERGED TO MAIN** sebagai `6c8f640` (11 Mei 2026). Feature branch dihapus.
+
+**Phase commits sebelum squash (untuk audit trail):**
 
 ```
-4bcffc1 feat(tier-3 phase 3): UI integration — badge column + expandable detail + modals
-e0480ef feat(tier-3 phase 2b): metadataRecommender + Vitest framework (201 tests pass)
-7b55d3c feat(tier-3 phase 2a): ground truth fixture (38 leaves, 92.1% high)
-91c5691 feat(tier-3 phase 1): extend PaguRow with 10 optional metadata fields (JSONB-native)
+4a3ad75 fix phase 3: auto-expand race → derived state + toast K3 (post-Owner-test)
+4bcffc1 feat phase 3: UI integration — badge column + expandable detail + modals
+e0480ef feat phase 2b: metadataRecommender + Vitest framework (201 tests)
+7b55d3c feat phase 2a: ground truth fixture (38 leaves, 92.1% high)
+91c5691 feat phase 1: types.ts PaguRow extension (10 metadata fields + override)
 ```
 
-**Status:** Phase 1-3 ✓ complete, Phase 4 (Vercel preview test + squash merge) ⏳ pending Owner action.
+Setelah squash merge, 5 commit ini flattened jadi 1 commit `6c8f640` di main. History line di main: `5f92a4d → 83248b8 → 6c8f640`.
 
 #### 0.8.1 Owner-Approved Decisions (urut huruf)
 
@@ -349,6 +352,9 @@ e0480ef feat(tier-3 phase 2b): metadataRecommender + Vitest framework (201 tests
 | **G1** | Phase 4 workflow: Tunggu Owner test di Vercel preview sebelum squash merge | ✓ 11 Mei 2026 |
 | **H1** | Squash 4 phase commits → 1 commit di main saat merge (clean history) | ✓ 11 Mei 2026 |
 | **I1** | Next tier setelah Tier 3 merge: Tier 4 Validation Engine C1-C12 (logical continuation, uses Tier 3 metadata) | ✓ 11 Mei 2026 |
+| **J1** | Auto-expand bug fix via derived state pattern (useMemo + XOR userToggledIds) — bukan useEffect single-shot. Per post-Owner-test observation race condition | ✓ 11 Mei 2026 |
+| **K3** | Toast guidance setelah Apply/Override mengingatkan klik Sync (☁️) button. Middle ground antara K1 (status quo) dan K2 (auto-sync) — UX better tanpa scope creep | ✓ 11 Mei 2026 |
+| **L** | Persistence post-sync verified — sync flow consistent dengan existing app pattern | ✓ 11 Mei 2026 |
 
 **Plus tambahan decision saat amendment Phase 1:**
 - **Add `ro_code` field** (initially missing) ke types.ts PaguRow. Pattern code+name pair belum lengkap untuk RO — `ro_name` sengaja tidak di-add per spec Owner; UI bisa lookup descriptive dari mapping table jika perlu.
@@ -442,7 +448,7 @@ Untuk prevent re-litigation di spoke session baru, ini decision-decision alterna
 
 ---
 
-*§0.8 ditambahkan 11 Mei 2026 setelah Tier 3 Phase 1-3 implementation complete. Update saat squash merge happens (add merge commit hash) + saat Phase 4 hand-off ke Tier 4.*
+*§0.8 ditambahkan 11 Mei 2026. Updated 11 Mei 2026 setelah squash merge selesai (commit `6c8f640`) + Owner test verification. Lifecycle complete: Phase 1-3 implementation → Owner test J/K finding + fix `4a3ad75` → squash merge ke main → docs sync. Next: Tier 4 Validation Engine C1-C12 di branch `feature/tier-4-validation-c1-c12`.*
 
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 

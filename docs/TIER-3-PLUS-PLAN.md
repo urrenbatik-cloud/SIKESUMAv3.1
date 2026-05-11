@@ -79,13 +79,16 @@ Data konkret ini menjadi **seed values** untuk recommendation engine. Sie Renban
 
 | Phase | Deliverable | Status |
 |---|---|---|
-| 1 | `types.ts` PaguRow extended dengan 10 optional metadata fields + `metadata_review` field | ✅ DONE — commit `91c5691` |
-| 2a | `utils/fixtures/pagu-leaves-ta2025.json` ground truth (38 leaves, 92.1% high) | ✅ DONE — commit `7b55d3c` |
-| 2b | `utils/metadataRecommender.ts` + Vitest framework + 201 tests pass | ✅ DONE — commit `e0480ef` |
-| 3 | UI integration: `MetadataApplyModal`, `MetadataDetailRow`, `MetadataOverrideModal` + `PaguAnggaran.tsx` column | ✅ DONE — commit `4bcffc1` |
-| 4 | Owner test di Vercel preview → squash merge `feature/tier-3-metadata-schema` → main | ⏳ PENDING |
+| 1 | `types.ts` PaguRow extended dengan 10 optional metadata fields + `metadata_review` field | ✅ DONE — commit `91c5691` (squashed) |
+| 2a | `utils/fixtures/pagu-leaves-ta2025.json` ground truth (38 leaves, 92.1% high) | ✅ DONE — commit `7b55d3c` (squashed) |
+| 2b | `utils/metadataRecommender.ts` + Vitest framework + 201 tests pass | ✅ DONE — commit `e0480ef` (squashed) |
+| 3 | UI integration: `MetadataApplyModal`, `MetadataDetailRow`, `MetadataOverrideModal` + `PaguAnggaran.tsx` column | ✅ DONE — commit `4bcffc1` (squashed) |
+| 3 fix | Auto-expand derived state pattern + toast K3 (post-Owner-test 11 Mei 2026) | ✅ DONE — commit `4a3ad75` (squashed) |
+| **4** | **Squash merge ke main + Owner verification** | ✅ **MERGED as `6c8f640` (11 Mei 2026)** |
 
-Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full implementation decisions log (decisions A-I Owner-approved).
+**Status keseluruhan:** ✅ **TIER 3 COMPLETE — MERGED TO MAIN**
+
+Feature branch `feature/tier-3-metadata-schema` sudah dihapus post-merge cleanup. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full implementation decisions log (decisions A-I + J1/K3/L Owner-approved + verification metrics).
 
 ### Goal
 Tambah master metadata di setiap `PaguRow` untuk enable validasi **12 hard constraints (C1-C12)** Revisi POK kewenangan KPA per **Perdirjen Renhan Kemhan 7/2025 Pasal 22** (sebagai *lex specialis* dari PMK 62/2023).
