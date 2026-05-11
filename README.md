@@ -521,9 +521,12 @@ Full SSOT chronology + Angga normative confirmations: [`docs/glossary.md`](./doc
 
 ### Watchlist (Awareness, Not Backlog)
 
+- **Tier 3 in-progress** (11 Mei 2026): Phase 1-3 DONE di branch `feature/tier-3-metadata-schema`, Phase 4 pending Owner test di Vercel preview. 4 commits ready untuk squash merge ke main. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full decisions log (A-I Owner-approved), `HANDOVER.md` Start Here untuk branch state, dan `docs/TIER-3-PLUS-PLAN.md` untuk status table per phase.
+- **Tier 3 JSONB-native enforcement**: SIKESUMA tables PAKAI envelope JSONB pattern `(id, data jsonb, audit cols)`, BUKAN relational columns. Sebelum draft DDL apapun, baca `SSOT §0.7.5 AP-8` + verify schema aktual via PostgREST probe. DDL hanya untuk add new table.
 - **Analisis data pagu_sections**: ikuti `SSOT-REFACTOR-LOG.md §0.7 Protokol Analisis Data` (BARU 11 Mei 2026) — leaf detection harus traversal-based (bukan `level > 0`), effective value pakai `getEffectiveValue`, verification cross-check UI tab 1.1/1.4. 8 anti-pattern catalogued (AP-1..AP-8) setelah false-positive forensic incident + Tier 3 blueprint schema drift.
 - **DoctorData/StaffData** punya same internal pattern sebagai ServiceLog pre-S3.0 (TD-1). Currently safe karena BPJSModule passes full state. Refactor scheduled Phase 3 hardening.
-- **Pre-existing 7 TS errors** di App.tsx Object.entries/values + Record<K,V> patterns. Vite skip type-check di build → non-blocking. Cleanup di TD-2.
+- **Pre-existing 11 TS errors** di App.tsx Object.entries/values + Record<K,V> patterns + PaguAnggaran 'unknown' type + devLog DevLogAuthor. Vite skip type-check di build → non-blocking. Cleanup di TD-2. Baseline maintained post-Tier 3 (no regression).
+- **Konteks 1 finding (UNRESOLVED)**: `components/PaguAnggaran.tsx:50-51` line `(row.volume || 0) * (row.hargaSatuanRevisi || 0)` overwrites `jumlahBiayaRevisi=0` jika `hargaSatuanRevisi=0` — potential miss dari Konteks 1 fallback Sprint D Item #1. Not blocking Tier 3 (display only), but worth investigating post-Tier 3 merge.
 - **Tailwind CDN** masih digunakan (warning di console). Migrate ke PostCSS plugin = Phase 3 cleanup.
 - **Storage cost ceiling** Komunikasi worst case 12.5 GB > 5 GB free tier. Monitoring + retention strategy = TD-16.
 

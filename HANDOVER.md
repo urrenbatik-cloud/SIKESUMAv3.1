@@ -17,18 +17,35 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 **Status singkat (per 11 Mei 2026):**
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
-- **Tier 3+ pending (fresh session)** — feature branches: `feature/tier-3-metadata-schema`, `feature/tier-4-validation-c1-c10`, `feature/tier-5-audit-trail`
+- **Tier 3 Phase 1-3 DONE** di branch `feature/tier-3-metadata-schema` (4 commits, 92.1% high confidence acceptance, 201 tests pass) — **Phase 4 pending Owner test di Vercel preview**. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full decision log.
+- **Tier 4-6 pending** — feature branches: `feature/tier-4-validation-c1-c12` (next setelah Tier 3 merged), `feature/tier-5-audit-trail` (later).
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
+
+**Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full detail):**
+```
+main:                            5f92a4d (synced ke origin)
+feature/tier-3-metadata-schema:  4bcffc1 (4 commits ahead of main)
+  ├── 91c5691 phase 1: types.ts PaguRow + 10 metadata fields + metadata_review
+  ├── 7b55d3c phase 2a: fixture 38 leaves, 92.1% high acceptance
+  ├── e0480ef phase 2b: metadataRecommender.ts + Vitest framework (201 tests)
+  └── 4bcffc1 phase 3: UI integration (column + expandable + Apply/Override modals)
+```
 
 **Data policy (Konteks 4 dr Ferry, 11 Mei 2026):**
 - AI/automation TIDAK auto-modify pagu_row data
 - Migration data manual oleh Angga (Sie Renbang preference: "learning by doing")
 - Aplikasi sebagai **recommendation engine** — suggest, Angga accept/reject/edit
-- Schema migration ADD COLUMN dengan DEFAULT NULL (nullable, no data change)
+- **Schema migration JSONB-NATIVE — tidak ada DDL** untuk add column ke existing tables (pagu_sections envelope pattern). DDL hanya untuk new table (mis. Tier 5 `usulan_revisi`). Lihat `SSOT §0.7.5 AP-8` + `§0.8.3`.
 
 **Branching strategy:**
 - Minor (docs, fix kecil, refactor cosmetic) → main direct commit
-- Major (schema migration, validation engine, workflow) → feature branch, squash merge ke main
+- Major (schema migration, validation engine, workflow) → feature branch, **squash merge** ke main (1 commit per tier)
+
+**Test framework (BARU 11 Mei 2026):**
+- Vitest 2.1.9 (devDep). Run: `npm test` / `npm run test:watch` / `npm run test:fixture`
+- Tests location: colocated `*.test.ts` next to source (mis. `utils/metadataRecommender.test.ts`)
+- Fixtures: `utils/fixtures/` (mis. `pagu-leaves-ta2025.json` = 38 leaves ground truth)
+- Baseline: 201 tests pass post-Tier 3 Phase 2b
 
 ---
 

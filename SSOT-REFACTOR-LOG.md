@@ -321,6 +321,129 @@ Saat melapor analisis hasil ke owner, gunakan **clear confidence levels**:
 
 *§0.7 ditambahkan 11 Mei 2026 setelah forensic false-positive incident di preflight Tier 3. Maintained as living protocol — extend saat anti-pattern baru ditemukan.*
 
+### 0.8 Tier 3 Implementation Decisions Log (11 Mei 2026)
+
+Tier 3 Metadata Schema Extension diimplementasi dalam **4 phase** di branch `feature/tier-3-metadata-schema`. Section ini capture semua decision Owner-approved untuk prevent spoke session bias / re-litigation di session selanjutnya.
+
+**Commits di branch (urut chronological):**
+
+```
+4bcffc1 feat(tier-3 phase 3): UI integration — badge column + expandable detail + modals
+e0480ef feat(tier-3 phase 2b): metadataRecommender + Vitest framework (201 tests pass)
+7b55d3c feat(tier-3 phase 2a): ground truth fixture (38 leaves, 92.1% high)
+91c5691 feat(tier-3 phase 1): extend PaguRow with 10 optional metadata fields (JSONB-native)
+```
+
+**Status:** Phase 1-3 ✓ complete, Phase 4 (Vercel preview test + squash merge) ⏳ pending Owner action.
+
+#### 0.8.1 Owner-Approved Decisions (urut huruf)
+
+| # | Decision | Owner Approval |
+|---|---|---|
+| **A** | Seed source untuk recommender = (1) RKKS 2025 §12.2 vKoreksi v3 canonical mapping, (2) 14 HITL recommendations existing, (3) Live Supabase 38 leaves TA 2025 ground truth | ✓ 11 Mei 2026 |
+| **B (corrected)** | Confidence threshold per field — lihat §0.8.2 table |  ✓ 11 Mei 2026 (after fixing imprecision di proposal awal) |
+| **C** | Test fixture-first approach: generate `utils/fixtures/pagu-leaves-ta2025.json` SEBELUM implement recommender. Acceptance ≥80% aggregate HIGH. **Achieved: 92,1%.** | ✓ 11 Mei 2026 |
+| **D2** | Auto-expand rows dengan aggregate confidence MEDIUM/LOW (surfaces problem rows). User bisa toggle individual rows | ✓ 11 Mei 2026 |
+| **E2** | Per-row bulk apply via modal preview (lihat dulu apa yang akan di-apply, baru Confirm) | ✓ 11 Mei 2026 |
+| **F2** | Separate column "Status Metadata" setelah Sumber (cleaner, first-class visibility) | ✓ 11 Mei 2026 |
+| **G1** | Phase 4 workflow: Tunggu Owner test di Vercel preview sebelum squash merge | ✓ 11 Mei 2026 |
+| **H1** | Squash 4 phase commits → 1 commit di main saat merge (clean history) | ✓ 11 Mei 2026 |
+| **I1** | Next tier setelah Tier 3 merge: Tier 4 Validation Engine C1-C12 (logical continuation, uses Tier 3 metadata) | ✓ 11 Mei 2026 |
+
+**Plus tambahan decision saat amendment Phase 1:**
+- **Add `ro_code` field** (initially missing) ke types.ts PaguRow. Pattern code+name pair belum lengkap untuk RO — `ro_name` sengaja tidak di-add per spec Owner; UI bisa lookup descriptive dari mapping table jika perlu.
+
+#### 0.8.2 Decision B Corrected — Confidence Threshold per Field
+
+⚠ **Imprecision yang di-fix:** Proposal awal mention "HIGH untuk 5111xx/5211xx pattern". Realitas:
+- 5111xx (Belpeg) tidak relevan untuk RS militer
+- Komponen aktual "3" / "52" (single/double digit), BUKAN "001"/"002"
+
+**Mapping rules final (canonical reference untuk recommender + Tier 4):**
+
+| kode_bas family | KRO | RO | Komponen | Konfidensi |
+|---|---|---|---|---|
+| `521xxx`, `522112`, `522113`, `524111` | EBA | 962 | 3 | All HIGH (per §12.2) |
+| `523111` (Pemeliharaan Gedung) | CCB | 4 | 3 | All HIGH (per §12.2) |
+| `523122` (BMP) | CCB | — | 3 | KRO MED, RO LOW, Komp HIGH (analogy + prefix) |
+| `532111.*.A` (Alsintor) | CAB | 5 | 52 | All HIGH (per §12.2 + Konteks 4 Angga) |
+| `532111.*.B` (Alkes) | CAB | 1 | 52 | All HIGH (per §12.2 + Konteks 4 Angga) |
+| `532111.C` (Alsatri) | CAB | — | 52 | KRO MED, RO LOW, Komp HIGH (Alsatri rencana TA 2026) |
+| `536111` (Modal Lainnya — XDR dll) | CAB | — | 52 | KRO MED, RO LOW, Komp HIGH (analogy 53xxxx) |
+
+**Sumber dana inference:**
+- description contains `BPJS` atau `YANMASUM` → `PNBP` HIGH
+- `sumberDana` field = `PNBP` → `PNBP` HIGH
+- `sumberDana` field = `RM` → `RM` HIGH
+- Else → LOW (manual fill)
+
+**volume_ro / satuan_ro:** Always LOW default — butuh DIPA Petikan data eksternal, manual fill by Sie Renbang.
+
+#### 0.8.3 JSONB-Native Reinforcement (Cross-Ref AP-8)
+
+Tier 3 **TIDAK menggunakan DDL**. Implementasi murni TypeScript types extension + JSONB pass-through via existing `App.tsx:583` upsert. Detail:
+
+| Aspek | Decision |
+|---|---|
+| Schema migration | ❌ Tidak ada — pagu_sections.data jsonb sudah schema-less |
+| Field baru saat row lama | Auto-undefined (acceptable, semua field optional) |
+| Persist field baru | Via existing upsert `.from('pagu_sections').upsert(allSections)` — pass-through full data |
+| Owner action needed | Tidak ada (sebelumnya proposal blueprint draft `ALTER TABLE pagu_row` — wrong target) |
+
+Sebelum draft DDL apapun untuk SIKESUMA: verify schema aktual via PostgREST probe + cross-check `HANDOVER.md §3` (tabel catalog) + `types.ts` (interfaces). Lihat AP-8 untuk full rationale.
+
+#### 0.8.4 Override Mechanism (`row.metadata_review`)
+
+Per Owner direction 11 Mei 2026: user (Sie Renbang) bisa **force confidence ke HIGH** untuk row yang sudah manual review walaupun computed recommender return MEDIUM/LOW.
+
+**Field shape:**
+```typescript
+metadata_review?: {
+  reviewed_at: string;          // ISO 8601 timestamp
+  reviewed_by?: string;         // optional ('Angga (Sie Renbang)')
+  override_to: 'high';          // v1 only supports 'high'
+  note?: string;                // optional reasoning
+};
+```
+
+**UI flow (Phase 3):** `MetadataOverrideModal` shows amber warning text — "*Marking this row as manually reviewed will override recommendation confidence to HIGH for all metadata fields. This affects Tier 4 validation. Confirm only after verifying KRO/RO/Komponen/Sumber Dana.*" — sebelum set field.
+
+**Recommender behavior:** `recommendMetadata(row)` checks `row.metadata_review?.override_to === 'high'` dan force semua confidence ke `'high'`. Codes/names TIDAK diubah (preserve null untuk Alsatri RO dll).
+
+#### 0.8.5 Test Framework Setup (Phase 2b)
+
+Vitest 2.1.9 installed sebagai devDep. Config `vitest.config.ts` extends `vite.config.ts` via mergeConfig (path aliases @/ resolve). Environment: `node` (pure logic, no DOM needed).
+
+**Scripts:**
+- `npm test` — vitest run (single)
+- `npm run test:watch` — vitest watch mode
+- `npm run test:fixture` — only recommender tests
+
+**Test stats:** 201 tests pass (2 fixture metadata + 190 per-row × per-field validation + 3 override + 3 aggregate helper + 3 edge cases). `package-lock.json` tidak di-commit (gitignored per project convention — reproducibility via `^2` caret di package.json).
+
+#### 0.8.6 Decisions yang DITOLAK / TIDAK DIAMBIL
+
+Untuk prevent re-litigation di spoke session baru, ini decision-decision alternative yang owner TIDAK pilih:
+
+| Rejected | Karena | Tetap di-track? |
+|---|---|---|
+| D1 (all collapsed default) | UX tidak surface problem rows | Tidak |
+| D3 (all expanded default) | Makan space, noisy untuk 38 rows | Tidak |
+| E1 (per-field apply) | Granular tapi tedious UX | Tidak |
+| E3 (both per-field + per-row) | Scope creep | Tidak |
+| F1 (inline badge di Kode column) | Cramped, hard to see | Tidak |
+| F3 (floating panel hover) | Complex implementation | Tidak |
+| Add `ro_name` field | Spec Owner hanya `ro_code`; UI bisa lookup | Possibly future |
+| G2 (squash merge tanpa preview test) | Owner ingin verify live first | Tidak |
+| G3 (Owner sendiri yang squash merge) | Workflow ambiguity | Tidak |
+| H2 (preserve 4-commit history via merge commit) | Noise di main history | Tidak |
+| I2 (Tier 5 dulu — Audit Trail) | Butuh Owner DDL action, slower path | Defer to post-Tier 4 |
+| I3 (debug Konteks 1 bug at line 50-51) | Out of scope, separate finding | Tracked as open finding |
+
+---
+
+*§0.8 ditambahkan 11 Mei 2026 setelah Tier 3 Phase 1-3 implementation complete. Update saat squash merge happens (add merge commit hash) + saat Phase 4 hand-off ke Tier 4.*
+
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
 | Item | Commit | Description |
