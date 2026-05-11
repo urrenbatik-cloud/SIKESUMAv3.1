@@ -60,7 +60,7 @@ File: [`utils/internalRecommendations.ts`](./utils/internalRecommendations.ts).
 | ID | Trigger pattern | kode_bas | Catatan |
 |---|---|---|---|
 | ATK-001 | `/atk/`, "alat tulis kantor" | `521811` | Sub-rincian dari Bekkes (per Angga: ATK di RS dianggap konsumsi sehari-hari bagian Bekkes, bukan barang habis pakai operasional kantor terpisah) |
-| JASA-RUJUKAN-001 | `/diagnostik|laundry|pembayaran rujuk/` | `521119` | Rujukan diagnostik + laundry pakai 521119, BUKAN 521112 (yang khusus Bahan Makanan) |
+| JASA-RUJUKAN-001 | `/diagnostik|ct scan|lab pa|pembayaran rujuk|laundry/` | `521119` | **PEMBAYARAN RUJUK PEMERIKSAAN DIAGNOSTIK** (kode internal `521119.01`, contoh: pembayaran sun clinic, CT scan di RS Primaya/RS lain, **jasa Patologi Anatomi oleh dokter praktek swasta dr SpPA**) + **LAUNDRY** (`521119.02`). Akun `521119` Operasional Lainnya — **BUKAN** `521112` (khusus Bahan Makanan), **BUKAN** `522191` (Jasa Lainnya umum — kurang aman audit; klasifikasi "jasa kesehatan" formal hanya untuk pelayanan langsung di satker sendiri, bukan rujukan ke rekanan eksternal — lihat justifikasi lengkap di `utils/internalRecommendations.ts:90-114`). *Catatan operasional Angga (11 Mei 2026): detail breakdown item rujukan diagnostik kemungkinan dipindahkan ke tab 1.2 RAB untuk granular tracking; di Pagu tinggal parent `521119.01`.* |
 | HONOR-001 | `/honor|tks|nakes|pengelola|casemix/` | `521115` | Continuous monthly, BUKAN 521213 insidentil |
 | BMHP-001 | `/obat|bmhp|gas medis|oksigen|reagen|linen pasien/` | `521811` | Persediaan Barang Konsumsi, BUKAN 521813 Pita Cukai |
 | BMP-001 | `/bmp|bbm|pertamax|solar/` | `523122` | Kemhan-specific per Permenhan 5/2020 |
