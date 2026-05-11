@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PaguRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, ChevronRight, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks, ShieldCheck } from 'lucide-react';
@@ -13,6 +13,7 @@ import { recommendMetadata, aggregateConfidence } from '../utils/metadataRecomme
 import MetadataDetailRow from './MetadataDetailRow';
 import MetadataApplyModal from './MetadataApplyModal';
 import MetadataOverrideModal from './MetadataOverrideModal';
+import { toast } from './Toast';
 
 interface PaguAnggaranProps {
   sections: PaguSection[];
@@ -41,11 +42,44 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   // Sprint D Item #2 Phase 4 — Ringkasan Pagu list view filter (Sie Renbang request)
   const [ringkasanFilter, setRingkasanFilter] = useState('');
 
-  // [Tier 3 Phase 3] Metadata expandable rows — auto-expand untuk row dengan
-  // aggregate confidence MEDIUM/LOW (per Decision D2 Owner-approved 11 Mei 2026).
-  // User bisa toggle individual row via chevron di kolom Status Metadata.
-  const [expandedRowIds, setExpandedRowIds] = useState<Set<string>>(new Set());
-  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  // [Tier 3 Phase 3] Metadata expandable rows — DERIVED STATE pattern (BARU 11 Mei 2026)
+  //
+  // Sejarah: Initial implementation pakai useEffect untuk auto-expand on first
+  // mount (single-shot). Owner test 11 Mei 2026 menemukan bug: "auto-expand
+  // bekerja sebentar, lalu menutup otomatis" — race condition antara useEffect
+  // init dan downstream state update (kemungkinan multiple setDataByYear calls
+  // saat initial load melalui dataByYear).
+  //
+  // Fix: Replace dengan derived state.
+  //   - autoExpandedIds: set of row.id dengan aggregate confidence MEDIUM/LOW,
+  //     re-computed setiap render via useMemo (deps: [sections]).
+  //   - userToggledIds: explicit user click via chevron — independent state.
+  //   - isExpanded(rowId) = XOR(auto, userToggled):
+  //     * Row di autoExpanded, user tidak toggle → expanded (default per D2)
+  //     * Row di autoExpanded, user TOGGLE (collapse) → collapsed
+  //     * Row TIDAK autoExpanded, user TOGGLE (expand) → expanded
+  //     * Row TIDAK autoExpanded, user tidak toggle → collapsed
+  //
+  // Manfaat: Tidak ada race condition. Auto-expand selalu konsisten dengan
+  // recommender output. Manual toggle user persisted via explicit state.
+  const autoExpandedIds = useMemo(() => {
+    const ids = new Set<string>();
+    sections.forEach(section => {
+      section.rows.forEach((row, idx) => {
+        const hasChildren = idx < section.rows.length - 1 && section.rows[idx + 1].level > row.level;
+        if (hasChildren) return;
+        if (!row.kode_bas && !row.kode) return; // skip empty rows
+        const rec = recommendMetadata(row);
+        if (aggregateConfidence(rec) !== 'high') ids.add(row.id);
+      });
+    });
+    return ids;
+  }, [sections]);
+
+  const [userToggledIds, setUserToggledIds] = useState<Set<string>>(new Set());
+
+  const isExpanded = (rowId: string): boolean =>
+    autoExpandedIds.has(rowId) !== userToggledIds.has(rowId);
 
   // [Tier 3 Phase 3] Modal state untuk apply (E2: preview→confirm) + override
   // (warning sebelum set metadata_review per Owner direction 11 Mei 2026).
@@ -53,28 +87,9 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
     { type: 'apply' | 'override'; sectionId: string; row: PaguRow } | null
   >(null);
 
-  // [Tier 3 Phase 3] Auto-expand effect: runs sekali saat sections pertama
-  // kali tersedia. Cek setiap leaf row → kalau aggregate confidence !== 'high',
-  // tambahkan ke expandedRowIds. User bisa collapse manual setelahnya.
-  useEffect(() => {
-    if (hasAutoExpanded || sections.length === 0) return;
-    const idsToExpand = new Set<string>();
-    sections.forEach(section => {
-      section.rows.forEach((row, idx) => {
-        const hasChildren = idx < section.rows.length - 1 && section.rows[idx + 1].level > row.level;
-        if (hasChildren) return;
-        if (!row.kode_bas && !row.kode) return; // skip empty rows
-        const rec = recommendMetadata(row);
-        if (aggregateConfidence(rec) !== 'high') idsToExpand.add(row.id);
-      });
-    });
-    setExpandedRowIds(idsToExpand);
-    setHasAutoExpanded(true);
-  }, [sections, hasAutoExpanded]);
-
   // [Tier 3 Phase 3] Toggle expand untuk satu row (chevron click)
   const toggleRowExpand = (rowId: string) => {
-    setExpandedRowIds(prev => {
+    setUserToggledIds(prev => {
       const next = new Set(prev);
       if (next.has(rowId)) next.delete(rowId);
       else next.add(rowId);
@@ -83,6 +98,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   };
 
   // [Tier 3 Phase 3] Apply recommendation: merge updates ke row + close modal
+  // + toast guidance (Decision K3 Owner-approved 11 Mei 2026)
   const handleApplyRecommendation = (sectionId: string, rowId: string, updates: Partial<PaguRow>) => {
     const newSections = sections.map(sec => {
       if (sec.id !== sectionId) return sec;
@@ -93,9 +109,11 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
     });
     onSectionsChange(newSections);
     setModalState(null);
+    toast.info('Rekomendasi diterapkan. Klik tombol Sync (☁️ di header) untuk persist ke database.');
   };
 
   // [Tier 3 Phase 3] Set / remove metadata_review (override flag)
+  // + toast guidance (Decision K3)
   const handleSetMetadataReview = (
     sectionId: string,
     rowId: string,
@@ -117,6 +135,11 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
     });
     onSectionsChange(newSections);
     setModalState(null);
+    toast.info(
+      review === null
+        ? 'Override dihapus. Klik Sync (☁️) untuk persist.'
+        : 'Override "Manually Reviewed" diset. Klik Sync (☁️) untuk persist.'
+    );
   };
 
   // [Tier 3 Phase 3] colSpan untuk MetadataDetailRow (tergantung viewMode)
@@ -575,7 +598,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                               const rec = recommendMetadata(row);
                               const agg = aggregateConfidence(rec);
                               const isReviewed = row.metadata_review?.override_to === 'high';
-                              const expanded = expandedRowIds.has(row.id);
+                              const expanded = isExpanded(row.id);
                               const stylesMap = {
                                 high:   { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'High'   },
                                 medium: { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Medium' },
@@ -599,7 +622,7 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                             <button onClick={() => onSectionsChange(sections.map(s => s.id === section.id ? { ...s, rows: s.rows.filter(r => r.id !== row.id) } : s))} className="text-slate-200 hover:text-rose-500 opacity-0 group-hover/row:opacity-100 transition-all"><Trash2 size={14} /></button>
                           </td>
                         </tr>
-                        {!hasChildren && expandedRowIds.has(row.id) && (
+                        {!hasChildren && isExpanded(row.id) && (
                           <MetadataDetailRow
                             row={row}
                             recommendation={recommendMetadata(row)}
