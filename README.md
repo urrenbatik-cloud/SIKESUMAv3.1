@@ -522,12 +522,13 @@ Full SSOT chronology + Angga normative confirmations: [`docs/glossary.md`](./doc
 ### Watchlist (Awareness, Not Backlog)
 
 - **Tier 3 MERGED TO MAIN** (11 Mei 2026): commit `6c8f640` — metadata schema + recommender + UI integration. JSONB-native, 92.1% high confidence, 201 Vitest tests pass. Feature branch dihapus. Lihat `SSOT-REFACTOR-LOG.md §0.8` untuk full decisions log.
-- **Tier 4 next** — `feature/tier-4-validation-c1-c12` belum dimulai (per Decision I1). Akan validate 12 hard constraints Revisi POK menggunakan metadata fields dari Tier 3 (kro_code, ro_code, komponen_code, sumber_dana_kode, metadata_review).
+- **Tier 4a IN-PROGRESS** (11 Mei 2026): `feature/tier-4a-pagu-structure` punya 3 commit (Phase 1+2a complete + Phase 2b partial). C1 + C4 validators selesai dengan 32 tests; C2 + C3 + C5 pending next session. Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md`.
+- **Tier 4b/4c next** — `feature/tier-4b-revisi-mechanism` (C6-C9) + `feature/tier-4c-procedural-references` (C10-C12) belum dimulai. Sequential per Decision N2 setelah 4a squash merge.
 - **Tier 3 JSONB-native enforcement**: SIKESUMA tables PAKAI envelope JSONB pattern `(id, data jsonb, audit cols)`, BUKAN relational columns. Sebelum draft DDL apapun, baca `SSOT §0.7.5 AP-8` + verify schema aktual via PostgREST probe. DDL hanya untuk add new table.
 - **Analisis data pagu_sections**: ikuti `SSOT-REFACTOR-LOG.md §0.7 Protokol Analisis Data` (BARU 11 Mei 2026) — leaf detection harus traversal-based (bukan `level > 0`), effective value pakai `getEffectiveValue`, verification cross-check UI tab 1.1/1.4. 8 anti-pattern catalogued (AP-1..AP-8) setelah false-positive forensic incident + Tier 3 blueprint schema drift.
 - **DoctorData/StaffData** punya same internal pattern sebagai ServiceLog pre-S3.0 (TD-1). Currently safe karena BPJSModule passes full state. Refactor scheduled Phase 3 hardening.
-- **Pre-existing 11 TS errors** di App.tsx Object.entries/values + Record<K,V> patterns + PaguAnggaran 'unknown' type + devLog DevLogAuthor. Vite skip type-check di build → non-blocking. Cleanup di TD-2. Baseline maintained post-Tier 3 merge (no regression).
-- **Konteks 1 finding (UNRESOLVED)**: `components/PaguAnggaran.tsx:50-51` line `(row.volume || 0) * (row.hargaSatuanRevisi || 0)` overwrites `jumlahBiayaRevisi=0` jika `hargaSatuanRevisi=0` — potential miss dari Konteks 1 fallback Sprint D Item #1. Not blocking Tier 3 (display only), but worth investigating post-Tier 3.
+- **TS baseline 8 errors** (turun dari 11 post-devLog.ts cleanup 11 Mei 2026): 7 App.tsx Object.entries/values + Record<K,V> patterns + 1 PaguAnggaran 'unknown' type. Vite skip type-check di build → non-blocking. Cleanup di TD-2.
+- **Konteks 1 finding (UNRESOLVED)**: `components/PaguAnggaran.tsx:50-51` line `(row.volume || 0) * (row.hargaSatuanRevisi || 0)` overwrites `jumlahBiayaRevisi=0` jika `hargaSatuanRevisi=0` — potential miss dari Konteks 1 fallback Sprint D Item #1. C1 validator (Tier 4a) handle correctly via `effectiveRevisi` helper, tapi UI display tetap potential bug worth investigating.
 - **Tailwind CDN** masih digunakan (warning di console). Migrate ke PostCSS plugin = Phase 3 cleanup.
 - **Storage cost ceiling** Komunikasi worst case 12.5 GB > 5 GB free tier. Monitoring + retention strategy = TD-16.
 

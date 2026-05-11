@@ -25,14 +25,15 @@ export type DevLogType =
   | 'release';     // Production release marker
 
 export type DevLogAuthor =
-  | 'Sie Renbang (Original)'         // Pengembang asli proyek (v1.0 source)
-  | 'Predecessor SS'                  // Spoke session predecessor AI assistants (SS-001/002/003)
-  | 'Predecessor Step 2 v2'           // AI assistant yang handle Step 2 sequences
-  | 'Predecessor Step 3 Kickoff'      // AI assistant yang prepare Step 3 bundle
-  | 'Ferry (Successor)'               // User Ferry, current owner
-  | 'AI Assistant Session A'          // Claude Opus 4.7 — Session A (S3.0/S3.1/S3.2)
-  | 'AI Assistant Session B'          // Claude Opus 4.7 — Session B (S3.3-S3.6, future)
-  | 'Stakeholder';                    // BPK, Itjenad, Karumkit input
+  | 'Sie Renbang (Original)'             // Pengembang asli proyek (v1.0 source)
+  | 'Predecessor SS'                      // Spoke session predecessor AI assistants (SS-001/002/003)
+  | 'Predecessor Step 2 v2'               // AI assistant yang handle Step 2 sequences
+  | 'Predecessor Step 3 Kickoff'          // AI assistant yang prepare Step 3 bundle
+  | 'Ferry (Successor)'                   // User Ferry, current owner
+  | 'AI Assistant Session A'              // Claude Opus 4.7 — Session A (S3.0/S3.1/S3.2)
+  | 'AI Assistant Session B'              // Claude Opus 4.7 — Session B (S3.3-S3.6, future)
+  | 'AI Assistant (Successor Session)'    // Claude Opus 4.7 — generic successor session (Step 5, Tier 3/4)
+  | 'Stakeholder';                        // BPK, Itjenad, Karumkit input
 
 export interface DevLogEntry {
   id:           string;       // unique stable id, format: 'log-YYYY-MM-DD-{slug}'
@@ -274,6 +275,213 @@ export const ROADMAP: RoadmapItem[] = [
 // ============================================================================
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
+  // ════════════════════════════════════════════════════════════════════════
+  // SSOT REFACTOR — Tier 3 + Tier 4 (11 Mei 2026)
+  // ════════════════════════════════════════════════════════════════════════
+  // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
+  // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
+  // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4) untuk full decision log.
+
+  {
+    id:    'log-2026-05-11-tier-4a-foundation',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4a',
+    title: 'Tier 4a — Foundation Phase 1+2a+2b Partial (C1+C4 Validators)',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Foundation untuk validation engine 12 hard constraints (C1-C12) Revisi POK kewenangan KPA. Sub-branch 4a (Pagu Structure C1-C5) di-implement sequential per Decision N2; Phase 1+2a complete + Phase 2b partial (2 dari 5 validators selesai).
+
+**Branch:** \`feature/tier-4a-pagu-structure\` (3 commits ahead of main)
+
+**Phase 1 (4191915) — Validation Types Catalogue:**
+- \`utils/validators/types.ts\` (336 lines)
+- Type definitions inclusive untuk ALL 12 constraint (avoid drift antar sub-branches)
+- \`CONSTRAINT_SPECS\` catalogue: 12 entries dengan canonical title + pasal + severity verbatim dari vKoreksi v3 §3.3
+- Types: ConstraintId, SubBranch, ConstraintStatus (pass/warn/fail/pending/na), ConstraintSeverity, ConstraintSpec, ConstraintViolation, ConstraintResult, ValidationResult, ValidationContext, Validator
+
+**Phase 2a (ed4650b) — Ground Truth Fixture:**
+- \`utils/fixtures/validation-scenarios-4a.json\` (475 lines, 13 scenarios)
+- Coverage: C1 (4), C2 (3), C3 (2), C4 (1), C5 (3) — total 6 pass + 5 fail + 1 pending + 1 na
+- Pattern: simulated-patient training cases — mock revisi POK dengan expected verdict pasti
+
+**Phase 2b partial (52ed3a3) — C1 + C4 Validators (per Decision Q3):**
+- \`utils/validators/c4.ts\` (60 lines) — Deterministic single-satker pass
+- \`utils/validators/c1.ts\` (170 lines) — Total Pagu Net Change check dengan Konteks 1 fallback (hargaSatuanRevisi=0 → fallback ke Awal per Sprint D Item #1)
+- Helper functions: \`isLeaf\` (traversal §0.7.2), \`effectiveAwal\`, \`effectiveRevisi\`, \`formatRupiah\`
+- \`c1.test.ts\` (24 tests) + \`c4.test.ts\` (8 tests) = 32 new tests
+- Test framework: Vitest 2.1.9 (reuse dari Tier 3)
+- Verification: 233 tests pass cumulative (201 Tier 3 + 32 Tier 4a partial)
+
+**Decisions Owner-approved (11 Mei 2026):**
+- M1: Draft design doc first → Phase 1 start (done)
+- N2: 3 sub-branches sequential (4a/4b/4c)
+- O3: UI dashboard + inline indicators (Phase 3 berikutnya)
+- P3: Start Phase 1 sekarang dengan assumption defaults
+- Q1-Q6: All defaults accepted (simple boolean C8, V1 simplified SBM, dll.)
+- Q3: Phase 2b — C1 + C4 saja dulu (sederhana, langsung verify); C2/C3/C5 next session
+
+**Plain language untuk Owner (analogi medis):**
+- Constraint C1 = "Conservation of mass" check (total cairan masuk = keluar)
+- Constraint C4 = "Patient identity check" (selalu RS Batin Tikal — deterministic)
+- Fixture = simulated training cases sebelum tested di pasien beneran
+- Validator = diagnostic algorithm yang return verdict per kasus
+
+**Next session untuk complete Phase 2b:**
+- c2.ts (group by kro_code, handling pending untuk Tier 3 LOW confidence)
+- c3.ts (group by kegiatan_code)
+- c5.ts (group by ro_code dengan na handling)
+- Lalu Phase 3 (UI dashboard + indicators) + Phase 4 (squash merge)`,
+    files: [
+      'utils/validators/types.ts',
+      'utils/validators/c1.ts',
+      'utils/validators/c4.ts',
+      'utils/validators/c1.test.ts',
+      'utils/validators/c4.test.ts',
+      'utils/fixtures/validation-scenarios-4a.json',
+    ],
+    decisions: ['§Tier4-M1', '§Tier4-N2', '§Tier4-O3', '§Tier4-P3', '§Tier4-Q3'],
+    related: ['log-2026-05-11-tier-4-design', 'log-2026-05-11-tier-3-metadata-merge'],
+  },
+
+  {
+    id:    'log-2026-05-11-tier-4-design',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4 Planning',
+    title: 'Tier 4 — Validation Engine C1-C12 Design Document',
+    type:  'docs',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Design document untuk Tier 4 Validation Engine — implement 12 hard constraints (C1-C12) Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025 Pasal 22.
+
+**Document:** \`docs/TIER-4-DESIGN.md\` (251 lines, commit 32bb1d7)
+
+**Sections:**
+- §1 Goal: validation engine 12 constraints menggunakan Tier 3 metadata fields
+- §2 Branch strategy N2: 3 sub-branches sequential (4a Pagu Structure C1-C5, 4b Revisi Mechanism C6-C9, 4c Procedural/Reference C10-C12)
+- §3 Canonical constraint specs verbatim dari vKoreksi v3 §3.3:
+  - C1: Total Pagu Net Change = 0
+  - C2: 1 KRO/RO sama
+  - C3: 1 Kegiatan sama
+  - C4: 1 Satker sama
+  - C5: Volume + Satuan RO tidak berubah
+  - C6: Jenis belanja tidak berubah
+  - C7: Sumber dana tidak berubah
+  - C8: Memperhatikan LHR APIP (BARU Perdirjen 7/2025)
+  - C9: Tidak boleh akun minus
+  - C10: Sesuai SBM/SBK
+  - C11: Tidak ubah Halaman III DIPA (RPD)
+  - C12: Deadline 27 Desember
+- §4 Phasing per sub-branch (mirror Tier 3 pattern)
+- §5 UI design O3: dashboard 12-card grid + inline indicators
+- §6 Test framework reuse Vitest 2.1.9
+- §7 6 Open Questions Q1-Q6 dengan default recommendations
+- §8 Cross-references
+- §9 Next actions
+
+**Decisions captured (Owner-approved 11 Mei 2026):**
+- M1: Draft design doc dulu, lalu Phase 1 start (this commit)
+- N2: 3 sub-branches sequential
+- O3: Both dashboard + inline indicators
+
+**Open Questions defaults accepted:**
+- Q1 C8 LHR APIP: simple boolean v1 (extend later jika perlu cross-ref items)
+- Q2 C10 SBM/SBK: V1 simplified (flag deviasi %, V2 full lookup later)
+- Q3 C11 Hal III DIPA: simplified detection v1 (flag affected linkedRpdId, defer detailed diff)
+- Q4 Validation timing: manual button + auto-refresh setelah Apply
+- Q5 Sub-branch sequence: sequential (4a → merge → 4b → merge → 4c)
+- Q6 UI tab name: "Validasi Revisi POK"`,
+    files: ['docs/TIER-4-DESIGN.md'],
+    decisions: ['§Tier4-M1', '§Tier4-N2', '§Tier4-O3', '§Tier4-Q1', '§Tier4-Q2', '§Tier4-Q3', '§Tier4-Q4', '§Tier4-Q5', '§Tier4-Q6'],
+    related: ['log-2026-05-11-tier-3-metadata-merge', 'log-2026-05-11-tier-4a-foundation'],
+  },
+
+  {
+    id:    'log-2026-05-11-tier-3-metadata-merge',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 3',
+    title: 'Tier 3 — Metadata Schema + Recommender + UI MERGED to main',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 3 Metadata Schema Extension squash-merged ke main sebagai commit 6c8f640. 5 phase commits di feature/tier-3-metadata-schema branch flattened jadi 1 commit. Feature branch dihapus post-merge cleanup.
+
+**Squash commit:** 6c8f640 (main)
+**Phase commits (audit trail):**
+- 91c5691 phase 1: types.ts PaguRow + 10 metadata fields + metadata_review
+- 7b55d3c phase 2a: fixture 38 leaves, 92.1% high acceptance
+- e0480ef phase 2b: metadataRecommender + Vitest framework (201 tests)
+- 4bcffc1 phase 3: UI integration (column + expandable + Apply/Override modals)
+- 4a3ad75 fix phase 3: auto-expand derived state pattern + toast K3 (post-Owner-test)
+
+**Scope:** Enable validasi 12 hard constraints (C1-C12) Revisi POK kewenangan KPA dengan menambahkan master metadata BAS di setiap PaguRow.
+
+**Architecture:**
+- JSONB-Native (NO DDL) per SSOT §0.7.5 AP-8 — types.ts extension only, JSONB pass-through via existing App.tsx upsert (pagu_sections.data.rows). Zero DDL, zero data migration, zero Owner Dashboard action.
+- Pre-existing rows: 10 metadata fields = undefined (optional via Tier 3 types)
+
+**Recommender Pattern Matching (per RKKS 2025 §12.2):**
+- 521xxx/522112/522113/524111 → EBA/962/Komp 3 (all HIGH)
+- 523111 (Pemeliharaan Gedung) → CCB/4/Komp 3 (all HIGH)
+- 523122 (BMP) → CCB med / RO low / Komp 3 high
+- 532111.*.A (Alsintor) → CAB/5/Komp 52 (all HIGH)
+- 532111.*.B (Alkes) → CAB/1/Komp 52 (all HIGH)
+- 532111.C (Alsatri) → CAB med / RO low / Komp 52 high
+- 536111 (Modal Lainnya) → CAB med / RO low / Komp 52 high
+- Sumber Dana: BPJS/YANMASUM keyword → PNBP HIGH
+
+**Override Mechanism:**
+- row.metadata_review.override_to = 'high' forces all confidence HIGH
+- Preserves null codes (Alsatri RO stays null, only confidence override)
+- UI warning modal sebelum set
+
+**UI Behavior (per Owner-approved Decisions D2/E2/F2/K3):**
+- D2: Auto-expand rows MEDIUM/LOW aggregate (derived state via useMemo + XOR userToggled — bulletproof terhadap race condition yang found di Owner test 11 Mei 2026)
+- E2: Modal preview with diff table before Apply
+- F2: Separate 'Status Metadata' column setelah Sumber Dana
+- K3: Toast info "Klik Sync (☁️) untuk persist" setelah Apply/Override
+
+**Acceptance Metrics (Owner-verified 11 Mei 2026):**
+- 92.1% aggregate HIGH confidence (35/38 leaves, ≥80% threshold) ✓
+- 201 Vitest tests pass (2 fixture + 190 per-row × per-field + 9 unit) ✓
+- TS baseline 11 errors maintained ✓
+- Owner Vercel preview 4 verification points PASSED:
+  1. Auto-expand 3 LOW rows persistent (523122 BMP, 532111.C ALSATRI, 536111 XDR)
+  2. Toast muncul setelah Apply / Tandai Reviewed
+  3. Manual chevron toggle berfungsi
+  4. Persistence post-sync verified
+
+**Decisions A-I + J1/K3/L Owner-approved (11 Mei 2026):**
+- A: Seed = RKKS 2025 §12.2 + 14 HITL + Supabase ground truth
+- B (corrected): Confidence threshold per kode_bas family
+- C: Test fixture-first approach (≥80% acceptance)
+- D2: Auto-expand MEDIUM/LOW
+- E2: Modal preview
+- F2: Separate column
+- G1: Wait Owner Vercel preview test
+- H1: Squash merge (done)
+- I1: Next = Tier 4 Validation Engine
+- J1: Auto-expand bug fix via derived state pattern (post-Owner-test)
+- K3: Toast guidance after Apply/Override
+- L: Persistence post-sync verified
+
+**Lihat SSOT-REFACTOR-LOG.md §0.8 untuk full decision log + audit trail.**`,
+    files: [
+      'types.ts',
+      'components/PaguAnggaran.tsx',
+      'components/MetadataApplyModal.tsx',
+      'components/MetadataDetailRow.tsx',
+      'components/MetadataOverrideModal.tsx',
+      'utils/metadataRecommender.ts',
+      'utils/metadataRecommender.test.ts',
+      'utils/fixtures/pagu-leaves-ta2025.json',
+      'utils/fixtures/README.md',
+      'vitest.config.ts',
+    ],
+    decisions: ['§Tier3-A', '§Tier3-B', '§Tier3-C', '§Tier3-D2', '§Tier3-E2', '§Tier3-F2', '§Tier3-G1', '§Tier3-H1', '§Tier3-I1', '§Tier3-J1', '§Tier3-K3', '§Tier3-L'],
+    related: ['log-2026-05-11-tier-4-design', 'log-2026-05-11-tier-4a-foundation'],
+  },
+
   // ════════════════════════════════════════════════════════════════════════
   // STEP 5 — DECISION SUPPORT MODULE (8-9 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
@@ -1041,7 +1249,7 @@ Total estimasi sisa proyek: ~30-40 jam productive, ~7-9 chat sessions, ~4-6 ming
     phase: 'Step 6 / Phase 6.0',
     title: 'Phase 6.0 — AI Advisory Optimization (Gemini→Claude, Enriched Prompts)',
     type:  'feature',
-    author: 'AI Assistant',
+    author: 'AI Assistant (Successor Session)',
     description:
 `AI analysis engine rewritten from scratch. Previous: Gemini API with 2-number prompt (klaim + beban). Now: dual-provider (Claude primary, Gemini fallback), structured JSON output, full budget context.
 

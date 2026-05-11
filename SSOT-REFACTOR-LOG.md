@@ -450,6 +450,126 @@ Untuk prevent re-litigation di spoke session baru, ini decision-decision alterna
 
 *§0.8 ditambahkan 11 Mei 2026. Updated 11 Mei 2026 setelah squash merge selesai (commit `6c8f640`) + Owner test verification. Lifecycle complete: Phase 1-3 implementation → Owner test J/K finding + fix `4a3ad75` → squash merge ke main → docs sync. Next: Tier 4 Validation Engine C1-C12 di branch `feature/tier-4-validation-c1-c12`.*
 
+---
+
+### 0.9 Tier 4 Implementation Decisions Log (11 Mei 2026)
+
+Tier 4 Validation Engine C1-C12 sedang berjalan dalam **3 sub-branch sequential** per Decision N2 Owner-approved. Sub-branch 4a (`feature/tier-4a-pagu-structure`) currently active dengan Phase 1+2a complete + Phase 2b partial (C1+C4 done, C2/C3/C5 pending).
+
+**Status:** 🚧 IN-PROGRESS — Sub-branch 4a Phase 2b partial. Belum merge ke main.
+
+**Phase commits di feature branch (audit trail):**
+
+```
+52ed3a3 feat phase 2b: validators C1 + C4 + 32 tests (partial Q3)
+ed4650b feat phase 2a: validation fixture 13 scenarios C1-C5
+4191915 feat phase 1: validation types + 12-constraint specs catalogue
+```
+
+#### 0.9.1 Decisions Owner-Approved (Tier 4)
+
+| Decision | Description | Date |
+|---|---|---|
+| **M1** | Draft `docs/TIER-4-DESIGN.md` dulu, lalu Phase 1 start. Avoid bias spoke session karena scope kompleks (12 constraint × 3 sub-branch) | ✓ 11 Mei 2026 |
+| **N2** | 3 sub-branches sequential: `feature/tier-4a-pagu-structure` (C1-C5), `feature/tier-4b-revisi-mechanism` (C6-C9), `feature/tier-4c-procedural-references` (C10-C12) | ✓ 11 Mei 2026 |
+| **O3** | UI integration: both dashboard "Validasi Revisi POK" + inline indicators di Pagu Anggaran. 12-card grid dengan 5 states (pass/warn/fail/pending/na) | ✓ 11 Mei 2026 |
+| **P3** | Start Tier 4a Phase 1 dengan ASSUMPTION defaults Q1-Q6 (bisa diadjust kalau Owner override later) | ✓ 11 Mei 2026 |
+| **Q1** | C8 LHR APIP = simple boolean v1 (extend later jika perlu cross-ref items per LHR) | ✓ 11 Mei 2026 (default) |
+| **Q2** | C10 SBM/SBK = V1 simplified flag deviasi % (V2 full lookup table later) | ✓ 11 Mei 2026 (default) |
+| **Q3 (default)** | C11 Hal III DIPA = simplified detection v1 — flag affected `linkedRpdId`, defer detailed diff | ✓ 11 Mei 2026 (default) |
+| **Q3 (scope)** | Phase 2b — kerjakan C1 dan C4 saja sekarang (paling sederhana, langsung verify). C2/C3/C5 next session karena ada nuance pending/na yang perlu Owner pertimbangan | ✓ 11 Mei 2026 |
+| **Q4** | Validation timing: manual "Validate Now" button + auto-refresh setelah Apply Recommendation. Avoid noise saat user sedang edit | ✓ 11 Mei 2026 (default) |
+| **Q5** | Sub-branch sequence: sequential (4a → merge → 4b → merge → 4c), bukan parallel | ✓ 11 Mei 2026 (default) |
+| **Q6** | UI tab name: **"Validasi Revisi POK"** (domain-friendly Indonesian) | ✓ 11 Mei 2026 (default) |
+
+#### 0.9.2 Sub-Branch Categorization
+
+Per Decision N2, 12 constraints dibagi 3 kategori berdasarkan sifat validasi:
+
+| Sub-Branch | Constraints | Sifat | Kompleksitas |
+|---|---|---|---|
+| **4a — Pagu Structure** | C1, C2, C3, C4, C5 | Pure structural — data dari `pagu_sections` saja | LOW-MED |
+| **4b — Revisi Mechanism** | C6, C7, C8, C9 | Diff Semula↔Revisi + LHR APIP acknowledgment flag | MED |
+| **4c — Procedural/References** | C10, C11, C12 | SBM lookup + cross-table (rpds) + temporal (deadline) | HIGH |
+
+#### 0.9.3 Phase Structure Per Sub-Branch (Mirror Tier 3 Pattern)
+
+| Phase | Deliverable | Notes |
+|---|---|---|
+| Phase 1 | `utils/validators/types.ts` (inclusive untuk ALL 12 constraint untuk avoid drift antar branches) | Done di 4a — types catalogue 336 lines |
+| Phase 2a | `utils/fixtures/validation-scenarios-{4a/4b/4c}.json` (ground truth scenarios) | Done di 4a — 13 scenarios |
+| Phase 2b | `utils/validators/c{N}.ts` + tests (≥30 tests per constraint) | 4a Partial — C1 (24 tests) + C4 (8 tests) done; C2/C3/C5 pending |
+| Phase 3 | UI integration — dashboard tab + inline indicators | Pending |
+| Phase 4 | Owner Vercel preview test → squash merge ke main | Pending |
+
+#### 0.9.4 Technical Decisions Captured
+
+**Konteks 1 Fallback (Sprint D Item #1) — Reused in C1:**
+```typescript
+// effectiveRevisi computation di utils/validators/c1.ts
+const hsr = row.hargaSatuanRevisi ?? 0;
+const hsa = row.hargaSatuanAwal ?? 0;
+const effectiveHarga = hsr > 0 ? hsr : hsa;  // fallback ke Awal kalau Revisi=0
+return (row.volume ?? 0) * effectiveHarga;
+```
+Konteks 1 = "hargaSatuanRevisi=0 berarti BELUM DI-REVISI, bukan ZERO". Per normative logic Angga.
+
+**Leaf Detection (§0.7.2 traversal-based) — Reused in C1:**
+```typescript
+// isLeaf helper di utils/validators/c1.ts
+function isLeaf(rows: PaguRow[], idx: number): boolean {
+  if (idx >= rows.length - 1) return true;
+  return (rows[idx + 1].level ?? 0) <= (rows[idx].level ?? 0);
+}
+```
+BUKAN `row.level > 0` filter (AP-1 anti-pattern). Cek hierarchy via next-row level comparison.
+
+**Epsilon Tolerance (C1):**
+- `EPSILON_RUPIAH = 0.5` — selisih ≤ Rp 0.50 dianggap "sama" (floating-point rounding artifact)
+- Mencegah false-fail dari kalkulasi yang technically equal tapi sub-rupiah berbeda
+
+**Plain Language Doc Comments (Owner-friendly):**
+Setiap validator (c1.ts, c4.ts) include comment block dengan:
+- Algorithm step-by-step dalam Bahasa Indonesia
+- Analogi medis (Owner background = neurosurgeon, prefers medical metaphors)
+- Reference ke master domain + SSOT sections
+
+Contoh analogi:
+- C1: "conservation of mass" — total cairan masuk = keluar
+- C4: "patient identity check" — selalu RS yang sama
+- Konteks 1 fallback: "kalau dokter belum input hasil ulang, pakai hasil awal sebagai default"
+
+#### 0.9.5 Open Items untuk Future Sessions
+
+| Item | Sub-Branch | Notes |
+|---|---|---|
+| **C8 LHR APIP field storage** | 4b | Boolean flag — dimana disimpan? (App-level state? PaguSection field? New `revisi_submission` envelope?) Decide di Phase 1 of 4b |
+| **C10 SBM dictionary shape** | 4c | Currently placeholder `unknown` di types.ts — define proper interface di Phase 1 of 4c |
+| **C11 RPD cross-table** | 4c | Butuh investigation `rpds` table structure (current types.ts has RPDSection — verify shape) |
+| **Konteks 1 finding (UNRESOLVED)** | Pre-existing | `components/PaguAnggaran.tsx:50-51` overwrites `jumlahBiayaRevisi=0` jika `hargaSatuanRevisi=0` — affects C1 evaluation via UI vs validator. C1 validator handle correctly via `effectiveRevisi` helper, tapi UI display tetap potential bug |
+
+#### 0.9.6 TS Baseline Update (post-cleanup)
+
+Bersamaan dengan Tier 4 work, devLog.ts type drift di-cleanup (11 Mei 2026):
+- Old baseline: **11 errors** (7 App.tsx + 1 PaguAnggaran.tsx + 3 devLog.ts)
+- New baseline: **8 errors** (7 App.tsx + 1 PaguAnggaran.tsx)
+- Fix: Add `'AI Assistant (Successor Session)'` ke `DevLogAuthor` union + consistency fix line 1044 (`'AI Assistant'` → `'AI Assistant (Successor Session)'`)
+
+Future docs cross-references should use **baseline 8** as the maintained threshold.
+
+#### 0.9.7 Cross-References
+
+- Design doc: [`docs/TIER-4-DESIGN.md`](./docs/TIER-4-DESIGN.md) — full C1-C12 spec + phasing + UI plan
+- Constraint specs canonical: `utils/validators/types.ts` CONSTRAINT_SPECS
+- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3
+- Tier 3 metadata fields (consumed by Tier 4): `types.ts` PaguRow extension
+- Tier 3 implementation log: §0.8 above
+- DevLog entries (in-app visibility): `constants/devLog.ts` entries `log-2026-05-11-tier-4-design` + `log-2026-05-11-tier-4a-foundation`
+
+---
+
+*§0.9 ditambahkan 11 Mei 2026 setelah Tier 4a Phase 1+2a+2b-partial complete + post-compaction consistency sync. Akan di-update saat: (1) Tier 4a Phase 2b complete (semua 5 validators), (2) Phase 3 UI lands, (3) sub-branch 4a squash merge ke main, (4) start sub-branch 4b.*
+
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
 | Item | Commit | Description |
