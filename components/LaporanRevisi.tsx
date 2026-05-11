@@ -58,8 +58,8 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
     ? `Usulan Revisi POK Tahun Anggaran ${selectedYear}`
     : `Usulan Revisi Anggaran (Penambahan Pagu) Tahun Anggaran ${selectedYear}`;
   const titleSub = mode === 'pergeseran'
-    ? 'Pagu Tetap (Net Change = 0) — Penetapan oleh KPA Satker Pengelola Palembang'
-    : 'Pagu Berubah — Diteruskan ke Kanwil DJPb / DJA via KPA Satker Pengelola Palembang';
+    ? 'Pagu Tetap (Net Change = 0) — Penetapan oleh Kakesdam II/Sriwijaya selaku KPA'
+    : 'Pagu Berubah — Diteruskan ke Kanwil DJPb / DJA via Kakesdam II/Sriwijaya selaku KPA';
 
   return (
     <>
@@ -113,7 +113,7 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
             <div className="text-[11px] text-blue-800">
               <p className="font-black mb-1">⚠ Verifikasi Manual Diperlukan (10 Hard Constraints per PMK 62/2023):</p>
               <p className="leading-relaxed">
-                SIKESUMA saat ini hanya cek <strong>C1 (net change = 0)</strong>. Sebelum diajukan ke KPA Palembang, Sie Renbang <strong>wajib verifikasi manual</strong>:
+                SIKESUMA saat ini hanya cek <strong>C1 (net change = 0)</strong>. Sebelum diajukan ke Kakesdam II/Sriwijaya selaku KPA, Sie Renbang <strong>wajib verifikasi manual</strong>:
                 C2 (1 KRO sama), C3 (1 Kegiatan), C4 (1 Satker), C5 (volume RO tidak berubah),
                 C6 (1 jenis belanja: 2 digit pertama akun sama), C7 (sumber dana sama),
                 C8 (1 komponen sama untuk belanja operasional), C9 (tidak ada pagu minus pasca-revisi), C10 (patuh SBM).
@@ -205,7 +205,7 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
                 <p className="text-[7px] text-slate-500 italic mt-1">(rekomendasi internal — bukan penetap)</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-slate-700">Ditetapkan oleh,<br/>KPA Satker Pengelola Palembang</p>
+                <p className="font-bold text-slate-700">Ditetapkan oleh,<br/>Kakesdam II/Sriwijaya selaku KPA</p>
                 <div className="h-14"></div>
                 <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
                 <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
@@ -228,7 +228,7 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
                 <p className="text-[7px] text-slate-500 italic mt-1">(rekomendasi internal)</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-slate-700">Diteruskan oleh,<br/>KPA Satker Pengelola Palembang</p>
+                <p className="font-bold text-slate-700">Diteruskan oleh,<br/>Kakesdam II/Sriwijaya selaku KPA</p>
                 <div className="h-14"></div>
                 <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
                 <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>

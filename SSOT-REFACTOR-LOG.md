@@ -74,27 +74,50 @@ File: [`utils/internalRecommendations.ts`](./utils/internalRecommendations.ts).
 | OPERASIONAL-LAINNYA-001 | `/belanja (barang )?operasional/` | `521119` | Reject 521112 (Bahan Makanan) — Konteks 6 |
 | BAHAN-MAKANAN-001 | `/makan pasien|bahan makanan/` | `521112` | KHUSUS makanan |
 
-### 0.5 ⚠ Master Domain Reference — `REVISI-POK-PAGU-vKoreksi.md` (11 Mei 2026)
+### 0.5 ⚠ Master Domain Reference — `REVISI-POK-PAGU-vKoreksi.md` v3 (11 Mei 2026)
 
-**File:** [`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md)
+**File:** [`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md) (1145 baris, **versi v3**)
 
-Dokumen master 614 baris dari Sie Renbang via dr Ferry yang menjadi **authoritative source** untuk semua workflow Revisi POK + Revisi Pagu TA 2026 ke depan. Mengandung:
+Dokumen master dari Sie Renbang via dr Ferry yang menjadi **authoritative source** untuk semua workflow Revisi POK + Revisi Pagu TA 2026. v3 substantively expand v2 dengan dasar hukum spesifik Kemhan/TNI.
 
-- **Glosarium 12 sub-section** (G.1 Penganggaran Umum → G.12 Disambiguasi cepat) dengan referensi PMK formal + istilah kerja (\[istilah kerja\]) yang dipakai SIKESUMA
-- **Dasar hukum** lengkap: PMK 62/2023 jo. PMK 107/2024, PMK 199/2021, PER-9/PB/2023, KEP-211/PB/2018 jo. 331/2021 & 291/2022, PMK 143/2018 (Kemhan), Permenhan 5/2020 (BMP)
-- **Klasifikasi revisi 3 kategori**: Pagu Berubah / Pagu Tetap / Administrasi
-- **10 Hard Constraints (C1-C10)** untuk Revisi POK kewenangan KPA
-- **Distinction Revisi POK vs Revisi DIPA Hal III vs Pemutakhiran POK** — krusial untuk impact RPD bulanan
-- **Hard deadline tahunan** Pasal 175 PMK 62/2023 (31 Okt / 30 Nov / 26 Des)
-- **Catatan implementasi SIKESUMA** §11 — 7 poin actionable
-- **Hal yang perlu konfirmasi internal TNI AD** §12 — 6 poin pending ke Palembang
+**Pedoman tertinggi v3: Perdirjen Renhan Kemhan No. 7 Tahun 2025** (25 November 2025) sebagai *lex specialis* dari PMK 62/2023 jo. PMK 107/2024 untuk lingkungan Kemhan dan TNI.
 
-**Koreksi fundamental atas pemahaman lama:**
-1. **Karumkit BUKAN KPA** — hanya pemberi rekomendasi internal. KPA = pejabat satker pengelola Palembang.
-2. **Revisi Pagu tidak hanya mid-term** — bisa kapan saja sepanjang TA, dibatasi hanya oleh deadline tahunan. Exception: BMP (akun 523122) memang awal semester 2 per Pasal 8 Permenhan 5/2020.
-3. **Revisi POK butuh 10 constraint**, bukan cuma net change = 0.
-4. **Revisi POK yang menyentuh RPD bulanan otomatis naik** jadi Revisi DIPA Hal III (Kanwil DJPb).
-5. **Forward-looking**: revisi berlaku sejak tanggal penetapan KPA, bukan otomatis bulan berikutnya.
+**Konfirmasi identitas anggaran RS Batin Tikal (Section 12.2 v3, dari RKKS 2025):**
+- Kementerian/Lembaga: **012** (Kementerian Pertahanan)
+- UO: **22** (TNI Angkatan Darat)
+- Satker: **685784** (Kesdam II/Sriwijaya) — satker pengelola
+- Sub-Komponen: **F** (Rumkit Tk.IV Batin Tikal Pangkal Pinang)
+- Program: **012.01.AC** (Profesionalisme dan Kesejahteraan Prajurit)
+- Kegiatan: **6507** (Penyelenggaraan Kesehatan Matra Darat)
+- KROs aktif: CAB (Sarana Bidang Kesehatan), CCB (OM Sarana), EBA (Layanan Dukungan Manajemen Internal)
+- ROs: 1, 4, 5, 962
+- Komponen: 3, 52
+
+**Koreksi v3 atas v2:**
+1. **KPA = Kakesdam II/Sriwijaya** spesifik (sebelumnya hanya generic "pejabat Palembang")
+2. **Pasal references**: Pasal 22 (Revisi POK), Pasal 12-15 (Mekanisme Berjenjang), Pasal 24 (Batas Waktu) — semua Perdirjen Renhan 7/2025
+3. **Constraint baru C11**: "Memperhatikan LHR APIP" (audit recommendations) — Pasal 22 huruf b angka 4 Perdirjen Renhan
+4. **Deadline pemutakhiran POK = 27 Desember** (bukan 26 Desember seperti v2)
+5. **5 sub-kategori Revisi POK** dari Lampiran I Bagian 5 (Section 3.2 v3)
+6. **Rute formal**: Satker → UO Asren Kasad → Dirjen Renhan Kemhan (Pasal 12)
+7. **Section 12 NEW**: 6 jawaban langsung Angga + struktur BAS dari RKKS 2025
+8. **Section 13 NEW**: Template SK Revisi POK lengkap (5 sub-templates: 13.1 Surat Usulan, 13.2 Matriks Semula-Menjadi, 13.3 SK Revisi POK by Kakesdam, 13.4 Surat Pernyataan Tanggung Jawab KPA, 13.5 Template Kop Surat RS proposal)
+
+**Koreksi fundamental atas pemahaman lama (carried over from v2):**
+1. **Karumkit BUKAN KPA** — hanya pemberi rekomendasi internal
+2. **Revisi POK butuh 10 hard constraints** (C1-C10) + tambah C11 v3
+3. **Revisi POK yang menyentuh RPD bulanan otomatis naik** jadi Revisi DIPA Hal III (Kanwil DJPb)
+4. **Forward-looking**: revisi berlaku sejak tanggal penetapan KPA
+5. **BMP = Bahan Bakar Minyak dan Pelumas** (Permenhan 5/2020) → `523122` (BUKAN bahan makanan)
+
+**Verifikasi BAS mapping dengan CORRIGENDUM (Section 12.2 v3):**
+Struktur RKKS 2025 mengkonfirmasi semua HB#1/2/3 resolution **konsisten**:
+- BEKKES → `521811` ✅ (bukan `521813`)
+- Honor TKS/Nakes/Pengelola → `521115` ✅ (semua dalam 1 akun)
+- BMP → `523122` ✅ (bukan bahan makanan)
+- Bahan Makanan Pasien → `521112` ✅
+- Pemeliharaan Gedung → `523111` ✅
+- Pengadaan Alkes → `532111` ✅ (Belanja Modal 53)
 
 ### 0.6 Tier Roadmap Re-Architecture TA 2026 (per persetujuan dr Ferry, 11 Mei 2026)
 

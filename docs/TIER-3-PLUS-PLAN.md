@@ -1,9 +1,50 @@
 # Tier 3+ Re-Architecture Plan — SIKESUMA TA 2026
 
 **Status:** Pending — execute di fresh session dengan feature branches.
-**Date:** 11 Mei 2026
-**Authoritative Domain Reference:** [`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md)
-**Dependencies:** Tier 1+2 ✅ DONE (master doc integrated, LaporanRevisi.tsx workflow fixed)
+**Date:** 11 Mei 2026 (updated dengan vKoreksi v3)
+**Authoritative Domain Reference:** [`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md) — **v3** (1145 baris)
+**Pedoman tertinggi:** **Perdirjen Renhan Kemhan No. 7 Tahun 2025** sebagai *lex specialis* dari PMK 62/2023.
+**Dependencies:** Tier 1+2 ✅ DONE (master doc v3 integrated, LaporanRevisi.tsx workflow Kakesdam fixed)
+
+---
+
+## ⭐ Baseline Data dari RKKS 2025 (vKoreksi v3 §12.2)
+
+**Identitas anggaran RS Batin Tikal (sub-komponen F):**
+```
+Kementerian/Lembaga (BA): 012 (Kementerian Pertahanan)
+Unit Organisasi (UO):     22  (TNI Angkatan Darat)
+Satker:                   685784 (Kesdam II/Sriwijaya) ← satker pengelola
+Sub-Komponen:             F  (Rumkit Tk.IV Batin Tikal Pangkal Pinang)
+Alokasi PNBP TA 2025:     Rp 987.995.000 (BPJS ≈ Rp 770 jt + Yanmasum ≈ Rp 218 jt)
+```
+
+**Hierarki klasifikasi aktual RKKS 2025:**
+```
+Program 012.01.AC PROGRAM PROFESIONALISME DAN KESEJAHTERAAN PRAJURIT
+└── Kegiatan 6507 Penyelenggaraan Kesehatan Matra Darat
+    ├── KRO CAB Sarana Bidang Kesehatan
+    │   ├── RO 1 Pengadaan Alat Kesehatan PNBP dan BLU (Komponen 52)
+    │   │   └── Sub-Komponen F: Akun 532111 (Belanja Modal Peralatan)
+    │   └── RO 5 Pengadaan Alsintor Kesehatan PNBP dan BLU
+    ├── KRO CCB OM Sarana Bidang Kesehatan
+    │   └── RO 4 Pemeliharaan Gedung dan Bangunan (Komponen 3)
+    │       └── Sub-Komponen F: Akun 523111
+    └── KRO EBA Layanan Dukungan Manajemen Internal
+        └── RO 962 Layanan Umum (Komponen 3) — Rp 857.995.000
+            └── Sub-Komponen F: RS Batin Tikal
+                ├── 521111 Belanja Keperluan Perkantoran   (Rp 15 jt)
+                ├── 521112 Belanja Pengadaan Bahan Makanan (Rp 100 jt)
+                ├── 521115 Honor Operasional Satuan Kerja  (Rp 370 jt)
+                ├── 521119 Belanja Barang Operasional Lainnya (Rp 15 jt)
+                ├── 521811 Belanja Barang Persediaan Konsumsi (Rp 333 jt)
+                ├── 522112 Belanja Langganan Telpon         (Rp 10 jt)
+                ├── 523122 Beban BMP dan Pelumas Non Pertamina (Rp 5 jt)
+                └── 524111 Beban Perjalanan Dinas Biasa     (Rp 10 jt)
+```
+
+**Implikasi untuk Tier 3+:**
+Data konkret ini menjadi **seed values** untuk recommendation engine. Sie Renbang bisa accept/edit. Schema migration nullable, tapi recommendation tinggi confidence untuk pola yang sudah ada di RKKS 2025.
 
 ---
 
@@ -17,10 +58,15 @@
 - Tier 3 → `feature/tier-3-metadata-schema`
 - Tier 4 → `feature/tier-4-validation-c1-c10` (depends Tier 3)
 - Tier 5 → `feature/tier-5-audit-trail` (depends Tier 4)
+- Tier 6 → `feature/tier-6-template-sk-revisi-pok` (depends Tier 5; ⭐ NEW priority dari v3 §13)
 - Squash merge ke main setelah tested + Angga/Karumkit approved
 
 **Mandatory reading sebelum start:**
-1. `docs/REVISI-POK-PAGU-vKoreksi.md` (master doc, 614 baris) — **wajib pertama**
+1. `docs/REVISI-POK-PAGU-vKoreksi.md` **v3** (1145 baris) — **wajib pertama**, terutama:
+   - Section 3 Revisi POK (Pasal 22 Perdirjen Renhan 7/2025)
+   - Section 6 Batas Waktu (Pasal 24)
+   - Section 12 Klarifikasi Sie Renbang (6 Q&A Angga)
+   - Section 13 Template SK Revisi POK (5 sub-templates)
 2. `SSOT-REFACTOR-LOG.md` (chronological + 7 caveats)
 3. `HANDOVER.md` (Start Here block)
 4. This file (Tier 3+ blueprint)
@@ -99,64 +145,64 @@ export function recommendMetadata(row: PaguRow): {
 
 ---
 
-## Tier 4 — Validation Engine C1-C10
+## Tier 4 — Validation Engine C1-C11
 
 ### Goal
-Pre-flight check sebelum cetak Laporan Revisi POK. Block jika hard violation (C1, C6, C9). Soft warning untuk lainnya.
+Pre-flight check sebelum cetak Usulan Revisi POK. Block jika hard violation. Soft warning untuk lainnya. Per Pasal 22 Perdirjen Renhan Kemhan No. 7 Tahun 2025.
 
 ### File: `utils/revisiPOKValidator.ts` (BARU)
 
 ```typescript
 export interface ConstraintViolation {
-  constraint: 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'C10';
+  constraint: 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' | 'C9' | 'C10' | 'C11';
+  pasal: string;  // mis. "Pasal 22 huruf a angka 1 Perdirjen Renhan 7/2025"
   severity: 'ERROR' | 'WARNING' | 'INFO';
   message: string;
   affectedRows: string[]; // row IDs
 }
 
 export function validateRevisiPOK(sections: PaguSection[]): ConstraintViolation[] {
-  const violations: ConstraintViolation[] = [];
-
-  // C1: Net change = 0
-  // C2: All rows in same KRO (uses kro_code)
-  // C3: All rows in same Kegiatan (uses kegiatan_code)
-  // C4: All rows in same Satker (trivial untuk SIKESUMA single-satker)
-  // C5: Volume RO tidak berubah (check volume_ro stays same pre/post revisi)
-  // C6: 1 jenis belanja sama (2 digit pertama kode_bas: 51/52/53)
-  // C7: Sumber dana sama (uses sumber_dana_kode)
-  // C8: 1 komponen sama untuk belanja operasional (uses komponen_code)
-  // C9: Tidak boleh ada pagu minus pasca revisi
-  // C10: Patuh SBM (defer — butuh SBM master data, mark INFO untuk Tier 4 awal)
-
-  return violations;
+  // C1: Net change = 0 (PMK 62/2023 + Perdirjen Renhan 7/2025 Pasal 22)
+  // C2: All rows in same KRO (Pasal 22 huruf a angka 1)
+  // C3: All rows in same Kegiatan (Pasal 22 huruf a angka 1)
+  // C4: All rows in same Satker (685784 Kesdam II/SWJ — trivial single-satker)
+  // C5: Volume RO tidak berubah (Pasal 22 huruf a angka 2)
+  // C6: 1 jenis belanja sama (Pasal 22 huruf a angka 2)
+  // C7: Sumber dana sama (Pasal 22 huruf a angka 2)
+  // C8: 1 komponen sama untuk belanja operasional (FAQ DJA)
+  // C9: Tidak boleh pagu minus pasca revisi
+  // C10: Patuh SBM (PMK Standar Biaya tahunan)
+  // C11: Memperhatikan LHR APIP (Pasal 22 huruf b angka 4) — ⭐ BARU v3
 }
 ```
 
 ### Severity Classification
 
-| Constraint | Severity Default | Rationale |
-|---|---|---|
-| C1 (net=0) | ERROR (block) | Hard requirement PMK |
-| C2-C4 (KRO/Kegiatan/Satker) | ERROR (block) | Hard requirement PMK |
-| C5 (volume RO) | WARNING | Tergantung interpretasi |
-| C6 (jenis belanja 2-digit) | ERROR (block) | Hard requirement PMK |
-| C7 (sumber dana) | ERROR (block) | Hard requirement PMK |
-| C8 (komponen) | WARNING | Hanya untuk belanja operasional |
-| C9 (pagu minus) | ERROR (block) | Prinsip umum APBN |
-| C10 (SBM) | INFO (defer) | Butuh SBM master data |
+| Constraint | Pasal Reference | Severity Default | Rationale |
+|---|---|---|---|
+| C1 (net=0) | PMK 62/2023 + Pasal 22 PR7/2025 | ERROR (block) | Hard requirement |
+| C2-C4 (KRO/Kegiatan/Satker) | Pasal 22(a)(1) PR7/2025 | ERROR (block) | Hard requirement |
+| C5 (volume RO) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
+| C6 (jenis belanja 2-digit) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
+| C7 (sumber dana) | Pasal 22(a)(2) PR7/2025 | ERROR (block) | Hard requirement |
+| C8 (komponen) | FAQ DJA | WARNING | Hanya untuk belanja operasional |
+| C9 (pagu minus) | Prinsip umum APBN | ERROR (block) | |
+| C10 (SBM) | PMK Standar Biaya tahunan | INFO (defer) | Butuh SBM master data |
+| C11 (LHR APIP) | Pasal 22(b)(4) PR7/2025 | WARNING | ⭐ BARU v3 — butuh interaction LHR submission |
 
 ### UI
 
 1. **Pre-flight banner** di top `PaguAnggaran.tsx`: "✓ Pagu valid untuk Revisi POK" atau "⚠ X violation: ..." dengan list.
 2. **Disable button "Usulan Revisi POK"** kalau ada ERROR violation. Show tooltip violation summary.
-3. **Validation modal** klik banner: full list violations + affected rows dengan link click-to-row.
+3. **Validation modal** klik banner: full list violations + affected rows dengan link click-to-row + reference Pasal.
+4. **C11 LHR APIP**: special UI untuk input LHR reference (nomor LHR, tanggal) — link ke usulan_revisi.
 
 ### Acceptance Criteria
 
-- [ ] Validator return all violations untuk current TA 2025 state
+- [ ] Validator return all violations untuk current TA 2025 state (baseline test)
 - [ ] Banner real-time update saat user edit row
-- [ ] Button disabled state dengan tooltip
-- [ ] Test case: 1 valid scenario + 5 violation scenarios
+- [ ] Button disabled state dengan tooltip Pasal reference
+- [ ] Test case: 1 valid scenario + 6 violation scenarios
 
 ---
 
@@ -248,7 +294,76 @@ Soft warning H-7 sebelum deadline.
 
 ---
 
-## Tier 6 — Future (Far)
+## Tier 6 — Template SK Revisi POK Implementation (⭐ BARU v3)
+
+### Goal
+Generate full set dokumen formal Revisi POK sesuai Template Section 13 vKoreksi v3 — siap submit ke Kakesdam II/Sriwijaya selaku KPA.
+
+### Scope
+
+Per Section 13 vKoreksi v3, ada 5 sub-templates yang harus di-generate:
+
+**13.1 — Surat Usulan Revisi POK** (dari Karumkit ke Kakesdam II/Sriwijaya)
+- Kop Kesdam II/Sriwijaya
+- Nomor surat: B/.../KESDAM-II-SWJ/RUMKIT-IV-BT/<bulan-tahun>
+- Lampiran: matriks semula-menjadi + justifikasi
+- Tanda tangan: Karumkit (rekomendasi)
+
+**13.2 — Lampiran Matriks Perubahan (Semula – Menjadi)**
+- Table format dengan kolom: Kode Akun | Uraian | Semula | Menjadi | Selisih | Alasan
+- Footer: subtotal pengurangan + subtotal penambahan + net change verification
+
+**13.3 — SK Revisi POK** (Ditetapkan oleh Kakesdam II/Sriwijaya selaku KPA)
+- Kop Kesdam II/Sriwijaya
+- Nomor: Kep/.../<bulan>/<tahun>
+- Pertimbangan: a) hasil rekomendasi Karumkit, b) memperhatikan LHR APIP, c) sesuai Pasal 22 Perdirjen Renhan 7/2025
+- Dasar Hukum: list 5-7 referensi
+- Memutuskan: rincian perubahan pagu per akun
+- Tanggal penetapan + tanda tangan Kakesdam
+
+**13.4 — Surat Pernyataan Tanggung Jawab KPA** (Lampiran SK)
+- Pernyataan KPA bahwa revisi POK telah memenuhi C1-C11
+- Tanda tangan + materai
+
+**13.5 — Template Kop Surat RS Batin Tikal** (PROPOSAL v3)
+- Format kop yang diusulkan (per Sie Renbang: belum ada kop standar untuk RS Batin Tikal)
+- Logo TNI AD + Kesdam II/Sriwijaya + RS Batin Tikal
+- Alamat lengkap Pangkal Pinang
+
+### File: `components/templateSKGenerator.tsx` (BARU di Tier 6)
+
+```typescript
+interface TemplateSKProps {
+  usulan: UsulanRevisi;  // dari Tier 5 audit trail
+  template: '13.1' | '13.2' | '13.3' | '13.4';
+  data: {
+    karumkit: { name: string; rank: string; nrp: string };
+    kakesdam: { name: string; rank: string; nrp: string };
+    saksi_apip?: { lhr_no: string; tanggal: string };
+    // ...
+  };
+}
+```
+
+Sub-components untuk setiap template, print-ready dengan kop dinamis sesuai jenis dokumen.
+
+### Acceptance Criteria
+
+- [ ] Template 13.1-13.4 generate-able sesuai data real `usulan_revisi` (Tier 5)
+- [ ] Print preview match contoh di Section 13 vKoreksi v3
+- [ ] Tanggal + nomor SK auto-generated
+- [ ] Verification check: data SK match dengan validated revisi POK (C1-C11 pass)
+- [ ] Template 13.5 (Kop RS Batin Tikal) optional — pending approval format
+
+### Dependencies
+
+- Tier 3 (metadata KRO/Kegiatan/Komponen untuk pertimbangan SK)
+- Tier 4 (validasi C1-C11 pass sebelum bisa generate SK)
+- Tier 5 (usulan_revisi entity sebagai data source)
+
+---
+
+## Tier 7 — Future (Far)
 
 - Sistem jendela revisi pagu (admin Palembang activation per §4.3, §8.1 vKoreksi)
 - Multi-role permission (Sie Renbang, Karumkit, Admin Palembang, KPA Palembang) — butuh auth system
