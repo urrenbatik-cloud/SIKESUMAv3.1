@@ -18,7 +18,7 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
 - **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration. Owner-tested + verified. 92.1% high confidence acceptance, 201 Vitest tests pass. Lihat `SSOT-REFACTOR-LOG.md §0.8`.
-- **Tier 4a Phase 3 COMPLETE** di `feature/tier-4a-pagu-structure` — semua 5 validators (C1-C5) + UI integration full (dashboard tab "1.5 Validasi Revisi POK" + 12-card grid + inline indicators di Pagu Anggaran + bidirectional Pagu↔Validasi navigation + row-level scroll/highlight). **304 total tests pass** (201 Tier 3 + 103 Tier 4a). Ready Phase 4 (Owner E2E test → squash merge ke main). Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
+- **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — Validation Engine sub-branch 4a: 5 validators (C1-C5) + UI integration full (dashboard "1.5 Validasi Revisi POK" + 12-card grid + inline indicators + bidirectional navigation + row-level scroll/highlight). Feature branch dihapus post-merge cleanup. 304 tests pass (201 Tier 3 + 103 Tier 4a). Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
 - **Tier 4b/4c pending** — `feature/tier-4b-revisi-mechanism` (C6-C9) + `feature/tier-4c-procedural-references` (C10-C12), sequential setelah 4a merged.
 - **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
 - TS baseline: **8 errors** (turun dari 11 post-devLog.ts cleanup 11 Mei 2026)
@@ -26,32 +26,20 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9` untuk full detail):**
 ```
-main:                                    6922508 (SESSION-START-HERE.md anti-drift)
-  ├── 6922508 docs(handover): SESSION-START-HERE.md
+main:                                    abe193c (TIER-4A MERGED — Validation Engine 4a complete)
+  ├── abe193c feat(tier-4a): Validation Engine 4a squash merge (C1-C5 + UI)
+  ├── 6922508 docs(handover): SESSION-START-HERE.md anti-drift
   ├── 05335f5 docs(post-compaction sync): SSOT §0.9 + devLog + TS 11→8
   ├── 32bb1d7 docs(tier-4): TIER-4-DESIGN.md
   ├── 73c7afb docs(post-merge): Tier 3 status sync
   └── 6c8f640 feat(tier-3): metadata schema squashed merge
 
 feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
-feature/tier-4a-pagu-structure:          (13+ commits ahead of main, Phase 3 COMPLETE — ready squash merge)
-  ├── (HEAD) feat phase 3d wiring polish: row-level scroll/highlight + nav wire
-  ├── 2246b3c feat phase 3c: inline validation indicators di Pagu Anggaran
-  ├── 25adbd5 feat phase 3b: Validasi Revisi POK dashboard tab + 12-card grid
-  ├── 9c836b8 docs phase 3a: UI design draft (421 lines)
-  ├── 9daac90 docs handover sync: Phase 2b COMPLETE
-  ├── e76284a docs(ssot §0.9): batch update post Phase 2b + R4 fix (5→8 akun)
-  ├── 86fff4c feat phase 2b Turn 4: C5 + helpers.collectAllLeaves + 24 tests
-  ├── ab83c06 feat phase 2b Turn 3: C2 + 27 tests (Pergeseran 1 KRO)
-  ├── f7ccfc3 docs(ssot §0.9): R1-R5 decisions + Turn 2 status sync
-  ├── f94b27f merge(state-sync): bring main into feature pre-Turn 3
-  ├── a5e9d0b feat phase 2b Turn 2: C3 + helpers extraction + 20 tests
-  ├── 52ed3a3 feat phase 2b: C1 + C4 + 32 tests (partial Q3)
-  ├── ed4650b feat phase 2a: 13 fixture scenarios
-  └── 4191915 feat phase 1: types + 12 constraint specs catalogue
+feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup — 11 Mei 2026)
 
-feature/tier-4b-revisi-mechanism:        TBD (next setelah 4a squash merge)
-feature/tier-4c-procedural-references:   TBD (later)
+feature/tier-4b-revisi-mechanism:        TBD (next sub-branch — C6-C9 Revisi Mechanism)
+feature/tier-4c-procedural-references:   TBD (later — C10-C12 Procedural)
+feature/tier-5-audit-trail:              TBD (later — butuh Owner DDL untuk CREATE TABLE usulan_revisi)
 ```
 
 **Data policy (Konteks 4 dr Ferry, 11 Mei 2026):**
