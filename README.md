@@ -53,6 +53,40 @@ Title, rows, year, semua fields rich entity disimpan di kolom `data` JSONB. Kolo
 
 Pengecualian: `system_settings` pakai pattern KV (`{key text PK, value jsonb, updated_at}`) untuk simpler config storage.
 
+### SSOT Lattice & IV Checks (Sprint A-D)
+
+Tab 1.1 Pagu Anggaran adalah SSOT (Single Source of Truth) — semua downstream (RAB narrative, RPD, Bill, LRA) **derive dari Pagu**, tidak cache value sendiri. Enforcement via 8 lattice rules + 5 IV (Independent Verification) checks di `utils/realisasiBucket.ts`:
+
+| IV Check | Severity | Rule | Purpose |
+|---|---|---|---|
+| `IV-OVER-PAGU` | ERROR | L7 | Yearly realisasi tidak boleh exceed Pagu ceiling |
+| `IV-ORPHAN` | ERROR | L8 | Setiap bucket kode harus ada di Pagu (no orphan codes) |
+| `IV-DUP-PAGU` | WARNING | L1 | Kode tidak boleh muncul di >1 Pagu section (double-count risk) |
+| `IV-RPD-OVER-PAGU` | ERROR | L5 | RPD monthly sum tidak boleh exceed Pagu ceiling |
+| `IV-RPD-DEVIATION` | WARNING | n/a | Monthly realisasi deviates >30% dari RPD planned |
+
+**Effective value formula** (untuk aggregator, defensive against stale fields):
+
+```typescript
+// utils/paguLookup.ts — Sprint D Item #1
+getEffectiveValue(row, mode) = volume × (
+  mode === 'AWAL'   ? hargaSatuanAwal :
+  mode === 'REVISI' ? (hargaSatuanRevisi > 0 ? hargaSatuanRevisi : hargaSatuanAwal)
+                      // ↑ Konteks 1 fallback: Revisi=0 BUKAN drop, fallback ke Semula
+)
+```
+
+Per **normative logic Angga (Sie Renbang, 10 Mei 2026)**: "harga semula adalah baseline. jika diperlukan revisi maka akun harga semula dilakukan revisi, BUKAN konteks drop". Aplikasi sebelumnya treat `Revisi=0` sebagai drop ke nol (bug Konteks 1), fixed di Sprint D Item #1.
+
+### BAS Whitelist + HITL Dictionary (Sprint B)
+
+Pagu Anggaran rows harus refer ke kode BAS resmi (Bagan Akun Standar Kemenkeu). Whitelist disimpan di:
+
+- `utils/basDictionary.ts` — 4,314 codes dari KEP-331/2021 + KEP-291/2022 dengan `KEYWORD_ALIASES` mapping
+- `utils/internalRecommendations.ts` — 14 HITL (Human-in-the-Loop) rules untuk recommendation autocomplete (mis. ATK→521811, BMP→523122, Honor→521115, Pengadaan Alsintor/Alkes/Alsatri→532111 with `.A`/`.B`/`.C` subkode khusus pengadaan)
+
+UI autocomplete (`components/KodeAutocomplete.tsx`) tampilkan badge "HITL ✓" untuk recommendation yang sudah ter-approve Angga, plus alasan + tanggal konfirmasi sebagai audit trail.
+
 ### Audit Log Foundation (S3.2)
 
 Sync-time audit logging via diff helpers (`lib/audit.ts`):
@@ -334,6 +368,17 @@ SIKESUMAv3.1/
 - [`PHASE_3_HARDENING_BACKLOG.md`](./PHASE_3_HARDENING_BACKLOG.md) — Phase 3 backlog (P3.1-P3.6 hardening)
 - [`PATCHES_SUMMARY_KOMUNIKASI.md`](./PATCHES_SUMMARY_KOMUNIKASI.md) — Komunikasi feature completion summary
 
+### SSOT Refactor Docs (Sprint A-D, 10-11 Mei 2026)
+
+- [`docs/glossary.md`](./docs/glossary.md) — **Glosarium istilah lokal RS Batin Tikal** (BMP/BMHP/TKS/Nakes/Alsintor/Alkes/Alsatri/POK/YANMASUM/dll) + konvensi subkode `.A`/`.B`/`.C` khusus Pengadaan + daftar kode BAS tidak dipakai. **Start here untuk new spoke session** kalau kerja di tab 1.1 Pagu Anggaran.
+- [`SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md`](./SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md) — Koreksi audit doc original; resolusi 3 hard blockers (HB#1/2/3) plus Konteks 6 (521119 vs 521112)
+- [`SPRINT-B4-RESPONS-ANGGA.md`](./SPRINT-B4-RESPONS-ANGGA.md) — Konfirmasi Angga 10 Mei 2026 sebagai dokumentasi normatif (yang sebelumnya hanya asumsi)
+- [`SPRINT-B4-MIGRATION-DIFF-REPORT.md`](./SPRINT-B4-MIGRATION-DIFF-REPORT.md) — Diff report migration Sprint B Round 1
+- [`SPRINT-B4-ROUND2-DIFF-REPORT.md`](./SPRINT-B4-ROUND2-DIFF-REPORT.md) — Diff report Round 2 (HITL foundation)
+- [`SPRINT-B-ROUND3-REPORT.md`](./SPRINT-B-ROUND3-REPORT.md) — Diff report Round 3 (Konteks 6 + glossary)
+- [`SPRINT-B-ROUND4-CLOSURE.md`](./SPRINT-B-ROUND4-CLOSURE.md) — Closure Round 4 (ALSATRI `.C` + 536111)
+- [`lib/migrations/d1_fix_revisi_fallback.ts`](./lib/migrations/d1_fix_revisi_fallback.ts) — Migration audit trail Sprint D Item #1 (idempotent)
+
 ### Live Documentation (di production app)
 
 - **Settings → Riwayat Pengembangan** — `constants/devLog.ts` `DEV_LOG_ENTRIES` rendered as timeline + `ROADMAP` rendered as priority-grouped backlog
@@ -357,6 +402,12 @@ SIKESUMAv3.1/
 | **Step 5 / Phase 5.3** | ✅ **Complete** | Tinjauan Audit UI — modal editor + summary chips + status filter |
 | **Step 5 / Phase 5.4** | ✅ **Complete** | Deviation Dashboard — pure SVG stacked bar + line chart + drill-down modal |
 | **Step 5 / Phase 5.5-5.6** | ✅ **Complete** | Early Warning Engine + Revision Proposal Generator |
+| **SSOT Refactor / Sprint A** | ✅ **Complete** | Data model cleanup — zombie field removal + year-aware + RPD derive Pagu |
+| **SSOT Refactor / Sprint B** | ✅ **Complete** | BAS whitelist + HITL dictionary + glossarium (8 commits, 4 rounds) |
+| **SSOT Refactor / Sprint C** | ✅ **Complete** | Lattice enforcement — 5 IV checks (IV-ORPHAN, IV-DUP-PAGU, IV-OVER-PAGU, IV-RPD-OVER-PAGU, IV-RPD-DEVIATION) + Bill state machine |
+| **SSOT Refactor / Sprint D Item #1** | ✅ **Complete** | Konteks 1 fix (Revisi=0 fallback) + Schema Integrity sync — recovery Rp 137,995,000 |
+| **SSOT Refactor / Sprint D Item #2+** | 🔜 Pending | Year handling bug, multi-year paguByKode, audit_log CRUD |
+| **SSOT Refactor / Sprint E** | 🔜 Pending | LRA aggregator regression test (priority Angga) + audit doc original update |
 | Phase 3 Hardening | 🔜 Backlog | Security (RLS role-based, real auth), audit polish, storage retention. Total ~25-35 jam. |
 | Step 4 | 🔜 Future | Multi-RS template deploy |
 
@@ -405,6 +456,48 @@ SIKESUMAv3.1/
 - **§S5.4-D6 A:** Hybrid color coding — reasoning category color saat ada audit, fallback muted base color.
 - Full decision index: [`STEP5_DECISION_SUPPORT_LOG.md`](./STEP5_DECISION_SUPPORT_LOG.md) §7.
 
+### SSOT Refactor (Sprint A-D, 10-11 Mei 2026)
+
+Roadmap 5-sprint A→E untuk Single Source of Truth refactor di tab 1.1 Pagu Anggaran. Driver: kontak dengan Angga (Sie Renbang) yang sebelumnya tidak pernah dilakukan, sehingga banyak asumsi domain ter-validasi/koreksi langsung.
+
+**Sprint A — Data Model Cleanup (3 commits):**
+- §A.1: Hapus zombie field `PaguRow.realisasi` — tidak pernah dipakai, source of stale data
+- §A.2: Derive `RPDRow.totalBudget` dari Pagu via `paguLookup` helper (Opsi A strict) — SSOT enforcement
+- §A.3: Tambah field `tahun` eksplisit ke `PaguSection` — ganti id-pattern parsing yang fragile
+
+**Sprint B — BAS Whitelist + HITL Dictionary (8 commits, 4 rounds):**
+- §B.1: Seed `kode_bas_dictionary` dari KEP-331/2021 + KEP-291/2022 (4,314 codes)
+- §B.2: Tambah optional field `kode_bas` ke `PaguRow`
+- §B.5: Rename `linkedSectionId` → `linkedPaguSectionId` untuk clarity
+- §B.6: Autocomplete kode akun di Pagu/RAB/Bill dengan dual-mode (BAS lookup + HITL recommendations)
+- §B.4: Backfill `kode_bas` + 3 hard blockers resolution (ATK→521811, LAUNDRY→521119, Pembayaran Rujuk→521119)
+- §B.Round2: Internal HITL recommendation dictionary foundation (9 entries)
+- §B.Round3: Expand HITL dict 9→14 entries + `docs/glossary.md` + Konteks 6 fix (521119 vs 521112)
+- §B.Round4: Konfirmasi final Angga (ALSATRI `.C`, 536111 untuk Aplikasi XDR)
+
+**Sprint C — Lattice Enforcement (5 commits):**
+- §C.1: `IV-DUP-PAGU` bucket check — soft block L1 untuk duplicate kode lintas section
+- §C.2: `IV-RPD-OVER-PAGU` + RPD overspend banner — soft block L5
+- §C.3: `IV-ORPHAN` upgrade severity WARNING→ERROR — tangkap semua codes (L8)
+- §C.4: Bill state machine validator (`utils/billStateMachine.ts`)
+- §C.5: Draft default + akun gate untuk Bill creation
+
+**Sprint D Item #1 — Konteks 1 Fix + Schema Integrity (commit `5e85264`):**
+- Bug Konteks 1 (Angga normative logic): aplikasi memperlakukan `hargaSatuanRevisi=0` sebagai literal drop, padahal seharusnya berarti "tidak ada revisi → fallback ke Semula sebagai baseline"
+- Bug Schema Integrity v3.0: field `jumlahBiayaAwal`/`jumlahBiayaRevisi` di DB stale vs `harga × volume` (UI compute correct, DB stale → IV checks & LRA silent wrong 47% under-count)
+- Migration applied (Opsi A Strict):
+  - Rule 1: 4 leaf rows recovery Rp 137,995,000 (Obat BMHP YANMASUM, Honor Pengelola YANMASUM, Pengadaan Alsintor BPJS, Bahan Makanan YANMASUM)
+  - Rule 2: 41 leaf rows sync `jumlahBiaya{Awal,Revisi}` = `harga × volume`
+  - Rule 3: Parent rows auto-bubble-up sum from children
+- Total Pagu TA 2025: Rp 2,571,940,000.40 → **Rp 2,709,935,000.40** (+Rp 137,995,000)
+- Code fixes: `PaguAnggaran.tsx handleRowChange` (mirror Semula→Revisi + sync jumlahBiaya), `utils/paguLookup.ts` new `getEffectiveValue(row, mode)` helper, `utils/realisasiBucket.ts` use helper (defensive)
+
+**Sprint E pending:** LRA aggregator regression test (Angga's explicit Section 4 concern: angka LRA per Lampiran sebelum & sesudah B.4 backfill harus identik), update audit doc original dengan HB#1/2/3 corrections.
+
+**Sprint F (proposed future):** Workflow approval Palembang gate, HITL UI di Settings tab untuk Angga input langsung.
+
+Full SSOT chronology + Angga normative confirmations: [`docs/glossary.md`](./docs/glossary.md) + sprint reports (`SPRINT-B-ROUND3-REPORT.md`, `SPRINT-B-ROUND4-CLOSURE.md`, `SPRINT-B4-MIGRATION-DIFF-REPORT.md`).
+
 ---
 
 ## Watchpoints (Resolved)
@@ -416,6 +509,15 @@ SIKESUMAv3.1/
 | v1.0 #6 #2 | periodKey ServiceBillRecap NOT zero-padded | ✅ Closed | Sequence 3 (F2.2) |
 | **S3.0 #1** | **BPJSModule prop-drilling anti-pattern (filtered subset → state corruption + audit phantom events)** | ✅ **Closed** | **Step 3 Session A (S3.0 reconcile wrapper)** |
 | **S3.2 #1** | **Schema drift: `system_settings` is KV (3-col), bukan envelope (6-col) seperti yang awalnya disebut handover** | ✅ **Closed** | **Step 3 Session A (S3.1 SQL adjusted)** |
+| **SSOT A.1** | **Zombie field `PaguRow.realisasi` source of stale data** | ✅ **Closed** | **Sprint A.1 (commit `29f740b`)** |
+| **SSOT A.2** | **RPDRow.totalBudget cached → drift dari Pagu** | ✅ **Closed** | **Sprint A.2 (commit `521fe71`, Opsi A strict)** |
+| **SSOT B.4 HB#1** | **521813 di-encode untuk obat (salah — itu Pita Cukai/Meterai/Leges)** | ✅ **Closed** | **Sprint B.4 (HB#1 resolved → 521811)** |
+| **SSOT B.4 HB#2** | **Honor TKS/Nakes/Pengelola di-encode 521213 (insidentil) padahal monthly continuous → 521115** | ✅ **Closed** | **Sprint B.4 (HB#2 resolved)** |
+| **SSOT B.4 HB#3** | **BMP (BBM) di-encode 521211 padahal Kemhan-specific 523122** | ✅ **Closed** | **Sprint B.4 (HB#3 resolved)** |
+| **SSOT Konteks 6** | **`521112` Bahan Makanan dipakai untuk Operasional Lainnya (harus 521119)** | ✅ **Closed** | **Sprint B Round 3 (Angga konfirmasi)** |
+| **SSOT C.3** | **`IV-ORPHAN` severity WARNING tidak cukup ketat — kode invalid bisa lolos** | ✅ **Closed** | **Sprint C.3 (upgrade ERROR)** |
+| **SSOT D.1 Konteks 1** | **Aplikasi treat `hargaSatuanRevisi=0` sebagai drop ke nol, padahal per Angga harus fallback ke Semula** | ✅ **Closed** | **Sprint D Item #1 (commit `5e85264`) — recovery Rp 137,995,000** |
+| **SSOT D.1 Schema** | **Field `jumlahBiaya{Awal,Revisi}` di DB stale vs `harga × volume` (47% under-count silent)** | ✅ **Closed** | **Sprint D Item #1 — 41 rows synced + code fix** |
 
 ### Watchlist (Awareness, Not Backlog)
 
@@ -448,9 +550,10 @@ Internal use untuk RS TNI AD. Tidak untuk distribusi publik tanpa izin.
 
 - TNI AD Pusat — sponsorship & infrastructure
 - Sie Renbang RS Batin Tikal — domain expertise & product feedback
+- **Angga (Sie Renbang)** — normative validation untuk SSOT Refactor Sprint A-D (10-11 Mei 2026): konfirmasi 14 HITL recommendations, Konteks 1 logic (Revisi=0 fallback), konvensi subkode `.A`/`.B`/`.C` khusus pengadaan, glossarium istilah lokal
 - Ferry (Successor) — Phase 2+ ownership & Step 3 execution
-- Anthropic Claude — AI pair programming sessions untuk migration + hardening (Step 1, Step 2 v1, Step 2 v2 Sequence 1-4, Step 3 Session A audit foundation, Komunikasi feature)
+- Anthropic Claude — AI pair programming sessions untuk migration + hardening (Step 1, Step 2 v1, Step 2 v2 Sequence 1-4, Step 3 Session A audit foundation, Komunikasi feature, **SSOT Refactor Sprint A-D**)
 
 ---
 
-*Last updated: 9 Mei 2026 (Step 5 COMPLETE — Phase 5.5 Early Warning + Phase 5.6 Revision Proposal live).*
+*Last updated: 11 Mei 2026 (SSOT Refactor Sprint D Item #1 — Konteks 1 fix + Schema Integrity sync; total Pagu TA 2025 Rp 2,709,935,000.40 after recovery Rp 137,995,000).*

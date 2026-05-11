@@ -1,7 +1,21 @@
 # SIKESUMA Glossarium Istilah Lokal
 
 **Cakupan:** RS Tk.IV 02.07.03 Batin Tikal (sub-Satker Kesdam II/Sriwijaya)
-**Last update:** 10 Mei 2026 (Sprint B post-closure, sumber: Konteks 9 dari Angga)
+**Last update:** 11 Mei 2026 (Sprint D Item #1 closure)
+**Sumber:** Konfirmasi Angga (Sie Renbang) — Konteks 1-9 (10-11 Mei 2026)
+
+---
+
+## 0. Konteks 1 Angga — Normative Logic Wajib Dipatuhi
+
+> "1. Secara umum: harga semula adalah harga baseline.
+> 2. Secara normatif: revisi sifatnya opsional (jika diperlukan).
+> 3. Logika saya bahwa harga semula adalah dasar dari jumlah biaya. Jika diperlukan revisi maka akun harga semula dilakukan revisi, **BUKAN konteks drop**."
+
+**Implikasi untuk code:**
+- `hargaSatuanRevisi = 0` BERARTI "tidak ada revisi" → effective value = `hargaSatuanAwal` (fallback ke Semula)
+- Aggregator MANDATE: pakai `getEffectiveValue(row, mode)` dari `utils/paguLookup.ts`, JANGAN baca `jumlahBiayaXxx` field langsung
+- Aplikasi (sebelum Sprint D Item #1) treat Revisi=0 sebagai literal drop → bug, fixed.
 
 ---
 
