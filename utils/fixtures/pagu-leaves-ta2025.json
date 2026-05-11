@@ -1,0 +1,1915 @@
+{
+  "$schema": "tier-3-fixture-v1",
+  "generated_at": "2026-05-11T06:24:35.284208+00:00",
+  "generator_version": "1.0.0",
+  "source": {
+    "type": "supabase-live",
+    "url": "https://qjijsftbytozcoyrtric.supabase.co",
+    "method": "PostgREST anon-key, read-only"
+  },
+  "context": {
+    "ta": 2025,
+    "satker": "685784 Kesdam II/Sriwijaya",
+    "sub_komponen": "F (Rumkit Tk.IV Batin Tikal Pangkal Pinang)"
+  },
+  "mapping_rules_source": "RKKS 2025 §12.2 (docs/REVISI-POK-PAGU-vKoreksi.md v3) + corrected Decision B (11 Mei 2026)",
+  "leaf_detection_algorithm": "Traversal-based per SSOT-REFACTOR-LOG.md §0.7.2 — NOT level>0 filter (lihat AP-1)",
+  "total_leaves": 38,
+  "confidence_summary": {
+    "per_field": {
+      "kro": {
+        "high": 35,
+        "medium": 3,
+        "low": 0
+      },
+      "kegiatan": {
+        "high": 38,
+        "medium": 0,
+        "low": 0
+      },
+      "ro": {
+        "high": 35,
+        "medium": 0,
+        "low": 3
+      },
+      "komponen": {
+        "high": 38,
+        "medium": 0,
+        "low": 0
+      },
+      "sumber_dana": {
+        "high": 38,
+        "medium": 0,
+        "low": 0
+      }
+    },
+    "aggregate_all_high": 35,
+    "aggregate_all_high_pct": 92.1,
+    "acceptance_threshold_pct": 80,
+    "acceptance_pass": true
+  },
+  "leaves": [
+    {
+      "section_id": "pagu-2025-bekkes",
+      "row_id": "row-1778396453018-0.8151765790276257",
+      "kode": "521811.05",
+      "kode_bas": "521811",
+      "description": "Obat & BMHP YANMASUM (REKANAN)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 72995000,
+      "hargaSatuanRevisi": 72995000,
+      "effective_awal": 72995000,
+      "effective_revisi": 72995000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-bekkes",
+      "row_id": "row-1778396118586-0.06441129224790665",
+      "kode": "521811.04",
+      "kode_bas": "521811",
+      "description": "Linen pasien",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "tahun",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 5000000,
+      "effective_awal": 0,
+      "effective_revisi": 5000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-bekkes",
+      "row_id": "row-2025-bk-1",
+      "kode": "521811.01",
+      "kode_bas": "521811",
+      "description": "Obat & BMHP (Rekanan)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "tahun",
+      "hargaSatuanAwal": 250000000,
+      "hargaSatuanRevisi": 705000000,
+      "effective_awal": 250000000,
+      "effective_revisi": 705000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-bekkes",
+      "row_id": "row-2025-bk-2",
+      "kode": "521811.02",
+      "kode_bas": "521811",
+      "description": "Gas Medis",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "tahun",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 18000000,
+      "effective_awal": 0,
+      "effective_revisi": 18000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-bekkes",
+      "row_id": "row-2025-bk-3",
+      "kode": "521811.03",
+      "kode_bas": "521811",
+      "description": "ATK",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "tahun",
+      "hargaSatuanAwal": 10000000,
+      "hargaSatuanRevisi": 20000000,
+      "effective_awal": 10000000,
+      "effective_revisi": 20000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778401175697",
+      "row_id": "row-1778401252642-0.9545660030895834",
+      "kode": "522112",
+      "kode_bas": "522112",
+      "description": "TELPON DAN INTERNET",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 10000000,
+      "hargaSatuanRevisi": 10000000,
+      "effective_awal": 10000000,
+      "effective_revisi": 10000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778401175697",
+      "row_id": "row-1778402463172-0.8801484608571356",
+      "kode": "522113",
+      "kode_bas": "522113",
+      "description": "LANGGANAN AIR DAN GAS",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 12000000,
+      "hargaSatuanRevisi": 12000000,
+      "effective_awal": 12000000,
+      "effective_revisi": 12000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778402367617",
+      "row_id": "row-1778402385901-0.1744033752817652",
+      "kode": "521219",
+      "kode_bas": "521219",
+      "description": "SERAGAM PELAKSANA",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 3000000,
+      "effective_awal": 0,
+      "effective_revisi": 3000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-pemeliharaan",
+      "row_id": "row-1778397218793-0.9389862907828127",
+      "kode": "523111.02",
+      "kode_bas": "523111",
+      "description": "Har Gedung dan Bangunan (YANMASUM)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 5000000,
+      "hargaSatuanRevisi": 5000000,
+      "effective_awal": 5000000,
+      "effective_revisi": 5000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CCB",
+          "name": "OM Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "4",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-pemeliharaan",
+      "row_id": "row-2025-pm-1",
+      "kode": "523111.01",
+      "kode_bas": "523111",
+      "description": "Har Gedung dan Bangunan (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 25000000,
+      "hargaSatuanRevisi": 55000000,
+      "effective_awal": 25000000,
+      "effective_revisi": 55000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CCB",
+          "name": "OM Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "4",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-1778401750940-0.7530014217202655",
+      "kode": "521115.04",
+      "kode_bas": "521115",
+      "description": "HONOR PENGELOLA YANMASUM",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 5000000,
+      "hargaSatuanRevisi": 5000000,
+      "effective_awal": 5000000,
+      "effective_revisi": 5000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-1778401749102-0.03038919900001802",
+      "kode": "521115.05",
+      "kode_bas": "521115",
+      "description": "HONOR TENAGA KESEHATAN YANMASUM",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 45000000,
+      "hargaSatuanRevisi": 21000000,
+      "effective_awal": 45000000,
+      "effective_revisi": 21000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-1778401748633-0.5271495136429418",
+      "kode": "521115.06",
+      "kode_bas": "521115",
+      "description": "HONOR TENAGA SUKARELA YANMASUM",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 20000000,
+      "hargaSatuanRevisi": 20000000,
+      "effective_awal": 20000000,
+      "effective_revisi": 20000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-2025-js-1",
+      "kode": "521115.01",
+      "kode_bas": "521115",
+      "description": "Honor Tenaga Kerja Sukarela (TKS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 120000000,
+      "hargaSatuanRevisi": 195000000,
+      "effective_awal": 120000000,
+      "effective_revisi": 195000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-2025-js-2",
+      "kode": "521115.02",
+      "kode_bas": "521115",
+      "description": "Honor Tenaga Kesehatan (Nakes)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 150000000,
+      "hargaSatuanRevisi": 785995000,
+      "effective_awal": 150000000,
+      "effective_revisi": 785995000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-jasa",
+      "row_id": "row-2025-js-3",
+      "kode": "521115.03",
+      "kode_bas": "521115",
+      "description": "Honor Pengelola",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 30000000,
+      "hargaSatuanRevisi": 48000000,
+      "effective_awal": 30000000,
+      "effective_revisi": 48000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778402987643-0.978791589893346",
+      "kode": "532111.06.A",
+      "kode_bas": "532111",
+      "description": "PENGADAAN ALSINTOR  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "PAKET",
+      "hargaSatuanAwal": 40000000,
+      "hargaSatuanRevisi": 40000000,
+      "effective_awal": 40000000,
+      "effective_revisi": 40000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778394252168-0.549196207169418",
+      "kode": "532111.05.A",
+      "kode_bas": "532111",
+      "description": "Pengadaan Alsintor Lain-lain (YANMASUM)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "PAKET",
+      "hargaSatuanAwal": 5000000,
+      "hargaSatuanRevisi": 5000000,
+      "effective_awal": 5000000,
+      "effective_revisi": 5000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778394143487-0.31085739293695125",
+      "kode": "532111.01.A",
+      "kode_bas": "532111",
+      "description": "Laptop Lenovo Thinkpad x270 (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 2,
+      "satuan": "UNIT ",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 5700000,
+      "effective_awal": 0,
+      "effective_revisi": 11400000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778394115997-0.939163772102899",
+      "kode": "532111.02.A",
+      "kode_bas": "532111",
+      "description": "Computer set Dell  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 7,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 4500000,
+      "effective_awal": 0,
+      "effective_revisi": 31500000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778394105244-0.6891093181315793",
+      "kode": "532111.03.A",
+      "kode_bas": "532111",
+      "description": "Showcase Cooler  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 7100000,
+      "effective_awal": 0,
+      "effective_revisi": 7100000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778394078771-0.5211030586897916",
+      "kode": "532111.04.A",
+      "kode_bas": "532111",
+      "description": "Pengadaan Alsintor Lain-lain  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "PAKET",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 40000000,
+      "effective_awal": 0,
+      "effective_revisi": 40000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "5",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778400307716-0.13431287607902886",
+      "kode": "532111.05.B",
+      "kode_bas": "532111",
+      "description": "PENGADAAN PAKET ALKES (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "",
+      "hargaSatuanAwal": 40000000,
+      "hargaSatuanRevisi": 40000000,
+      "effective_awal": 40000000,
+      "effective_revisi": 40000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778397911992-0.6584387691081092",
+      "kode": "532111.06.B",
+      "kode_bas": "532111",
+      "description": "PENGADAAN ALKES (YANMASUM)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "",
+      "hargaSatuanAwal": 15000000,
+      "hargaSatuanRevisi": 15000000,
+      "effective_awal": 15000000,
+      "effective_revisi": 15000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778397644865-0.8887336842268924",
+      "kode": "532111.04.B",
+      "kode_bas": "532111",
+      "description": "Tensimeter Digital Omron",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 2,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 760000,
+      "effective_awal": 0,
+      "effective_revisi": 1520000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778397554355-0.2761946982991128",
+      "kode": "532111.03.B",
+      "kode_bas": "532111",
+      "description": "stethoscope littman classic II infant  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 4400000,
+      "effective_awal": 0,
+      "effective_revisi": 4400000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778397532698-0.8960288966203389",
+      "kode": "532111.02.B",
+      "kode_bas": "532111",
+      "description": "stethoscope littman classic II  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 2,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 3590000,
+      "effective_awal": 0,
+      "effective_revisi": 7180000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778397448745-0.7046913813843206",
+      "kode": "532111.01.B",
+      "kode_bas": "532111",
+      "description": "o2 sensor ventilator  (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "UNIT",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 6900000,
+      "effective_awal": 0,
+      "effective_revisi": 6900000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "1",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-modal",
+      "row_id": "row-1778402703532-0.5743951043685943",
+      "kode": "532111.C",
+      "kode_bas": "532111",
+      "description": "BELANJA MODAL PERALATAN DAN MESIN (ALSATRI)",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "PAKET",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 189945000,
+      "effective_awal": 0,
+      "effective_revisi": 189945000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "medium"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": null,
+          "confidence": "low"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Peralatan dan Mesin",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778401363129",
+      "row_id": "row-1778401457258-0.2780439455561957",
+      "kode": "523122",
+      "kode_bas": "523122",
+      "description": "BELANJA BAHAN BAKAR MINYAK DAN PELUMAS (BMP)",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 5000000,
+      "hargaSatuanRevisi": 6000000,
+      "effective_awal": 5000000,
+      "effective_revisi": 6000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CCB",
+          "name": "OM Sarana Bidang Kesehatan",
+          "confidence": "medium"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": null,
+          "confidence": "low"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778401538106",
+      "row_id": "row-1778401601126-0.8896783993590995",
+      "kode": "524111",
+      "kode_bas": "524111",
+      "description": "BELANJA PERJALANAN DINAS",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 10000000,
+      "hargaSatuanRevisi": 18000000,
+      "effective_awal": 10000000,
+      "effective_revisi": 18000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-1778402148153",
+      "row_id": "row-1778402221509-0.5344712369586765",
+      "kode": "536111",
+      "kode_bas": "536111",
+      "description": "BELAJA APLIKASI XDR",
+      "level": 0,
+      "is_standalone_leaf_l0": true,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 0,
+      "hargaSatuanRevisi": 46000000,
+      "effective_awal": 0,
+      "effective_revisi": 46000000,
+      "sumberDana": "RM",
+      "expected_recommendation": {
+        "kro": {
+          "code": "CAB",
+          "name": "Sarana Bidang Kesehatan",
+          "confidence": "medium"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": null,
+          "confidence": "low"
+        },
+        "komponen": {
+          "code": "52",
+          "name": "Belanja Modal Lainnya",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "RM",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-1778398624667-0.1485142995529255",
+      "kode": "521119.03",
+      "kode_bas": "521119",
+      "description": "BELANJA BARANG OPERASIONAL LAINNYA",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 12,
+      "satuan": "BULAN",
+      "hargaSatuanAwal": 416666.6667,
+      "hargaSatuanRevisi": 500000,
+      "effective_awal": 5000000.0004,
+      "effective_revisi": 6000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-2025-op-2",
+      "kode": "521119.02",
+      "kode_bas": "521119",
+      "description": "LAUNDRY",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 12,
+      "satuan": "Bulan",
+      "hargaSatuanAwal": 416666.6667,
+      "hargaSatuanRevisi": 833333.3,
+      "effective_awal": 5000000.0004,
+      "effective_revisi": 9999999.600000001,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-2025-op-7",
+      "kode": "521119.01",
+      "kode_bas": "521119",
+      "description": "PEMBAYARAN RUJUK PEMERIKSAAN DIAGNOSTIK",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 12,
+      "satuan": "Bulan",
+      "hargaSatuanAwal": 416666.6667,
+      "hargaSatuanRevisi": 833333.4,
+      "effective_awal": 5000000.0004,
+      "effective_revisi": 10000000.8,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-1778400592239-0.7681270965327589",
+      "kode": "521112.01",
+      "kode_bas": "521112",
+      "description": "BELANJA PENGADAAN BAHAN MAKANAN (BPJS)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 80000000,
+      "hargaSatuanRevisi": 198000000,
+      "effective_awal": 80000000,
+      "effective_revisi": 198000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-1778400528369-0.9041278885314432",
+      "kode": "521112.01",
+      "kode_bas": "521112",
+      "description": "BELANJA PENGADAAN BAHAN MAKANAN (YANMASUM)",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 1,
+      "satuan": "TAHUN",
+      "hargaSatuanAwal": 20000000,
+      "hargaSatuanRevisi": 20000000,
+      "effective_awal": 20000000,
+      "effective_revisi": 20000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    },
+    {
+      "section_id": "pagu-2025-operasional",
+      "row_id": "row-1778400788605-0.07332817514283552",
+      "kode": "521111.01",
+      "kode_bas": "521111",
+      "description": "BIAYA CETAK",
+      "level": 1,
+      "is_standalone_leaf_l0": false,
+      "volume": 12,
+      "satuan": "BULAN",
+      "hargaSatuanAwal": 1250000,
+      "hargaSatuanRevisi": 1250000,
+      "effective_awal": 15000000,
+      "effective_revisi": 15000000,
+      "sumberDana": "PNBP",
+      "expected_recommendation": {
+        "kro": {
+          "code": "EBA",
+          "name": "Layanan Dukungan Manajemen Internal",
+          "confidence": "high"
+        },
+        "kegiatan": {
+          "code": "6507",
+          "name": "Penyelenggaraan Kesehatan Matra Darat",
+          "confidence": "high"
+        },
+        "ro": {
+          "code": "962",
+          "confidence": "high"
+        },
+        "komponen": {
+          "code": "3",
+          "name": "Dukungan Operasional Pertahanan dan Keamanan",
+          "confidence": "high"
+        },
+        "sumber_dana": {
+          "kode": "PNBP",
+          "confidence": "high"
+        },
+        "volume_ro": {
+          "value": null,
+          "confidence": "low"
+        },
+        "satuan_ro": {
+          "value": null,
+          "confidence": "low"
+        }
+      }
+    }
+  ]
+}
