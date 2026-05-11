@@ -55,11 +55,11 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
   }, [mode, sintesis.netChange]);
 
   const titleMain = mode === 'pergeseran'
-    ? `Laporan Revisi POK Tahun Anggaran ${selectedYear}`
-    : `Laporan Penambahan Pagu Tahun Anggaran ${selectedYear}`;
+    ? `Usulan Revisi POK Tahun Anggaran ${selectedYear}`
+    : `Usulan Revisi Anggaran (Penambahan Pagu) Tahun Anggaran ${selectedYear}`;
   const titleSub = mode === 'pergeseran'
-    ? 'Pergeseran Antar Akun (Net Change = 0)'
-    : 'Permohonan Penambahan Pagu Semester';
+    ? 'Pagu Tetap (Net Change = 0) — Penetapan oleh KPA Satker Pengelola Palembang'
+    : 'Pagu Berubah — Diteruskan ke Kanwil DJPb / DJA via KPA Satker Pengelola Palembang';
 
   return (
     <>
@@ -103,6 +103,23 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
           <div className="no-print-laporan max-w-[210mm] mx-auto mb-3 bg-amber-50 border-2 border-amber-300 rounded-2xl px-5 py-3 flex items-start gap-3">
             <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800 font-bold">{validationWarning}</p>
+          </div>
+        )}
+
+        {/* Tier 2 (vKoreksi v2) — Disclaimer C2-C10 belum dicek otomatis */}
+        {mode === 'pergeseran' && (
+          <div className="no-print-laporan max-w-[210mm] mx-auto mb-3 bg-blue-50 border-2 border-blue-200 rounded-2xl px-5 py-3 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="text-[11px] text-blue-800">
+              <p className="font-black mb-1">⚠ Verifikasi Manual Diperlukan (10 Hard Constraints per PMK 62/2023):</p>
+              <p className="leading-relaxed">
+                SIKESUMA saat ini hanya cek <strong>C1 (net change = 0)</strong>. Sebelum diajukan ke KPA Palembang, Sie Renbang <strong>wajib verifikasi manual</strong>:
+                C2 (1 KRO sama), C3 (1 Kegiatan), C4 (1 Satker), C5 (volume RO tidak berubah),
+                C6 (1 jenis belanja: 2 digit pertama akun sama), C7 (sumber dana sama),
+                C8 (1 komponen sama untuk belanja operasional), C9 (tidak ada pagu minus pasca-revisi), C10 (patuh SBM).
+                Rujukan: <code className="font-mono bg-blue-100 px-1 rounded">docs/REVISI-POK-PAGU-vKoreksi.md §3.2</code>.
+              </p>
+            </div>
           </div>
         )}
 
@@ -173,39 +190,49 @@ const LaporanRevisi: React.FC<LaporanRevisiProps> = ({ sections, selectedYear, m
           </div>
 
           {mode === 'pergeseran' ? (
-            <div className="mt-12 grid grid-cols-2 gap-8 text-[10px] break-inside-avoid">
+            <div className="mt-12 grid grid-cols-3 gap-6 text-[9px] break-inside-avoid">
               <div className="text-center">
-                <p className="font-bold text-slate-700">Dibuat oleh,<br/>Sie Renbang</p>
-                <div className="h-16"></div>
-                <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-4">.................................</p>
-                <p className="text-[9px] text-slate-600 mt-1">NRP/NIP: ......................</p>
+                <p className="font-bold text-slate-700">Disusun oleh,<br/>Sie Renbang RS Batin Tikal</p>
+                <div className="h-14"></div>
+                <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
+                <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-slate-700">Disetujui oleh,<br/>Karumkit RS Tk.IV 02.07.03 Batin Tikal</p>
-                <div className="h-16"></div>
-                <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-4">.................................</p>
-                <p className="text-[9px] text-slate-600 mt-1">NRP/NIP: ......................</p>
+                <p className="font-bold text-slate-700">Direkomendasikan oleh,<br/>Karumkit RS Tk.IV 02.07.03 Batin Tikal</p>
+                <div className="h-14"></div>
+                <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
+                <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
+                <p className="text-[7px] text-slate-500 italic mt-1">(rekomendasi internal — bukan penetap)</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-slate-700">Ditetapkan oleh,<br/>KPA Satker Pengelola Palembang</p>
+                <div className="h-14"></div>
+                <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
+                <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
+                <p className="text-[7px] text-slate-500 italic mt-1">(SK Revisi POK — penetapan formal)</p>
               </div>
             </div>
           ) : (
             <div className="mt-12 grid grid-cols-3 gap-6 text-[9px] break-inside-avoid">
               <div className="text-center">
-                <p className="font-bold text-slate-700">Dibuat oleh,<br/>Sie Renbang</p>
+                <p className="font-bold text-slate-700">Disusun oleh,<br/>Sie Renbang RS Batin Tikal</p>
                 <div className="h-14"></div>
                 <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
                 <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-slate-700">Disetujui oleh,<br/>Karumkit Batin Tikal</p>
+                <p className="font-bold text-slate-700">Direkomendasikan oleh,<br/>Karumkit RS Tk.IV 02.07.03 Batin Tikal</p>
                 <div className="h-14"></div>
                 <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
                 <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
+                <p className="text-[7px] text-slate-500 italic mt-1">(rekomendasi internal)</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-slate-700">Diketahui oleh,<br/>Satker Pengelola Anggaran Palembang</p>
+                <p className="font-bold text-slate-700">Diteruskan oleh,<br/>KPA Satker Pengelola Palembang</p>
                 <div className="h-14"></div>
                 <p className="font-bold text-slate-900 border-t border-slate-700 pt-1 px-2">.........................</p>
                 <p className="text-[8px] text-slate-600 mt-1">NRP/NIP: ..............</p>
+                <p className="text-[7px] text-slate-500 italic mt-1">(pengaju ke Kanwil DJPb / DJA — penetap formal di tingkat Kemenkeu)</p>
               </div>
             </div>
           )}

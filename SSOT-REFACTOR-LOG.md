@@ -10,11 +10,13 @@
 - ✅ Sprint B (BAS whitelist + HITL, 4 rounds)
 - ✅ Sprint C (lattice enforcement)
 - ✅ Sprint D Item #1 (Konteks 1 + Schema Integrity)
-- ✅ **Sprint D Item #2 (UX Pagu Diff Visibility — 4 phases: Dashboard, Sintesis, Filter+Indicator, Print Laporan dual-mode, Ringkasan list)**
-- ⏳ Sprint D Item #3+ (Year handling bug, multi-year, audit log CRUD)
-- ⏳ Sprint E (LRA regression test, audit doc original update)
+- ✅ Sprint D Item #2 (UX Pagu Diff Visibility — 4 phases: Dashboard, Sintesis, Filter+Indicator, Print Laporan dual-mode, Ringkasan list)
+- ✅ **Re-Architecture Tier 1+2 (11 Mei 2026)** — Master domain doc `REVISI-POK-PAGU-vKoreksi.md` integrated + LaporanRevisi.tsx fixed (workflow KPA Palembang, disclaimer C1-C10)
+- ⏳ Tier 3+ (feature branches, fresh session) — Schema metadata + Validation C1-C10 + Audit trail
+- ⏳ Sprint D Item #3+ (deferred) — Year handling bug, multi-year, audit log CRUD
+- ⏳ Sprint E (Priority Angga, deferred) — LRA regression test, audit doc original update
 
-**Total Pagu TA 2025:** Rp 2,709,935,000.40 (verified after Sprint D Item #1, UI = DB synced)
+**Total Pagu TA 2025:** Rp 2,709,935,000.40 (verified after Sprint D Item #1) — **status: historis (TA closed)**. TA 2026 belum mulai — fresh state untuk re-architecture.
 
 ---
 
@@ -71,6 +73,51 @@ File: [`utils/internalRecommendations.ts`](./utils/internalRecommendations.ts).
 | SERAGAM-001 | `/seragam|pakaian dinas/` | `521219` | Pelaksana seragam |
 | OPERASIONAL-LAINNYA-001 | `/belanja (barang )?operasional/` | `521119` | Reject 521112 (Bahan Makanan) — Konteks 6 |
 | BAHAN-MAKANAN-001 | `/makan pasien|bahan makanan/` | `521112` | KHUSUS makanan |
+
+### 0.5 ⚠ Master Domain Reference — `REVISI-POK-PAGU-vKoreksi.md` (11 Mei 2026)
+
+**File:** [`docs/REVISI-POK-PAGU-vKoreksi.md`](./docs/REVISI-POK-PAGU-vKoreksi.md)
+
+Dokumen master 614 baris dari Sie Renbang via dr Ferry yang menjadi **authoritative source** untuk semua workflow Revisi POK + Revisi Pagu TA 2026 ke depan. Mengandung:
+
+- **Glosarium 12 sub-section** (G.1 Penganggaran Umum → G.12 Disambiguasi cepat) dengan referensi PMK formal + istilah kerja (\[istilah kerja\]) yang dipakai SIKESUMA
+- **Dasar hukum** lengkap: PMK 62/2023 jo. PMK 107/2024, PMK 199/2021, PER-9/PB/2023, KEP-211/PB/2018 jo. 331/2021 & 291/2022, PMK 143/2018 (Kemhan), Permenhan 5/2020 (BMP)
+- **Klasifikasi revisi 3 kategori**: Pagu Berubah / Pagu Tetap / Administrasi
+- **10 Hard Constraints (C1-C10)** untuk Revisi POK kewenangan KPA
+- **Distinction Revisi POK vs Revisi DIPA Hal III vs Pemutakhiran POK** — krusial untuk impact RPD bulanan
+- **Hard deadline tahunan** Pasal 175 PMK 62/2023 (31 Okt / 30 Nov / 26 Des)
+- **Catatan implementasi SIKESUMA** §11 — 7 poin actionable
+- **Hal yang perlu konfirmasi internal TNI AD** §12 — 6 poin pending ke Palembang
+
+**Koreksi fundamental atas pemahaman lama:**
+1. **Karumkit BUKAN KPA** — hanya pemberi rekomendasi internal. KPA = pejabat satker pengelola Palembang.
+2. **Revisi Pagu tidak hanya mid-term** — bisa kapan saja sepanjang TA, dibatasi hanya oleh deadline tahunan. Exception: BMP (akun 523122) memang awal semester 2 per Pasal 8 Permenhan 5/2020.
+3. **Revisi POK butuh 10 constraint**, bukan cuma net change = 0.
+4. **Revisi POK yang menyentuh RPD bulanan otomatis naik** jadi Revisi DIPA Hal III (Kanwil DJPb).
+5. **Forward-looking**: revisi berlaku sejak tanggal penetapan KPA, bukan otomatis bulan berikutnya.
+
+### 0.6 Tier Roadmap Re-Architecture TA 2026 (per persetujuan dr Ferry, 11 Mei 2026)
+
+Konteks: TA 2025 sudah lewat (data historis), TA 2026 belum mulai. Window yang tepat untuk re-architecture sebelum data live masuk.
+
+**Branching strategy:**
+- Minor (docs, fix kecil, refactor cosmetic) → **main** direct commit
+- Major (schema, validation engine, workflow) → **feature branch** `feature/tier-N-description`, squash merge ke main
+
+**Data policy (Konteks 4 dr Ferry):**
+- SIKESUMA TIDAK auto-modify pagu_row data
+- Migration data manual oleh Angga (Sie Renbang preference: "learning by doing")
+- Aplikasi sebagai **recommendation engine** — suggest, Angga accept/reject/edit
+- Schema migration ADD COLUMN dengan DEFAULT NULL (nullable, no data change)
+
+| Tier | Scope | Branch | Status |
+|---|---|---|---|
+| **1** | Docs refresh — `docs/REVISI-POK-PAGU-vKoreksi.md` + SSOT log + README | main | ✅ DONE (11 Mei 2026) |
+| **2** | Fix `LaporanRevisi.tsx` — title "Laporan"→"Usulan", signature 3-kolom (Sie Renbang + Karumkit rekomendasi + KPA Palembang penetap), disclaimer C2-C10 belum auto-checked | main | ✅ DONE (11 Mei 2026) |
+| **3** | Schema migration: add `kro_code`, `kegiatan_code`, `komponen_code`, `volume_ro`, `satuan_ro`, `sumber_dana_kode` (nullable) + recommendation engine pattern matching | `feature/tier-3-metadata-schema` | ⏳ Fresh session |
+| **4** | Validation engine C1-C10 + live pre-flight check banner + block laporan jika hard violation | `feature/tier-4-validation-c1-c10` | ⏳ Fresh session (depends Tier 3) |
+| **5** | Workflow state machine (Draft → Direkomendasi → Diteruskan → Ditetapkan → Berlaku Efektif) + audit trail per pengajuan + snapshot per tanggal penetapan + deadline H-7/H-1 | `feature/tier-5-audit-trail` | ⏳ Fresh session (depends Tier 4) |
+| **6** | Future — sistem jendela revisi pagu (admin Palembang activation), multi-role permission, SBM check (C10), integrasi SAKTI | `feature/tier-6-*` (TBD) | ⏳ Far future |
 
 ---
 
