@@ -618,17 +618,19 @@ Per user statement: data Pagu TA 2025 di Supabase live akan **di-wipe dan reload
 
 ### 7.2 ⚠️ Pre-existing TS Errors (Tidak Touched)
 
-Beberapa TS errors yang **bukan dari Sprint A-D** dan **tidak boleh** di-fix tanpa konfirmasi:
+Beberapa TS errors yang **bukan dari Sprint A-D** dan **tidak boleh** di-fix tanpa konfirmasi (per snapshot 11 Mei 2026, baseline = 11 errors total):
 - `App.tsx` line 573, 805, 818 — `forEach/tks/nakes/pengelola` on unknown type
-- `PaguAnggaran.tsx` line 272 (was 242 pre-Sprint D, shifted by handleRowChange edit) — `.join()` on unknown
+- `PaguAnggaran.tsx` line 292 (was 272 saat handover dibuat — shifted oleh edit lain pasca Sprint D Item #1) — `.join()` on unknown
 - `constants/devLog.ts` line 287, 315, 1044 — DevLogAuthor type mismatch
 
 TS check command yang filter pre-existing:
 ```bash
 npx tsc --noEmit --skipLibCheck 2>&1 | \
   grep -E "error TS" | grep -v "TS2688" | \
-  grep -v -E "App\.tsx\((573|805|818)|PaguAnggaran\.tsx\(272|devLog\.ts\((287|315|1044)"
+  grep -v -E "App\.tsx\((573|805|818)|PaguAnggaran\.tsx\(292|devLog\.ts\((287|315|1044)"
 ```
+
+> **Catatan line-shift**: Line PaguAnggaran.tsx `.join()` error bisa shift lagi di masa depan saat ada edit pre-line. Update regex saat shift, dan refresh nomor line di list bullet di atas. Successor: jangan asumsi line nomor stale — verify dulu dengan `npx tsc --noEmit --skipLibCheck 2>&1 | grep PaguAnggaran`.
 
 ### 7.3 ⚠️ Tab 1.2 RAB Belum di-Review
 

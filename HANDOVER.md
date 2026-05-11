@@ -52,11 +52,43 @@ GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ## 3. Struktur Database (Supabase)
-Aplikasi ini mengharapkan tabel-tabel berikut ada di Supabase:
-- `pagu_sections`: Menyimpan data Rencana Kerja dan Anggaran (RKKS).
-- `bills`: Menyimpan data billing operasional.
-- `patient_claims`: Menyimpan data klaim pasien/log pelayanan.
-- `system_settings`: Menyimpan konfigurasi global (mapping akun, kunci pagu, dll).
+
+**Per snapshot 11 Mei 2026** (probe via PostgREST anon key). Schema pakai 2 pola: **envelope JSONB** (id + data + audit cols) untuk transactional data, dan **key-value** untuk konfigurasi global.
+
+### 3.1 Tabel Envelope JSONB *(id, data jsonb, created_at, updated_at, created_by, updated_by)*
+
+| Tabel | Isi | Sumber UI |
+|---|---|---|
+| `pagu_sections` | RKKS multi-year, ID pattern `pagu-{YYYY}-{slug}`, `data` = `{title, rows[]}` (lihat `types.ts` PaguSection). `tahun` field optional di JSONB — runtime fallback via parse ID di `App.tsx:273` (lihat SSOT §0.7.5 AP-3) | Tab 1.1 Pagu Anggaran |
+| `bills` | Billing operasional (BEKKES/JASA/MODAL/PEMELIHARAAN), state machine Draft→Verifikasi→Lunas | Tab 2 Pelaksanaan & Audit |
+| `patient_claims` | Log klaim pasien / pelayanan (BPJS/Yanmasum/Jasa Raharja) | Tab 3 Monitoring Penerimaan |
+| `audit_log` | Audit trail global (per envelope edit) — foundation S3.2 | Settings → Audit Log Viewer |
+| `doctors` | Master data dokter + tarif jasa medis | Settings → Doctor Data |
+| `phase_discussions` | Komunikasi & Diskusi async feature | Settings → Komunikasi |
+| `revenue_targets` | Target pendapatan per kategori | Tab 4 Pelaporan & LRA → Target Pendapatan |
+| `jasa_verification_files` | Verifikasi file lampiran honor (TKS/Nakes/Pengelola) per period | Tab Belanja Jasa |
+
+### 3.2 Tabel Key-Value *(key text PRIMARY KEY, value jsonb, updated_at)*
+
+| Tabel | Isi | Catatan |
+|---|---|---|
+| `system_settings` | Konfigurasi global: PNBP config, BPJS settings, reasoning categories, mapping akun, scenario settings, dll. | Schema BUKAN `id` — gunakan `?key=eq.{name}` untuk query. Audit drift sudah resolved (S3.2 #1) |
+
+### 3.3 Tabel Future (Tier 3-5, BELUM dibuat per snapshot)
+
+| Tabel | Tier | Scope |
+|---|---|---|
+| `usulan_revisi` | Tier 5 | State machine per pengajuan Revisi POK (Draft → Direkomendasi → Diteruskan → Ditetapkan → Berlaku Efektif) |
+| `usulan_revisi_perubahan` | Tier 5 | Detail per-row perubahan dalam 1 usulan (nilai_semula, nilai_revisi, alasan) |
+| `snapshot_pok` | Tier 5 | Snapshot full POK state per tanggal penetapan KPA (immutable) |
+
+Schema migration nullable additive ke `pagu_row` (Tier 3): `kro_code`, `kegiatan_code`, `komponen_code`, `volume_ro`, `satuan_ro`, `sumber_dana_kode` — lihat `docs/TIER-3-PLUS-PLAN.md`.
+
+### 3.4 Reference
+
+- **Types canonical:** `types.ts` interfaces (PaguRow, PaguSection, Bill, dll.)
+- **Schema introspection:** `README.md` § "Schema Reference" lebih detail (RLS, storage buckets, dll.)
+- **Analisis konvensi:** `SSOT-REFACTOR-LOG.md §0.7 Protokol Analisis Data` wajib baca sebelum query/aggregate data
 
 ## 4. Struktur Folder Utama
 - `/components`: Kumpulan modul utama (RKKS, BPJS, Billing, Rapport).
