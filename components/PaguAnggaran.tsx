@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { PaguRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks } from 'lucide-react';
 import { YEARS } from '../constants';
 import KodeAutocomplete from './KodeAutocomplete';
 import { deriveKodeBas, lookupBas } from '../utils/basDictionary';
+import PaguDiffDashboard from './PaguDiffDashboard';
+import { classifyRow, getHiddenRowIds, type RowFilterMode } from '../utils/paguDiff';
 
 interface PaguAnggaranProps {
   sections: PaguSection[];
@@ -23,6 +25,9 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   sections, onSectionsChange, onAddSection, onDeleteSection, 
   viewMode, selectedYear, onYearChange, metrics 
 }) => {
+
+  // Sprint D Item #2 Phase 2 — Inline filter (Opsi A)
+  const [rowFilter, setRowFilter] = useState<RowFilterMode>('all');
 
   // FUNGSI UTAMA: Menghitung total biaya berdasarkan hierarki (Bubble Up)
   const processedSections = useMemo(() => {
@@ -284,6 +289,36 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
         </div>
       )}
 
+      {/* Sprint D Item #2 — UX Pagu Diff Dashboard (Phase 1: Opsi B + Opsi C) */}
+      <PaguDiffDashboard sections={processedSections} />
+
+      {/* Sprint D Item #2 Phase 2 — Filter chips (Opsi A) */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-3 flex items-center gap-2 flex-wrap no-print">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">Tampilkan:</span>
+        {([
+          { key: 'all',     label: 'Semua' },
+          { key: 'revised', label: 'Hanya Direvisi' },
+          { key: 'new',     label: 'Item Baru Saja' },
+        ] as { key: RowFilterMode; label: string }[]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setRowFilter(opt.key)}
+            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+              rowFilter === opt.key
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+        {rowFilter !== 'all' && (
+          <p className="text-[10px] font-bold text-slate-400 italic ml-auto">
+            Filter aktif — row "Tidak Berubah" disembunyikan
+          </p>
+        )}
+      </div>
+
       {/* BUDGET SECTIONS */}
       {processedSections.map((section, idx) => {
         const minLvl = section.rows.length > 0 ? Math.min(...section.rows.map(r => r.level)) : 0;
@@ -335,12 +370,41 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {section.rows.map((row, rIdx) => {
+                    {(() => {
+                      // Sprint D Item #2 Phase 2 — apply row filter (Opsi A)
+                      const hiddenIds = getHiddenRowIds(section.rows, rowFilter);
+                      return section.rows.filter(r => !hiddenIds.has(r.id));
+                    })().map((row, rIdx, visibleRows) => {
                       const indentation = row.level * 1.5;
-                      const hasChildren = rIdx < section.rows.length - 1 && section.rows[rIdx + 1].level > row.level;
+                      // Recompute hasChildren via original section.rows index (for correct hierarchy when filtering)
+                      const origIdx = section.rows.findIndex(r => r.id === row.id);
+                      const hasChildren = origIdx < section.rows.length - 1 && section.rows[origIdx + 1].level > row.level;
+                      // Sprint D Item #2 Phase 2 — classify row for inline indicator
+                      const classification = !hasChildren && row.kode.trim() ? classifyRow(row) : null;
+                      const indicatorColor = classification ? ({
+                        'BERTAMBAH':     'bg-emerald-500',
+                        'BERKURANG':     'bg-red-500',
+                        'BARU':          'bg-blue-500',
+                        'TIDAK_BERUBAH': 'bg-slate-300',
+                      } as const)[classification.category] : null;
+                      const indicatorTitle = classification ? ({
+                        'BERTAMBAH':     `Pagu Bertambah: +${formatIDR(Math.abs(classification.delta))} (+${classification.deltaPercent.toFixed(0)}%)`,
+                        'BERKURANG':     `Pagu Berkurang: ${formatIDR(classification.delta)} (${classification.deltaPercent.toFixed(0)}%)`,
+                        'BARU':          `Item Baru / Breakdown: +${formatIDR(classification.revisi)}`,
+                        'TIDAK_BERUBAH': `Tidak Berubah: ${formatIDR(classification.revisi)}`,
+                      } as const)[classification.category] : '';
                       return (
                         <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/70 font-black' : 'bg-white'} hover:bg-emerald-50/50 transition-colors group/row text-[11px]`}>
                           <td className="px-5 py-3 border-r border-slate-100 align-top">
+                            <div className="flex items-start gap-2">
+                              {/* Sprint D Item #2 Phase 2 — Inline indicator pill (Opsi A) */}
+                              {indicatorColor && (
+                                <span
+                                  className={`${indicatorColor} w-2 h-2 rounded-full mt-1.5 shrink-0`}
+                                  title={indicatorTitle}
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
                             <KodeAutocomplete
                               mode="bas"
                               basKategori={['BELANJA', 'PENDAPATAN']}
@@ -366,6 +430,8 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
                             {row.kode_bas && row.kode_bas !== row.kode.split('.')[0] && (
                               <p className="text-[8px] font-bold text-blue-500 mt-0.5" title={`BAS canonical: ${row.kode_bas}`}>BAS: {row.kode_bas}</p>
                             )}
+                              </div>
+                            </div>
                           </td>
                           <td className="px-5 py-3 border-r border-slate-100 align-top relative" style={{ paddingLeft: `${indentation + 1}rem` }}>
                             <div className="flex items-start gap-3 relative z-10">
