@@ -144,6 +144,182 @@ Konteks: TA 2025 sudah lewat (data historis), TA 2026 belum mulai. Window yang t
 
 ---
 
+### 0.7 Protokol Analisis Data — Wajib Dipatuhi (BARU 11 Mei 2026)
+
+**Trigger penyusunan:** Pada sesi preflight 11 Mei 2026, AI Assistant melaporkan dua "drift" (leaf count 31 vs 38, dan total Rp 2,4M vs Rp 2,7M) yang ternyata **false positive** — root cause adalah bug script analisis (filter `level > 0` sebagai proxy leaf detection). Bug ini tidak mungkin terjadi lagi kalau ada protokol tertulis. §0.7 ini adalah pencegahannya.
+
+**Cakupan:** Konvensi membaca + menganalisis `pagu_sections` data. Future extension: bills, audit_log, patient_claims (saat work expand ke tab lain).
+
+---
+
+#### 0.7.1 Konvensi Struktur `pagu_sections.data.rows`
+
+`PaguSection.rows` (lihat `types.ts` line 132-149) mengizinkan **3 pola row** yang harus dikenali analyzer:
+
+| Pola | Deskripsi | Contoh di TA 2025 |
+|---|---|---|
+| **(a) Parent + Children** | Row di `level=0` adalah aggregate header. Row berikutnya di `level≥1` adalah breakdown children. `jumlahBiaya*` parent = sum dari `jumlahBiaya*` children. | `pagu-2025-bekkes`: 521811 BELANJA BEKKES (L0) + 5 sub-rincian 521811.01..05 (L1) |
+| **(b) Standalone Leaf di level=0** | Row di `level=0` TANPA children di bawahnya. Row ITU SENDIRI adalah leaf — bukan parent. | `pagu-2025-1778401538106`: 524111 BELANJA PERJALANAN DINAS (L0, no children, satu-satunya row di section) |
+| **(c) Subkode .A/.B/.C (Konteks 4 Angga)** | KHUSUS untuk akun **532111 (Belanja Modal Pengadaan)**. Parent di L0 dengan subkode `.A`/`.B`/`.C`, children di L1 dengan format `{kode_induk}.{nomor}.{huruf}` (mis. 532111.06.A). | `pagu-2025-modal`: 532111.A ALSINTOR (L0) + 6 children → 532111.06.A, 532111.05.A, dst. |
+
+**Catatan khusus 532111.C ALSATRI di TA 2025:** Saat ini muncul sebagai pattern **(b) standalone leaf di L0**, bukan pattern (c), karena rencana realisasi Alsatri (kursi/meja) baru di TA 2026 — belum ada sub-rincian. Pattern bisa berubah jika nanti ditambah breakdown.
+
+**Empirical inventory TA 2025 (per snapshot 11 Mei 2026):**
+
+| Section | Pola dominan | Rows | Leaves |
+|---|---|---|---|
+| pagu-2025-bekkes | (a) Parent+Children | 6 | 5 (L1) |
+| pagu-2025-1778401175697 (Beban Langganan) | (b) ×2 | 2 | 2 (L0) |
+| pagu-2025-1778402367617 (Baran Non Op) | (b) | 1 | 1 (L0) |
+| pagu-2025-pemeliharaan | (a) | 3 | 2 (L1) |
+| pagu-2025-jasa | (a) | 7 | 6 (L1) |
+| pagu-2025-modal | (a) ×2 [+] (b) ×1 | 15 | 13 (12 L1 + 1 L0 standalone) |
+| pagu-2025-1778401363129 (BMP) | (b) | 1 | 1 (L0) |
+| pagu-2025-1778401538106 (BPD) | (b) | 1 | 1 (L0) |
+| pagu-2025-1778402148153 (Modal Lainnya) | (b) | 1 | 1 (L0) |
+| pagu-2025-operasional | (a) ×3 | 9 | 6 (L1) |
+| **TOTAL** | | **46** | **38** ✓ match UI |
+
+---
+
+#### 0.7.2 Algoritma Leaf Detection (WAJIB)
+
+```typescript
+// CORRECT — traversal-based
+function isLeaf(row: PaguRow, idx: number, rows: PaguRow[]): boolean {
+  if (idx === rows.length - 1) return true; // last row in section
+  const nextLevel = rows[idx + 1].level ?? 0;
+  return nextLevel <= (row.level ?? 0);
+}
+
+// ❌ ANTI-PATTERN — filter by level > 0
+// const leaves = rows.filter(r => (r.level ?? 0) > 0);
+// Menyebabkan miss standalone leaves di L0 (lihat 0.7.3 empirical).
+```
+
+**Mengapa traversal-based, bukan level-based:** Schema mengizinkan pattern (b) standalone leaf di `level=0`. Tidak ada cara membedakan "L0 parent" vs "L0 standalone leaf" dari property row sendirian — harus lihat **konteks row berikutnya** dalam array.
+
+---
+
+#### 0.7.3 Effective Value Computation (Konteks 1 Angga)
+
+Wajib pakai **`getEffectiveValue(row, mode)`** dari `utils/paguLookup.ts` saat kerja di TypeScript app. Untuk analisis external (Python preflight script, dll.), implementasi setara:
+
+```typescript
+function effectiveValue(row, mode: 'AWAL' | 'REVISI' = 'REVISI'): number {
+  const vol = row.volume ?? 0;
+  if (mode === 'AWAL') return vol * (row.hargaSatuanAwal ?? 0);
+  const hr = row.hargaSatuanRevisi ?? 0;
+  // Konteks 1: revisi=0 berarti "tidak ada revisi" → fallback ke harga awal
+  return vol * (hr > 0 ? hr : (row.hargaSatuanAwal ?? 0));
+}
+```
+
+**Trust hierarchy untuk read value:**
+1. **Compute via formula** (`volume × hargaSatuan{Awal,Revisi||Awal}`) — primary source of truth
+2. **Stored `jumlahBiaya{Awal,Revisi}`** — hanya boleh dipakai sebagai shortcut KHUSUS untuk leaves yang sudah dipastikan via 0.7.2, dengan catatan field bisa stale (Sprint D Item #1 case). Untuk parent rows, **jangan baca stored value** — sum dari children langsung.
+
+---
+
+#### 0.7.4 Verification Protocol (Sebelum Lapor)
+
+Setiap session yang melakukan analisis aggregate WAJIB jalankan checklist berikut sebelum reporting:
+
+1. **Hitung total dengan Strategy B** (traversal-based leaves + effective value)
+2. **Cross-check dengan UI authoritative source:**
+   - Tab 1.1 Pagu Anggaran → card "Pagu Semula" + "Pagu Revisi" + "Net Change" di header
+   - Tab 1.4 LRA → tabel "Ringkasan Pagu per Kode Akun" → row "TOTAL N KODE AKUN" di bagian akhir
+   - URL live: `https://sikesumav31.vercel.app`
+3. **Cross-check dengan handover claim** (SSOT-REFACTOR-LOG §0 introduction)
+4. **Reconcile discrepancy 100% sebelum lapor.** Jika selisih > Rp 0, jangan langsung sebut sebagai "drift" — **debug script dulu** dengan multi-strategy compare:
+   - Strategy A: `level > 0` (jika ini hasil, script salah)
+   - Strategy B: traversal-based leaves (ini benar)
+   - Strategy C: jumlahBiaya stored fields di leaves only
+   - Strategy D: query langsung total dari aplikasi (via DOM scrape atau UI screenshot)
+   - Kalau B = C = D, hasil benar. Kalau B ≠ C, ada stale field (laporkan sebagai schema integrity issue, bukan total drift).
+
+---
+
+#### 0.7.5 Anti-Pattern yang TIDAK BOLEH Dilakukan
+
+| # | Anti-Pattern | Konsekuensi Aktual / Potensial | Pengganti |
+|---|---|---|---|
+| AP-1 | Filter leaves dengan `row.level > 0` | Preflight 11 Mei 2026: miss 7 standalone leaves di L0 = Rp 284.945.000 (10,5% dari total) | Traversal-based `isLeaf` (§0.7.2) |
+| AP-2 | Read `jumlahBiayaRevisi` di parent rows tanpa cross-check | Sprint D Item #1: stale value menyebabkan IV check + LRA aggregator silent wrong | Sum dari children effective values |
+| AP-3 | Asumsi `data.tahun` exist di JSONB pagu_sections | 0/14 sections punya field per snapshot 11 Mei 2026 (runtime fallback di App.tsx:273) | Parse dari ID pattern `pagu-{YYYY}-*` jika field absent |
+| AP-4 | Trust Supabase raw total tanpa cross-check UI | Bug script bisa silent — false positive ke owner | Selalu reconcile dengan tab 1.1 / 1.4 UI |
+| AP-5 | Lapor "data drift" sebelum forensic | Time waste owner, hilang kredibilitas analyst | Forensic 3+ strategies + identify root cause dulu |
+| AP-6 | Read `hargaSatuanRevisi=0` sebagai literal drop | Konteks 1 Angga: berarti "tidak ada revisi → fallback ke Semula" | `getEffectiveValue(row, mode)` (§0.7.3) |
+| AP-7 | Implementasi recommendation engine yang auto-modify pagu_row data | Konteks 4 dr Ferry: violate "learning by doing" preference Angga | Recommendation only; explicit user accept/reject |
+
+---
+
+#### 0.7.6 Konteks Angga yang Berkaitan dengan Analisis (Cross-Reference)
+
+| Konteks | Penjelasan singkat | Berkaitan dengan AP-# |
+|---|---|---|
+| **Konteks 1** | Harga semula = baseline. `revisi=0` berarti "tidak ada revisi", bukan drop. Effective fallback ke Semula. | AP-2, AP-6 |
+| **Konteks 3** | Item Baru / Breakdown kategori — "akun tambahan tidak direncanakan dari awal, atau detail breakdown dari akun general". Terlihat di UI Sintesis Revisi Pagu (tab 1.1) sebagai kategori ke-2 dari 4. *Catatan: belum ada penjelasan formal di SSOT log, tapi visible di kode `utils/paguDiff.ts`. Untuk Tier 3+ saat butuh detail, tanyakan ke Angga.* | (kategorisasi sintesis) |
+| **Konteks 4 (dr Ferry)** | SIKESUMA = recommendation engine. TIDAK auto-modify pagu_row data. | AP-7 |
+| **Konteks 4 (Angga)** | Subkode `.A/.B/.C` HANYA untuk 532111 (Belanja Modal Pengadaan). | Pattern (c) di §0.7.1 |
+| **Konteks 6** | `521119` = Operasional Lainnya, `521112` = KHUSUS Bahan Makanan. Jangan tukar. | Validasi recommendation engine |
+| **Konteks 9** | Glosarium lokal di `docs/glossary.md`. Wajib baca dulu. | Onboarding |
+
+---
+
+#### 0.7.7 Onboarding Probe Sequence
+
+Setiap fresh AI session yang akan modify atau analyze data SIKESUMA WAJIB jalankan probe berikut **sebelum** mulai work:
+
+```
+1. Clone repo dengan PAT dari owner via session message
+   (Jangan request PAT lagi jika sudah ada di context current session.)
+
+2. Verify HEAD ≥ commit `2712754` (Tier 1+2 v3)
+   git log --oneline -5
+
+3. Verify file landmark exist + content sesuai:
+   - types.ts:135       `kode_bas?` di PaguRow
+   - utils/paguLookup.ts: function `getEffectiveValue`
+   - utils/internalRecommendations.ts: 14 HITL entries (cek pakai ID list di §0.4)
+   - lib/migrations/d1_fix_revisi_fallback.ts: latest migration
+   - docs/REVISI-POK-PAGU-vKoreksi.md: v3 (1145 baris)
+
+4. Query Supabase via anon key (read-only):
+   - HEAD /rest/v1/pagu_sections?select=id → expect count = 14 (atau owner-current)
+   - GET /rest/v1/pagu_sections?limit=1 → verify structure (id, data jsonb, created_at, ...)
+   - Verify Tier 3-5 future tables NOT exist (usulan_revisi, snapshot_pok → HTTP 404)
+
+5. Compute Total Pagu TA 2025 dengan Strategy B
+   (traversal-based leaves + effective value formula)
+
+6. Cross-check Strategy B result vs:
+   - SSOT-REFACTOR-LOG §0 introduction claim
+   - UI tab 1.1 atau tab 1.4 (live app sikesumav31.vercel.app)
+   - Per snapshot 11 Mei 2026: total TA 2025 = Rp 2.709.935.000,4
+
+7. ✅ Match → safe to proceed
+   ❌ Mismatch → DEBUG SCRIPT FIRST. Jangan lapor drift sebelum forensic.
+```
+
+---
+
+#### 0.7.8 Reporting Style Saat Findings Ditemukan
+
+Saat melapor analisis hasil ke owner, gunakan **clear confidence levels**:
+
+| Confidence Level | Kapan Pakai | Contoh Wording |
+|---|---|---|
+| **Confirmed** | Reproducible, ≥2 strategies converge, cross-check UI match | "Total Pagu TA 2025 = Rp X (verified via Strategy B + UI tab 1.4)" |
+| **Suspected drift, pending forensic** | Mismatch detected, root cause belum jelas | "Saya mendeteksi selisih Rp Y. Bisa script saya yang salah ATAU data drift. Forensic in progress." |
+| **False positive (retracted)** | Sudah dipastikan bug di tools analyst | "Finding #X di laporan sebelumnya saya RETRACT — false positive, root cause: [bug description]." |
+
+**Jangan campur "Confirmed" dengan "Suspected"** dalam satu pernyataan. Owner butuh decision-grade information.
+
+---
+
+*§0.7 ditambahkan 11 Mei 2026 setelah forensic false-positive incident di preflight Tier 3. Maintained as living protocol — extend saat anti-pattern baru ditemukan.*
+
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
 | Item | Commit | Description |

@@ -521,6 +521,7 @@ Full SSOT chronology + Angga normative confirmations: [`docs/glossary.md`](./doc
 
 ### Watchlist (Awareness, Not Backlog)
 
+- **Analisis data pagu_sections**: ikuti `SSOT-REFACTOR-LOG.md §0.7 Protokol Analisis Data` (BARU 11 Mei 2026) — leaf detection harus traversal-based (bukan `level > 0`), effective value pakai `getEffectiveValue`, verification cross-check UI tab 1.1/1.4. 7 anti-pattern catalogued setelah false-positive forensic incident.
 - **DoctorData/StaffData** punya same internal pattern sebagai ServiceLog pre-S3.0 (TD-1). Currently safe karena BPJSModule passes full state. Refactor scheduled Phase 3 hardening.
 - **Pre-existing 7 TS errors** di App.tsx Object.entries/values + Record<K,V> patterns. Vite skip type-check di build → non-blocking. Cleanup di TD-2.
 - **Tailwind CDN** masih digunakan (warning di console). Migrate ke PostCSS plugin = Phase 3 cleanup.
