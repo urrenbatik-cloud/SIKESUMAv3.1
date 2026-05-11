@@ -25,6 +25,7 @@
 // ============================================================================
 
 import type { Bill, PaguSection, PatientClaim, Employee, Doctor, RPDSection } from '../types';
+import { getEffectiveValue } from './paguLookup';
 
 // ─── §1. Types ─────────────────────────────────────────────────────────────
 
@@ -218,7 +219,8 @@ export function buildBucketRegistry(input: BuildBucketRegistryInput): BucketRegi
   paguSections.forEach(sec => {
     const minLvl = sec.rows.length > 0 ? Math.min(...sec.rows.map(r => r.level)) : 0;
     sec.rows.filter(r => r.level === minLvl).forEach(r => {
-      totalPagu += (budgetViewMode === 'SEMULA' ? r.jumlahBiayaAwal : r.jumlahBiayaRevisi) || 0;
+      // Sprint D Item #1 — use getEffectiveValue (Konteks 1 fallback + stale-field protection)
+      totalPagu += getEffectiveValue(r, budgetViewMode === 'SEMULA' ? 'AWAL' : 'REVISI');
       const rowMonthlyData = absorptionMap[r.kode.trim()] || {};
       totalReal += Object.values(rowMonthlyData).reduce((sum, val) => sum + val, 0);
     });
@@ -277,7 +279,8 @@ function runIVChecks(
       }
       // Use leaf nodes only
       if (r.level > 0 || sec.rows.length === 1) {
-        paguByKode[cleanCode] = (budgetViewMode === 'SEMULA' ? r.jumlahBiayaAwal : r.jumlahBiayaRevisi) || 0;
+        // Sprint D Item #1 — use getEffectiveValue (Konteks 1 fallback + stale-field protection)
+        paguByKode[cleanCode] = getEffectiveValue(r, budgetViewMode === 'SEMULA' ? 'AWAL' : 'REVISI');
       }
     });
   });

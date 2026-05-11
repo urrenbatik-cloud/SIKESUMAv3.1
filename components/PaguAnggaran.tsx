@@ -136,9 +136,39 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   const handleRowChange = (sectionId: string, rowId: string, field: keyof PaguRow, value: any) => {
     const newSections = sections.map(sec => {
       if (sec.id === sectionId) {
-        const newRows = sec.rows.map(row => 
-          row.id === rowId ? { ...row, [field]: value } : row
-        );
+        const newRows = sec.rows.map(row => {
+          if (row.id !== rowId) return row;
+          
+          // Build candidate updated row
+          let updated: PaguRow = { ...row, [field]: value };
+          
+          // Sprint D Item #1 — Konteks 1 fix: auto-mirror Revisi ← Semula
+          // Saat user input/edit hargaSatuanAwal, jika hargaSatuanRevisi belum
+          // di-set explicit (0 atau equal ke old Awal), mirror Semula ke Revisi.
+          // Rule normatif Angga: harga semula = baseline, revisi opsional.
+          // Revisi=0 BUKAN drop — harus fallback ke Semula.
+          if (field === 'hargaSatuanAwal') {
+            const oldAwal = row.hargaSatuanAwal || 0;
+            const oldRevisi = row.hargaSatuanRevisi || 0;
+            const newAwal = Number(value) || 0;
+            // Mirror only if Revisi was untouched (0) or mirrored to old Awal
+            if (oldRevisi === 0 || oldRevisi === oldAwal) {
+              updated.hargaSatuanRevisi = newAwal;
+            }
+          }
+          
+          // Sprint D Item #1 — Schema integrity sync:
+          // Saat hargaSatuan{Awal,Revisi} atau volume berubah,
+          // recompute jumlahBiaya{Awal,Revisi} = harga × volume.
+          // Hanya untuk leaf row (yang tidak punya children).
+          if (field === 'hargaSatuanAwal' || field === 'hargaSatuanRevisi' || field === 'volume') {
+            const vol = updated.volume || 0;
+            updated.jumlahBiayaAwal = (updated.hargaSatuanAwal || 0) * vol;
+            updated.jumlahBiayaRevisi = (updated.hargaSatuanRevisi || 0) * vol;
+          }
+          
+          return updated;
+        });
         return { ...sec, rows: newRows };
       }
       return sec;

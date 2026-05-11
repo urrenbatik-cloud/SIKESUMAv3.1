@@ -11,9 +11,36 @@
 // Lattice rule  : L4 — RPD totalBudget = Pagu totalBudget (DERIVED, not stored)
 // ============================================================================
 
-import type { PaguSection } from '../types';
+import type { PaguSection, PaguRow } from '../types';
 
 export type PaguViewMode = 'SEMULA' | 'REVISI' | 'SEMUA';
+
+/**
+ * Sprint D Item #1 — Konteks 1 fix helper.
+ *
+ * Get effective Pagu value (jumlahBiaya) untuk satu row, dengan unified rule:
+ *   - Jika hargaSatuanRevisi > 0: pakai harga revisi (revisi explicit)
+ *   - Else: fallback ke harga semula (Revisi=0 BUKAN drop, per normative logic Angga)
+ *
+ * Formula: effective = volume × (hargaSatuanRevisi || hargaSatuanAwal)
+ *
+ * Aggregator harus pakai helper ini, bukan baca field jumlahBiayaXxx langsung
+ * (yang bisa stale). Cocok untuk consumer downstream: IV checks, LRA aggregator.
+ *
+ * @param row - PaguRow dari section.rows
+ * @param mode - 'AWAL' untuk Pagu Semula, 'REVISI' untuk Pagu effective current
+ */
+export function getEffectiveValue(row: PaguRow, mode: 'AWAL' | 'REVISI' = 'REVISI'): number {
+  const vol = row.volume || 0;
+  if (mode === 'AWAL') {
+    return (row.hargaSatuanAwal || 0) * vol;
+  }
+  // REVISI mode dengan Konteks 1 fallback
+  const revisi = row.hargaSatuanRevisi || 0;
+  if (revisi > 0) return revisi * vol;
+  // Fallback ke Semula bila Revisi=0 (per Angga: bukan drop, baseline tetap)
+  return (row.hargaSatuanAwal || 0) * vol;
+}
 
 /**
  * Lookup Pagu (awal & revisi) untuk satu kode akun di paguSections.
@@ -47,8 +74,10 @@ export function lookupPagu(
       const hasChildren = nextRow && nextRow.level > row.level;
 
       if (!hasChildren) {
-        awalSum += row.jumlahBiayaAwal || 0;
-        revisiSum += row.jumlahBiayaRevisi || 0;
+        // Sprint D Item #1 — use getEffectiveValue for defensive computation
+        // (handles Konteks 1 fallback + stale jumlahBiaya field protection)
+        awalSum += getEffectiveValue(row, 'AWAL');
+        revisiSum += getEffectiveValue(row, 'REVISI');
         found = true;
       }
     }
@@ -96,8 +125,9 @@ export function buildPaguByKode(
       if (hasChildren) continue; // skip parents to avoid double-count
 
       if (!map[cleanCode]) map[cleanCode] = { awal: 0, revisi: 0 };
-      map[cleanCode].awal += row.jumlahBiayaAwal || 0;
-      map[cleanCode].revisi += row.jumlahBiayaRevisi || 0;
+      // Sprint D Item #1 — defensive computation via getEffectiveValue
+      map[cleanCode].awal += getEffectiveValue(row, 'AWAL');
+      map[cleanCode].revisi += getEffectiveValue(row, 'REVISI');
     }
   }
 
