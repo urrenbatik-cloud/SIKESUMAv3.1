@@ -73,75 +73,105 @@ Data konkret ini menjadi **seed values** untuk recommendation engine. Sie Renban
 
 ---
 
-## Tier 3 — Schema Metadata Migration
+## Tier 3 — Metadata Schema Extension (JSONB-Native)
 
 ### Goal
-Tambah master metadata di `pagu_row` untuk enable validasi **12 hard constraints (C1-C12)** Revisi POK kewenangan KPA per **Perdirjen Renhan Kemhan 7/2025 Pasal 22** (sebagai *lex specialis* dari PMK 62/2023).
+Tambah master metadata di setiap `PaguRow` untuk enable validasi **12 hard constraints (C1-C12)** Revisi POK kewenangan KPA per **Perdirjen Renhan Kemhan 7/2025 Pasal 22** (sebagai *lex specialis* dari PMK 62/2023).
 
 ### Scope
 
-**DB Migration (additive, nullable, no data change):**
-```sql
-ALTER TABLE pagu_row
-  ADD COLUMN kro_code        VARCHAR(10),  -- mis. "EBA", "EBB"
-  ADD COLUMN kro_name        VARCHAR(200), -- mis. "Layanan Perkantoran"
-  ADD COLUMN kegiatan_code   VARCHAR(20),  -- kode Kegiatan
-  ADD COLUMN kegiatan_name   VARCHAR(200),
-  ADD COLUMN komponen_code   VARCHAR(10),  -- "001" (gaji) / "002" (operasional)
-  ADD COLUMN komponen_name   VARCHAR(100),
-  ADD COLUMN volume_ro       NUMERIC(15,2),
-  ADD COLUMN satuan_ro       VARCHAR(50),
-  ADD COLUMN sumber_dana_kode VARCHAR(10);  -- "RM" / "PNBP" / "PHLN" / "HLN" / "PDN" / "SBSN"
-```
+**⚠ Koreksi dari blueprint awal (11 Mei 2026):** Section ini sempat ditulis dengan asumsi `pagu_row` adalah tabel SQL relational. **Itu salah.** Tabel SQL aktual adalah `pagu_sections` dengan envelope JSONB pattern — rows disimpan sebagai array di `data.rows` (lihat HANDOVER §3.1 + SSOT §0.7.5 AP-8). Implikasi: **TIDAK ada DDL untuk Tier 3.** JSONB schema-less by nature.
 
-**TypeScript types update (`types.ts`):**
+**Pendekatan yang benar — TypeScript types + JSONB pass-through:**
+
+1. **Update `types.ts` PaguRow** dengan 9 field optional:
 ```typescript
 export interface PaguRow {
-  // ... existing fields
-  kro_code?: string;
-  kro_name?: string;
-  kegiatan_code?: string;
+  // ... existing fields (id, kode, kode_bas?, description, volume, satuan,
+  //                     hargaSatuanAwal, hargaSatuanRevisi, jumlahBiayaAwal,
+  //                     jumlahBiayaRevisi, sumberDana, level)
+  kro_code?: string;          // mis. "EBA", "CAB", "CCB" (per RKKS 2025 §12.2)
+  kro_name?: string;          // mis. "Layanan Dukungan Manajemen Internal"
+  kegiatan_code?: string;     // mis. "6507" (Penyelenggaraan Kesehatan Matra Darat)
   kegiatan_name?: string;
-  komponen_code?: '001' | '002' | string;
+  komponen_code?: string;     // mis. "3" (Dukungan Operasional Hankam) / "52" (Pengadaan)
   komponen_name?: string;
-  volume_ro?: number;
-  satuan_ro?: string;
-  sumber_dana_kode?: 'RM' | 'PNBP' | 'PHLN' | 'HLN' | 'PDN' | 'SBSN' | string;
+  volume_ro?: number;         // dari DIPA Petikan
+  satuan_ro?: string;         // mis. "Layanan", "Unit", "Tahun"
+  sumber_dana_kode?: 'RM' | 'PNBP' | 'PHLN' | 'HLN' | 'PDN' | 'SBSN' | 'HIBAH' | string;
 }
 ```
 
-### Recommendation Engine (per Konteks 4 — TIDAK auto-modify data)
+2. **Existing data behavior:** field absent di JSONB untuk row lama → TypeScript `undefined` (acceptable karena optional). UI akan tampilkan "manual fill required" / "recommendation available" badge.
 
-File: `utils/metadataRecommender.ts` (BARU)
+3. **New writes behavior:** `App.tsx:583` upsert sudah pass-through full `data` JSONB (`.from('pagu_sections').upsert(allSections)`). Saat user populate field via UI → langsung persist tanpa code change tambahan.
+
+4. **NO DDL needed:**
+   - Tidak ada `ALTER TABLE` (target `pagu_row` tidak exist sebagai tabel)
+   - Tidak ada migrasi data — fields auto-undefined untuk legacy rows
+   - Tidak ada lock atau downtime risk
+   - Tidak butuh service role key — anon key cukup untuk read-verify saja
+
+### Recommendation Engine (per Konteks 4 dr Ferry — TIDAK auto-modify data)
+
+File baru: `utils/metadataRecommender.ts`
 
 ```typescript
-export function recommendMetadata(row: PaguRow): {
-  kro?: { code: string; name: string; confidence: number };
-  komponen?: { code: '001' | '002'; name: string; confidence: number };
-  sumber_dana?: { kode: string; confidence: number };
-} {
-  // Pattern matching berdasarkan kode_bas / description
-  // High confidence: 5111xx/5112xx/5114xx → Komponen 001 Belanja Pegawai
-  // High confidence: 5211xx (kecuali 521115) → Komponen 002 Operasional Kantor
-  // High confidence: "BPJS" in description → Sumber Dana "PNBP"
-  // High confidence: kode 53xxxx → KRO + Kegiatan = Layanan Perkantoran biasanya
-  // dll.
+export interface MetadataRecommendation {
+  kro?: { code: string; name: string; confidence: 'high' | 'medium' | 'low' };
+  kegiatan?: { code: string; name: string; confidence: 'high' | 'medium' | 'low' };
+  komponen?: { code: string; name: string; confidence: 'high' | 'medium' | 'low' };
+  sumber_dana?: { kode: string; confidence: 'high' | 'medium' | 'low' };
+}
+
+export function recommendMetadata(row: PaguRow): MetadataRecommendation {
+  // Pattern matching berdasarkan kode_bas + description
+  // Seed pola dari RKKS 2025 §12.2 (vKoreksi v3):
+  //   Program 012.01.AC, Kegiatan 6507, Sub-Komp F (RS Batin Tikal)
+  //   KROs aktif: CAB (Sarana), CCB (OM Sarana), EBA (Layanan Dukungan)
+  //   ROs: 1, 4, 5, 962
+  //
+  // Heuristik high-confidence:
+  //   - kode_bas 521111, 521112, 521115, 521119, 521811 → KRO EBA / RO 962 / Komp 3
+  //   - kode_bas 523111 → KRO CCB / RO 4 / Komp 3
+  //   - kode_bas 532111.* → KRO CAB / RO 1 atau 5 / Komp 52
+  //   - kode_bas 522112, 522113, 524111 → likely KRO EBA / RO 962 / Komp 3
+  //   - description contains "BPJS" → sumber_dana PNBP
+  //   - description contains "YANMASUM" → sumber_dana PNBP
+  //   - description contains "RM" or langganan utilities → sumber_dana RM
+  //
+  // Output: dictionary suggestions per field dengan confidence level.
+  // App akan tampilkan badge — Angga decide apply / edit / reject.
 }
 ```
 
-### UI (PaguAnggaran.tsx)
+**Algoritma leaf-aware:** Pakai `isLeaf()` traversal-based per §0.7.2 untuk iterate 38 true leaves di TA 2025 (bukan 31 dari filter `level>0` naive).
+
+### UI (`components/PaguAnggaran.tsx`)
 
 - Tambah expandable "Metadata" section per row (collapsed default, expand untuk edit)
-- Auto-show recommendation badge dengan "Apply suggestion?" button (Sie Renbang accept/reject/edit)
-- Badge color: high confidence = green, medium = amber, manual required = red
-- TIDAK auto-fill data tanpa eksplisit Angga klik "Apply"
+- Recommendation badge dengan eksplisit button:
+  - "Terima Rekomendasi" (apply suggestion ke row state, tunggu save explicit)
+  - "Edit Manual" (open input form, user fill sendiri)
+  - "Tolak" (mark sebagai manual-only, hide recommendation)
+- Badge color: green (high confidence) / amber (medium) / red (manual required)
+- **TIDAK auto-fill** data tanpa eksplisit klik (Konteks 4 dr Ferry + §0.7.5 AP-7)
 
 ### Acceptance Criteria
 
-- [ ] Schema migration applied (production Supabase)
-- [ ] Existing TA 2025 data: 4 dummy 2024 sections + 10 TA 2025 sections — semua punya field nullable (default NULL)
-- [ ] Recommendation engine pattern matching min. 80% high confidence rate untuk current 38 leaf rows TA 2025
-- [ ] UI button "Terima Rekomendasi" / "Edit Manual" per row, tidak ada auto-apply
+- [ ] `types.ts` PaguRow extended dengan 9 optional metadata fields — TS compile pass (baseline 11 errors maintained, no regression)
+- [ ] `utils/metadataRecommender.ts` exists, returns suggestion struct per row
+- [ ] Pattern matching coverage: ≥80% high-confidence rate untuk **38 true leaves TA 2025** (per traversal §0.7.2, bukan 31 naive filter)
+- [ ] UI button "Terima Rekomendasi" / "Edit Manual" / "Tolak" per row visible dan functional
+- [ ] **NO auto-fill** — verified by code review (no `setData({...row, kro_code: rec.kro})` without explicit user action)
+- [ ] Existing pagu_sections data tidak corrupt — fields baru = undefined hingga user fill
+- [ ] Vercel preview deploy untuk Angga test via dr Ferry
+
+### Dependencies
+
+- Tidak ada dependency ke Supabase DDL — semua TypeScript + JSONB-native
+- Read-only Supabase access (anon key) cukup untuk verify schema state pre/post
+- Bisa start langsung di feature branch tanpa wait Owner action
 
 ---
 
