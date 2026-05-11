@@ -6,6 +6,7 @@ import { YEARS } from '../constants';
 import KodeAutocomplete from './KodeAutocomplete';
 import { deriveKodeBas, lookupBas } from '../utils/basDictionary';
 import PaguDiffDashboard from './PaguDiffDashboard';
+import LaporanRevisiPOK from './LaporanRevisiPOK';
 import { classifyRow, getHiddenRowIds, type RowFilterMode } from '../utils/paguDiff';
 
 interface PaguAnggaranProps {
@@ -28,6 +29,8 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
 
   // Sprint D Item #2 Phase 2 — Inline filter (Opsi A)
   const [rowFilter, setRowFilter] = useState<RowFilterMode>('all');
+  // Sprint D Item #2 Phase 3 — Laporan Revisi POK modal (Opsi D)
+  const [showLaporan, setShowLaporan] = useState(false);
 
   // FUNGSI UTAMA: Menghitung total biaya berdasarkan hierarki (Bubble Up)
   const processedSections = useMemo(() => {
@@ -253,6 +256,10 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
         </div>
 
         <div className="flex items-center gap-3 no-print relative z-10">
+          <button onClick={() => setShowLaporan(true)} className="bg-white border-2 border-slate-200 text-slate-700 px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 active:scale-95">
+            <Printer size={16} />
+            Laporan Revisi
+          </button>
           <button onClick={onAddSection} className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center gap-3 active:scale-95 group">
             <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
             Seksi Baru
@@ -531,6 +538,15 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Sprint D Item #2 Phase 3 — Laporan Revisi POK modal (Opsi D) */}
+      {showLaporan && (
+        <LaporanRevisiPOK
+          sections={processedSections}
+          selectedYear={selectedYear}
+          onClose={() => setShowLaporan(false)}
+        />
+      )}
     </div>
   );
 };
