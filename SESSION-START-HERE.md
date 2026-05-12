@@ -4,19 +4,19 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4a MERGED to main)
+> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4b Phase 3 complete)
 >
-> **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` — Validation Engine sub-branch 4a complete (C1-C5 + UI integration full). Feature branch `feature/tier-4a-pagu-structure` dihapus post-merge. 304 tests baseline + TS 8 maintained. Bundle ini originally generated **sebelum** Turn 3+4 + Phase 3 + merge — semua sudah selesai sejak generate timestamp.
+> **Tier 4a MERGED** + **Tier 4b Phase 3 SELESAI** di `feature/tier-4b-revisi-mechanism`. 9 validators total (C1-C9) di production-ready state. UI integration full (12-card grid 9 live + 3 todo placeholder, inline indicators, bidirectional navigation, LHR APIP checkbox, Submit triple gating). 392 tests baseline + TS 8 maintained. Bundle ini originally generated **sebelum** Tier 4a/4b — keduanya sudah selesai sejak generate timestamp.
 >
 > **Untuk fresh AI session yang mengakses bundle ini:**
-> - Skip "Pending Work — Next Session Continuation" section di bawah (sub-branch 4a sudah merged)
-> - Lanjut ke **Sub-branch 4b** (`feature/tier-4b-revisi-mechanism` — C6 Jenis Belanja, C7 Sumber Dana, C8 LHR APIP, C9 Akun Minus) per Decision N2 sequential
-> - Pattern follow Tier 4a: Phase 1 (types reuse — sudah ada) + Phase 2a (fixture C6-C9) + Phase 2b (4 validators) + Phase 3 (UI integration — extend existing 12-card grid; C6-C9 cards transition dari 'todo' ke live)
-> - State authoritative: `HANDOVER.md` + `SSOT-REFACTOR-LOG.md §0.9.1-§0.9.7` + `docs/TIER-4-DESIGN.md` §3.2 (Tier 4b spec) di main
-> - Riwayat detail: `devLog.ts` entries `log-2026-05-11-tier-4a-phase-3-complete` + `log-2026-05-11-tier-4a-phase-2b-complete`
-> - Pre-merge open items §0.9.5 carried forward (C8 LHR APIP storage shape decision needed di 4b Phase 1)
+> - Skip "Pending Work — Next Session Continuation" section di bawah (Tier 4a/4b sudah done)
+> - Lanjut ke **Phase 4 squash merge** Tier 4b (Owner Vercel preview E2E test → squash merge `feature/tier-4b-revisi-mechanism` → main)
+> - Sub-branch berikutnya: `feature/tier-4c-procedural-references` (C10 SBM, C11 RPD cross-tab, C12 deadline) sequential per Decision N2
+> - State authoritative: `HANDOVER.md` + `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`
+> - Riwayat detail: `devLog.ts` entries `log-2026-05-11-tier-4b-phase-3-complete` + predecessors
+> - Open items §0.10.4 carry forward (C10/C11/C12 untuk Tier 4c)
 >
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context (R1-R5 derivation, UI design rationale, dll).
+> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b context (R1-R5 derivation, algoritma rationale, dll).
 
 ---
 

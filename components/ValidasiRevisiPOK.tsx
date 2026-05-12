@@ -46,6 +46,13 @@ interface ValidasiRevisiPOKProps {
    * di-consume. Mencegah re-trigger saat user tab away + back.
    */
   onPendingConsumed?: () => void;
+  /**
+   * [Tier 4b Phase 3c] LHR APIP acknowledgment untuk C8 validator.
+   * Bidirectional state — boolean dari App.tsx per-year, change handler
+   * propagate balik ke parent untuk update.
+   */
+  lhrApipAcknowledged: boolean;
+  onLhrApipChange: (acknowledged: boolean) => void;
 }
 
 const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
@@ -54,6 +61,8 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
   onNavigateToPagu,
   initialSelectedConstraint,
   onPendingConsumed,
+  lhrApipAcknowledged,
+  onLhrApipChange,
 }) => {
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -68,11 +77,12 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
         ta: selectedYear,
         sections: paguSections,
         evaluatedAt: new Date(),
+        lhrApipAcknowledged,  // [Tier 4b] C8 gate
       });
       setResult(newResult);
       setIsValidating(false);
     }, 50);
-  }, [paguSections, selectedYear]);
+  }, [paguSections, selectedYear, lhrApipAcknowledged]);
 
   // Initial validation saat tab di-buka. ValidasiRevisiPOK di-unmount
   // saat user pindah tab, jadi useEffect ini fire sekali per mount.
@@ -117,6 +127,8 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
         isValidating={isValidating}
         onValidate={handleValidate}
         ta={selectedYear}
+        lhrApipAcknowledged={lhrApipAcknowledged}
+        onLhrApipChange={onLhrApipChange}
       />
 
       {/* 12-card grid grouped by sub-branch */}
@@ -132,7 +144,7 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
           />
           <ConstraintGroupSection
             label="4b — Revisi Mechanism"
-            subtitle="4 constraints · BELUM TERSEDIA"
+            subtitle="4 constraints · IMPLEMENTED"
             ids={groupedResults['4b']}
             results={result.results}
             selectedConstraint={selectedConstraint}

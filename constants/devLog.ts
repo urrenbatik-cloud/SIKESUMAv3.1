@@ -280,7 +280,90 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
   // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
   // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
-  // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4) untuk full decision log.
+  // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4a) + §0.10 (Tier 4b)
+  // untuk full decision log.
+
+  {
+    id:    'log-2026-05-11-tier-4b-phase-3-complete',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4b',
+    title: 'Tier 4b Phase 3 COMPLETE — Cards C6-C9 Live + LHR APIP Checkbox',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 4b sub-branch \`feature/tier-4b-revisi-mechanism\` Phase 1+2a+2b+3 **selesai**. Branch siap untuk Phase 4 (Owner Vercel preview E2E test → squash merge ke main).
+
+**Branch state:** \`feature/tier-4b-revisi-mechanism\` (10 commits ahead of main)
+
+**Tier 4b commits audit trail (10 commits squashable):**
+- \`51fab33\` docs phase 1: design document — C6-C9 algoritma + decisions S1-S6
+- \`fd59031\` feat phase 1.5: C1 message enhancement + types confirmation + SSOT §0.10
+- \`105a7f0\` feat phase 2a: fixture validation-scenarios-4b.json — 15 scenarios C6-C9
+- \`1660446\` feat phase 2b Turn 1: C6 Jenis Belanja validator + 27 tests
+- \`c2fcadb\` feat phase 2b Turn 2: C7 Sumber Dana validator + 28 tests
+- \`08b7066\` feat phase 2b Turn 3: C9 Akun Minus validator + 18 tests
+- \`26b165d\` feat phase 2b Turn 4: C8 LHR APIP validator + 15 tests
+- \`35d661f\` docs phase 3a: UI design delta — 4 sub-phases plan
+- \`0e3595a\` feat phase 3b: C6-C9 cards live transition di dashboard
+- \`ec667fd\` feat phase 3c: LHR APIP checkbox NEW UX + Submit gating
+
+**Tier 4b functional scope delivered:**
+
+4 Validators (Phase 2b):
+- **C6 Jenis Belanja** (Pasal 22 b angka 1): Group changed leaves by 2-digit kode_bas (jenis 51/52/53/57); ≥2 distinct → fail. 27 tests.
+- **C7 Sumber Dana** (Pasal 22 b angka 1): Group changed leaves by sumber_dana_kode direct (RM/PNBP/PHLN/PLN/PDN/SBSN/HIBAH); ≥2 distinct → fail. 28 tests.
+- **C8 LHR APIP** (Pasal 22 b angka 2 BARU): Boolean state check via ctx.lhrApipAcknowledged. Procedural — no sections traversal. 15 tests.
+- **C9 Akun Minus** (Prinsip umum APBN): Per-leaf check leaf.jumlahBiayaRevisi < 0. SEMANTIC DIVERGENCE — BYPASS Konteks 1 fallback (yang akan MASK negative typo). 18 tests.
+
+Total Phase 2b Tier 4b: 88 tests cumulative. Combined dengan Tier 4a (103) + Tier 3 (201) = **392 total tests baseline**.
+
+UI Integration (Phase 3):
+- **3a (Design):** \`docs/TIER-4B-PHASE-3-UI-DESIGN.md\` brief delta dokumen
+- **3b (Cards live):** \`runAllValidators.ts\` — C6-C9 transition todo → live. Cards C6-C9 di dashboard sekarang render real validator output. Sub-branch group "4b" subtitle: 'BELUM TERSEDIA' → 'IMPLEMENTED'. Aggregate counter implemented: 5/12 → 9/12. Progress bar fill auto-extends.
+- **3c (LHR APIP checkbox NEW UX):** Checkbox di \`ValidationDashboardHeader\` antara progress bar dan submit button. Visual: amber accent saat unchecked, emerald saat checked. Triple gating Submit button: canSubmit + allImplemented + lhrApipAcknowledged. Per-year state Record<number, boolean> di App.tsx, in-memory v1 (per Decision S6).
+- **3d (this milestone):** Docs sync untuk anti-drift handover.
+
+**Key architectural insights:**
+
+1. **Algorithm pattern diversity** — Tier 4b demonstrate 4 distinct patterns:
+   - C6: Grouping with preprocessing (derive 2-digit dari kode_bas)
+   - C7: Grouping with direct field (no preprocessing)
+   - C9: Per-leaf direct check (sanity scan, BYPASS Konteks 1 fallback)
+   - C8: Procedural state check (no sections traversal, boolean only)
+
+2. **C9 critical bug catch + fix during dev** — Initial implementation pakai effectiveRevisi helper, 7 expected-fail tests incorrectly returned pass karena Konteks 1 fallback (\`hsr > 0 ? hsr : hsa\`) masks negative typo. Fix: switch to row.jumlahBiayaRevisi direct per types.ts spec literal. SEMANTIC DIVERGENCE documented di c9.ts docblock — Konteks 1 fallback cocok untuk pergeseran/grouping (C1/C6/C7) BUKAN untuk typo detection.
+
+3. **Forward-compatible design Tier 4a payoff** — Phase 1.5 expected types extension turned out **zero changes** karena \`lhrApipAcknowledged\` field SUDAH ADA di types.ts dari Phase 1 Tier 4a (forward-compatible placeholder). Saved implementation effort.
+
+4. **C1 violation message UX enhancement batched** — Per §0.9.5 backlog item. Append DIPA Halaman III pathway guidance ke C1 FAIL violation message. Done di Phase 1.5 bersama types confirmation.
+
+**Verification post Phase 3:**
+- TS baseline: 8 errors maintained (zero new errors di Tier 4b files)
+- Vitest baseline: 392 tests pass (304 Tier 4a baseline + 88 Tier 4b new)
+- Vite build: success ~6.35s, ~1.53MB bundle
+- LHR checkbox UX verified — state change triggers re-validate, C8 transition pending→pass
+
+**Phase 4 readiness:**
+- All 9 validators functional di production data (C1-C9, 4c pending)
+- UI integration complete: 9 cards live + 3 cards todo placeholder + LHR APIP checkbox + Submit gating triple condition
+- Owner action: Vercel preview E2E test → authorize squash merge
+
+**Open items carry-forward dari §0.9.5/§0.10.4:**
+- C10 SBM dictionary shape (Tier 4c Phase 1 decision)
+- C11 cross-tab navigation (Tier 4c — RPD tab 1.3 routing)
+- C12 deadline 27 Des semantics (Tier 4c Phase 1 decision)
+- Konteks 1 finding \`PaguAnggaran.tsx:50-51\` (UNRESOLVED, pre-existing TD)
+
+**Cross-references:**
+- Design parent: \`docs/TIER-4B-DESIGN.md\` (Phase 1)
+- Phase 3 delta: \`docs/TIER-4B-PHASE-3-UI-DESIGN.md\` (Phase 3a)
+- Tier 4a UI baseline: \`docs/TIER-4A-PHASE-3-UI-DESIGN.md\` (reference)
+- SSOT decisions log: \`SSOT-REFACTOR-LOG.md\` §0.10 (Tier 4b S1-S6)
+- Predecessor: \`log-2026-05-11-tier-4a-phase-3-complete\` (Tier 4a milestone)
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 (12 constraints)`,
+    decisions: ['§Tier4b-S1', '§Tier4b-S2', '§Tier4b-S3', '§Tier4b-S4', '§Tier4b-S5', '§Tier4b-S6'],
+    related: ['log-2026-05-11-tier-4a-phase-3-complete', 'log-2026-05-11-tier-4a-phase-2b-complete', 'log-2026-05-11-tier-4-design'],
+  },
 
   {
     id:    'log-2026-05-11-tier-4a-phase-3-complete',

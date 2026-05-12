@@ -82,6 +82,10 @@ const App: React.FC = () => {
   // Diset saat user click "→ Pagu Anggaran" di Validasi detail panel; consumed
   // setelah scroll + 2s highlight glow selesai.
   const [pendingPaguRowHighlight, setPendingPaguRowHighlight] = useState<{ sectionId: string; rowId: string } | null>(null);
+  // [Tier 4b Phase 3c] LHR APIP acknowledgment per year — C8 gate.
+  // In-memory only v1 (per Decision S6); persistence di Tier 5 audit trail scope.
+  // App restart → re-confirm checkbox.
+  const [lhrApipAcknowledgedByYear, setLhrApipAcknowledgedByYear] = useState<Record<number, boolean>>({});
   // [Komunikasi] Unread message count untuk badge di gear icon. Simplified MVP:
   // count phase_messages WHERE created_at > localStorage last_global_read.
   // Per-discussion granularity = future (TD-15 / Phase 3).
@@ -1172,6 +1176,10 @@ const App: React.FC = () => {
                   }}
                   initialSelectedConstraint={pendingValidasiConstraint}
                   onPendingConsumed={() => setPendingValidasiConstraint(null)}
+                  lhrApipAcknowledged={lhrApipAcknowledgedByYear[currentRKKSYear] ?? false}
+                  onLhrApipChange={(acknowledged) =>
+                    setLhrApipAcknowledgedByYear(prev => ({ ...prev, [currentRKKSYear]: acknowledged }))
+                  }
                 />
               )}
               {subTab === SubTab.BELANJA_JASA && (

@@ -35,6 +35,10 @@ import { validateC2 } from './c2';
 import { validateC3 } from './c3';
 import { validateC4 } from './c4';
 import { validateC5 } from './c5';
+import { validateC6 } from './c6';
+import { validateC7 } from './c7';
+import { validateC8 } from './c8';
+import { validateC9 } from './c9';
 
 /**
  * Marker special yang ditandai pada `result.summary` untuk constraint
@@ -53,8 +57,8 @@ export const TODO_MARKER = '__TODO__';
  * list jadi empty.
  */
 const PENDING_CONSTRAINTS: Record<ConstraintId, '4b' | '4c' | null> = {
-  C1: null, C2: null, C3: null, C4: null, C5: null,  // implemented
-  C6: '4b', C7: '4b', C8: '4b', C9: '4b',             // Tier 4b pending
+  C1: null, C2: null, C3: null, C4: null, C5: null,  // Tier 4a implemented
+  C6: null, C7: null, C8: null, C9: null,             // Tier 4b implemented (Phase 2b complete)
   C10: '4c', C11: '4c', C12: '4c',                    // Tier 4c pending
 };
 
@@ -109,17 +113,21 @@ function buildTodoResult(
 export function runAllValidators(ctx: ValidationContext): ValidationResult {
   const evaluatedAt = (ctx.evaluatedAt ?? new Date()).toISOString();
 
-  // Run Phase 2b validators
+  // Run Phase 2b validators (Tier 4a C1-C5 + Tier 4b C6-C9)
   const liveResults: Record<string, ConstraintResult> = {
     C1: validateC1(ctx),
     C2: validateC2(ctx),
     C3: validateC3(ctx),
     C4: validateC4(ctx),
     C5: validateC5(ctx),
+    C6: validateC6(ctx),
+    C7: validateC7(ctx),
+    C8: validateC8(ctx),
+    C9: validateC9(ctx),
   };
 
-  // Build placeholder for Tier 4b + 4c constraints
-  const todoIds: ConstraintId[] = ['C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12'];
+  // Build placeholder for Tier 4c constraints (still pending)
+  const todoIds: ConstraintId[] = ['C10', 'C11', 'C12'];
   todoIds.forEach(id => {
     liveResults[id] = buildTodoResult(id, evaluatedAt);
   });

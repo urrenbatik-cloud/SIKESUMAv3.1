@@ -620,7 +620,85 @@ Future docs cross-references should use **baseline 8** as the maintained thresho
 
 ---
 
-*§0.9 ditambahkan 11 Mei 2026 setelah Tier 4a Phase 1+2a+2b-partial complete + post-compaction consistency sync. Updated saat checkpoint: ✓ (1) Tier 4a Phase 2b complete (semua 5 validators C1-C5, 103 tests cumulative, R1-R5 governance locked). Pending: (2) Phase 3 UI lands, (3) sub-branch 4a squash merge ke main, (4) start sub-branch 4b.*
+*§0.9 ditambahkan 11 Mei 2026 setelah Tier 4a Phase 1+2a+2b-partial complete + post-compaction consistency sync. Updated saat checkpoint: ✓ (1) Tier 4a Phase 2b complete (semua 5 validators C1-C5, 103 tests cumulative, R1-R5 governance locked). ✓ (2) Phase 3 UI complete. ✓ (3) Sub-branch 4a squash merge ke main (commit `abe193c`). ✓ (4) Sub-branch 4b started — see §0.10.*
+
+---
+
+### 0.10 Tier 4b Implementation Decisions Log (11 Mei 2026)
+
+Successor block for sub-branch `feature/tier-4b-revisi-mechanism` — C6-C9 Revisi Mechanism constraints. Created from main `bdba7a1` post Tier 4a squash merge. Companion document: `docs/TIER-4B-DESIGN.md` (Phase 1 design doc, commit `51fab33`).
+
+#### 0.10.1 Decisions Owner-Approved (Tier 4b S1-S6)
+
+Owner direction 11 Mei 2026 — approve all defaults batch:
+
+- **S1 (C6 algorithm pattern):** Group changed leaves by 2-digit `kode_bas` (jenis belanja: 51/52/53/57). Distinct count ≥ 2 → fail. Mirror C2/C3 grouping pattern. Consistent dengan R1 (effective values via `helpers.isChangedRow`) + R2 (strict pending).
+
+- **S2 (C7 algorithm pattern):** Group changed leaves by `sumber_dana_kode` (RM/PNBP/PHLN/PLN/PDN/SBSN/HIBAH). Distinct count ≥ 2 → fail. Mirror C2/C6 pattern.
+
+- **S3 (C8 LHR APIP storage):** App-level state per year `lhrApipAcknowledgedByYear: Record<number, boolean>` di App.tsx. ValidationContext field `lhrApipAcknowledged?: boolean` SUDAH ADA di types.ts (forward-compatible placeholder dari Phase 1 Tier 4a — zero type extension needed). UI: checkbox di Validasi tab header sebelum Submit button enabled. v1 in-memory only — persistence Supabase = Tier 5 audit trail scope per S6.
+
+- **S4 (C9 algorithm):** Per-leaf check `effectiveRevisi(row) < 0` → violation. BUKAN net balance per kode akun. Match types.ts spec "sanity check untuk catch data entry typo". Net balance enhancement = potential Tier 4c atau later.
+
+- **S5 (Missing field handling C6/C7):** Strict pending — ANY changed row missing `kode_bas` (C6) atau `sumber_dana_kode` (C7) → status 'pending' dengan affectedRowIds + Tier 3 fill guidance. Consistent dengan R2 Tier 4a.
+
+- **S6 (C8 persistence v1):** In-memory only saat session. App restart = re-confirm checkbox. Proper audit trail (when KPA submit revisi) = Tier 5 scope.
+
+**Plus enhancement batched:**
+- **§0.9.5 C1 violation message UX enhancement:** Batch dengan Tier 4b Phase 1.5. Append guidance text ke pathway DIPA Halaman III untuk help Sie Renbang identify correct mechanism. Implemented di `utils/validators/c1.ts` line 106-119 (multi-line concat).
+
+#### 0.10.2 Phase Structure Per Sub-Branch 4b
+
+Mirror Tier 4a pattern dengan estimated turns ~10 total:
+
+| Phase | Deliverable | Status |
+|---|---|---|
+| 1 Design | `docs/TIER-4B-DESIGN.md` design spec + S1-S6 decisions | ✅ Done (commit `51fab33`) |
+| 1.5 Types + C1 enhancement | ValidationContext field SUDAH ADA (no extension); C1 message enhancement batched | In progress |
+| 2a Fixture | `utils/fixtures/validation-scenarios-4b.json` ~15 scenarios | Pending |
+| 2b Turn 1 | C6 Jenis Belanja validator + tests | Pending |
+| 2b Turn 2 | C7 Sumber Dana validator + tests | Pending |
+| 2b Turn 3 | C9 Akun Minus validator + tests | Pending |
+| 2b Turn 4 | C8 LHR APIP validator + tests | Pending |
+| 3a-3d UI integration | Dashboard cards live transition + LHR APIP checkbox + wiring | Pending |
+| 4 Squash merge | Owner E2E test → squash ke main | Pending |
+
+#### 0.10.3 Field Coverage Map
+
+Per Tier 4a baseline + Tier 4b additions:
+
+| Field | Source | Used By |
+|---|---|---|
+| `kode` | PaguRow base | All validators (display) |
+| `kode_bas` | PaguRow Tier 3 | C2 (KRO derive — current placeholder), **C6 (NEW — 2-digit jenis belanja)** |
+| `sumber_dana_kode` | PaguRow Tier 3 typed union | **C7 (NEW)** |
+| `kro_code` | PaguRow Tier 3 | C2 |
+| `kegiatan_code` | PaguRow Tier 3 | C3 |
+| `ro_code` | PaguRow Tier 3 | C5 |
+| `volume_ro` + `satuan_ro` | PaguRow Tier 3 | C5 |
+| `hargaSatuanAwal/Revisi` + `volume` | PaguRow base | C1 (via effectiveAwal/Revisi), C9 |
+| `metadata_review` | PaguRow Tier 3 | All — confidence override mechanism |
+| `lhrApipAcknowledged` | ValidationContext (App state) | **C8 (NEW)** |
+
+Zero DDL impact. JSONB-native pattern (AP-8) preserved. All fields sudah typed di Phase 1 Tier 4a — Tier 4b cuma consume.
+
+#### 0.10.4 Open Items Carried Forward dari §0.9.5
+
+- **C11 cross-tab navigation** (Tier 4c implementation): RPD tab routing
+- **C10 SBM dictionary shape** (Tier 4c Phase 1 decision)
+- **Konteks 1 finding** `PaguAnggaran.tsx:50-51` (UNRESOLVED, UI display bug, pre-existing TD)
+
+#### 0.10.5 Cross-References
+
+- Design parent: `docs/TIER-4B-DESIGN.md` (Phase 1 commit `51fab33`)
+- Architecture: `docs/TIER-4-DESIGN.md` §2 + §3.2
+- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3 + §3.5
+- Predecessor squash: `abe193c` Tier 4a (main HEAD pre-4b)
+- Validator pattern reference: `utils/validators/c2.ts` (C6/C7 mirror)
+
+---
+
+*§0.10 ditambahkan 11 Mei 2026 setelah Tier 4b Phase 1 design Owner-approved. S1-S6 defaults batch-approved + C1 enhancement batched. Updated saat checkpoint Phase 1.5 → 2a transition.*
 
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 

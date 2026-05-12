@@ -1,0 +1,442 @@
+{
+  "$schema": "tier-4b-validation-fixture-v1",
+  "generated_at": "2026-05-11T13:00:00Z",
+  "description": "Test scenarios untuk Tier 4b Phase 2b validators (C6 Jenis Belanja, C7 Sumber Dana, C8 LHR APIP, C9 Akun Minus). Pattern analogi pre-operative checklist — setiap skenario = simulated case dengan ground truth outcome. Validator implementation harus return status + violations sesuai 'expected' di setiap skenario.",
+  "ta": 2025,
+  "satker": "685784 Kesdam II/Sriwijaya",
+  "reference": {
+    "constraint_specs": "utils/validators/types.ts CONSTRAINT_SPECS C6-C9",
+    "master_domain": "docs/REVISI-POK-PAGU-vKoreksi.md §3.3",
+    "design_doc": "docs/TIER-4B-DESIGN.md §2.1-§2.4",
+    "decisions": "SSOT-REFACTOR-LOG.md §0.10.1 S1-S6"
+  },
+  "scenarios": {
+    "c6": [
+      {
+        "name": "C6 pass — pure shift within belanja barang (52)",
+        "description": "Geser dana antar akun belanja barang (521115 honor → 521119 operasional), keduanya jenis '52'. Klasik valid pergeseran POK.",
+        "sections": [
+          {
+            "id": "test-c6-pass-single-jenis",
+            "tahun": 2025,
+            "title": "TEST C6 PASS — Pure shift within 52",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C6 fail — shift across belanja barang (52) to belanja modal (53)",
+        "description": "521115 berkurang 1jt, 532111 bertambah 1jt. Net Rp 0 (C1 pass) tapi jenis belanja berubah 52→53. Pergeseran antar-jenis: NOT allowed via revisi POK kewenangan KPA.",
+        "sections": [
+          {
+            "id": "test-c6-fail-cross-jenis",
+            "tahun": 2025,
+            "title": "TEST C6 FAIL — Cross jenis belanja",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "532111", "kode_bas": "532111", "description": "PENGADAAN ALKES",
+                "volume": 1, "satuan": "UNIT",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violationsCount": 1,
+          "violationMessageContains": "jenis belanja"
+        }
+      },
+      {
+        "name": "C6 pending — changed row missing kode_bas",
+        "description": "1 changed row kode_bas '521115' (jenis 52), 1 changed row missing kode_bas. Per R2 strict: ANY missing field → pending.",
+        "sections": [
+          {
+            "id": "test-c6-pending-missing",
+            "tahun": 2025,
+            "title": "TEST C6 PENDING — Missing kode_bas",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "XXX", "description": "MISSING kode_bas",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pending",
+          "affectedRowIdsContains": ["r2"]
+        }
+      },
+      {
+        "name": "C6 pass — empty (no changed rows)",
+        "description": "Semua row Semula = Revisi (no revisi terjadi). Pass karena nothing to validate.",
+        "sections": [
+          {
+            "id": "test-c6-pass-empty",
+            "tahun": 2025,
+            "title": "TEST C6 PASS — Empty",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      }
+    ],
+    "c7": [
+      {
+        "name": "C7 pass — pure shift within RM (Rupiah Murni)",
+        "description": "Geser antar-akun, keduanya sumber 'RM'. Klasik valid.",
+        "sections": [
+          {
+            "id": "test-c7-pass-single-sumber",
+            "tahun": 2025,
+            "title": "TEST C7 PASS — Pure RM",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "RM",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "RM",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C7 fail — shift across RM ↔ PNBP",
+        "description": "Geser dana dari sumber RM (APBN) ke PNBP (BPJS). Sumber dana berbeda — NOT allowed.",
+        "sections": [
+          {
+            "id": "test-c7-fail-cross-sumber",
+            "tahun": 2025,
+            "title": "TEST C7 FAIL — Cross sumber dana",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR RM",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "RM",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521115", "kode_bas": "521115", "description": "HONOR BPJS",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "PNBP",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "PNBP", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violationsCount": 1,
+          "violationMessageContains": "sumber dana"
+        }
+      },
+      {
+        "name": "C7 pending — changed row missing sumber_dana_kode",
+        "description": "1 changed row has sumber_dana_kode=RM, 1 missing. Per R2 strict → pending.",
+        "sections": [
+          {
+            "id": "test-c7-pending-missing",
+            "tahun": 2025,
+            "title": "TEST C7 PENDING — Missing sumber_dana_kode",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "RM",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "MISSING sumber",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pending",
+          "affectedRowIdsContains": ["r2"]
+        }
+      },
+      {
+        "name": "C7 pass — empty (no changed rows)",
+        "description": "Semua row Semula = Revisi. Pass.",
+        "sections": [
+          {
+            "id": "test-c7-pass-empty",
+            "tahun": 2025,
+            "title": "TEST C7 PASS — Empty",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN", "sumber_dana_kode": "RM",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      }
+    ],
+    "c8": [
+      {
+        "name": "C8 pass — LHR APIP acknowledged",
+        "description": "User explicit check checkbox 'sudah review LHR APIP'. ctx.lhrApipAcknowledged = true.",
+        "sections": [
+          {
+            "id": "test-c8-pass-acknowledged",
+            "tahun": 2025,
+            "title": "TEST C8 PASS — LHR Acknowledged",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_lhrApipAcknowledged": true,
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C8 pending — LHR APIP not acknowledged (false)",
+        "description": "User belum check checkbox. ctx.lhrApipAcknowledged = false → pending (BUKAN fail per S3 default).",
+        "sections": [
+          {
+            "id": "test-c8-pending-false",
+            "tahun": 2025,
+            "title": "TEST C8 PENDING — LHR False",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_lhrApipAcknowledged": false,
+        "expected": {
+          "status": "pending"
+        }
+      },
+      {
+        "name": "C8 pending — LHR APIP undefined (initial state)",
+        "description": "ctx.lhrApipAcknowledged undefined (no checkbox in ctx). Same semantic as false → pending.",
+        "sections": [
+          {
+            "id": "test-c8-pending-undefined",
+            "tahun": 2025,
+            "title": "TEST C8 PENDING — LHR Undefined",
+            "rows": []
+          }
+        ],
+        "expected": {
+          "status": "pending"
+        }
+      }
+    ],
+    "c9": [
+      {
+        "name": "C9 pass — all leaves positive",
+        "description": "Semua leaf jumlahBiayaRevisi >= 0. No typo detected.",
+        "sections": [
+          {
+            "id": "test-c9-pass-positive",
+            "tahun": 2025,
+            "title": "TEST C9 PASS — All positive",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "OPERASIONAL",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 6000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 6000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C9 fail — typo causes negative jumlahBiayaRevisi",
+        "description": "Row r2 hargaSatuanRevisi = -1000000 (sign typo, harusnya 1000000). jumlahBiayaRevisi = -1000000 < 0. C9 violation.",
+        "sections": [
+          {
+            "id": "test-c9-fail-negative",
+            "tahun": 2025,
+            "title": "TEST C9 FAIL — Negative typo",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "HONOR",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4000000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "TYPO",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": -1000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": -1000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violationsCount": 1,
+          "affectedRowIdsContains": ["r2"]
+        }
+      },
+      {
+        "name": "C9 pass — boundary zero",
+        "description": "Row r1 jumlahBiayaRevisi = 0 (boundary case). 0 >= 0 → tetap PASS, BUKAN fail.",
+        "sections": [
+          {
+            "id": "test-c9-pass-zero",
+            "tahun": 2025,
+            "title": "TEST C9 PASS — Zero boundary",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "ZERO BOUNDARY",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 0,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 0,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pass",
+          "violations": []
+        }
+      },
+      {
+        "name": "C9 fail — multiple negative leaves",
+        "description": "2 rows dengan typo negative. C9 return 2 violations, status fail.",
+        "sections": [
+          {
+            "id": "test-c9-fail-multi",
+            "tahun": 2025,
+            "title": "TEST C9 FAIL — Multiple typos",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "TYPO 1",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": -500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": -500000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "TYPO 2",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": -2000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": -2000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violationsCount": 2,
+          "affectedRowIdsContains": ["r1", "r2"]
+        }
+      }
+    ]
+  }
+}

@@ -25,6 +25,13 @@ interface ValidationDashboardHeaderProps {
   isValidating: boolean;
   onValidate: () => void;
   ta: number;
+  /**
+   * [Tier 4b Phase 3c] LHR APIP acknowledgment state untuk C8 validator.
+   * Boolean: true = user sudah check checkbox; false = belum.
+   * Per Decision S6 (in-memory v1) — state managed di App.tsx per-year.
+   */
+  lhrApipAcknowledged: boolean;
+  onLhrApipChange: (acknowledged: boolean) => void;
 }
 
 const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
@@ -32,6 +39,8 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
   isValidating,
   onValidate,
   ta,
+  lhrApipAcknowledged,
+  onLhrApipChange,
 }) => {
   // ─── Compute counters separating real status vs todo ───────────────
   const counters = useMemo(() => {
@@ -70,9 +79,10 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
 
   // Submit button enabled hanya kalau semua 12 constraint pass/warn/na
   // (BUKAN fail BUKAN pending) — DAN semua 12 already implemented (todo=0)
+  // DAN lhrApipAcknowledged (C8 gate per Tier 4b Phase 3c)
   const canSubmit = result?.canSubmit ?? false;
   const allImplemented = counters.todo === 0;
-  const submitEnabled = canSubmit && allImplemented;
+  const submitEnabled = canSubmit && allImplemented && lhrApipAcknowledged;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm mb-6">
@@ -126,6 +136,32 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
         </div>
       </div>
 
+      {/* [Tier 4b Phase 3c] LHR APIP acknowledgment checkbox (C8 gate) */}
+      <label
+        className={`
+          flex items-start gap-3 rounded-xl border-2 p-3 mb-4 cursor-pointer
+          transition-all
+          ${lhrApipAcknowledged
+            ? 'border-emerald-300 bg-emerald-50'
+            : 'border-amber-300 bg-amber-50 hover:bg-amber-100'}
+        `.replace(/\s+/g, ' ').trim()}
+      >
+        <input
+          type="checkbox"
+          checked={lhrApipAcknowledged}
+          onChange={(e) => onLhrApipChange(e.target.checked)}
+          className="mt-1 w-4 h-4 rounded accent-emerald-600 cursor-pointer flex-shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-bold leading-tight ${lhrApipAcknowledged ? 'text-emerald-800' : 'text-amber-800'}`}>
+            Saya konfirmasi sudah review LHR APIP atas RKA TA {ta} sebelum mengajukan revisi POK kewenangan KPA
+          </p>
+          <p className="text-[10px] text-slate-500 mt-1">
+            Pasal 22 huruf b angka 2 Perdirjen Renhan Kemhan 7/2025 — wajib explicit acknowledge sebelum Submit Revisi POK
+          </p>
+        </div>
+      </label>
+
       {/* Last validated + Submit button */}
       <div className="flex items-center justify-between pt-4 border-t border-slate-100">
         <p className="text-xs text-slate-500">
@@ -136,10 +172,12 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
           disabled={!submitEnabled}
           title={
             !allImplemented
-              ? 'Menunggu Tier 4b + 4c — validator lengkap C1-C12'
-              : !canSubmit
-                ? 'Masih ada FAIL / PENDING — perbaiki sebelum submit'
-                : 'Submit Revisi POK ke KPA'
+              ? 'Menunggu Tier 4c — validator lengkap C1-C12'
+              : !lhrApipAcknowledged
+                ? 'Check checkbox LHR APIP dulu sebelum submit (C8 pending)'
+                : !canSubmit
+                  ? 'Masih ada FAIL / PENDING — perbaiki sebelum submit'
+                  : 'Submit Revisi POK ke KPA'
           }
           className={`
             flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold

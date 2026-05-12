@@ -103,7 +103,19 @@ export function validateC1(ctx: ValidationContext): ConstraintResult {
 
   // FAIL case: selisih signifikan
   const direction = selisih > 0 ? 'bertambah' : 'berkurang';
-  const message = `Pagu satker ${direction} ${formatRupiah(Math.abs(selisih))} — Semula ${formatRupiah(totalAwal)}, Revisi ${formatRupiah(totalRevisi)}. Revisi POK kewenangan KPA tidak boleh mengubah total pagu satker (Pasal 22 huruf b angka 1).`;
+  // [§0.9.5 enhancement — batch dengan Tier 4b Phase 1.5]
+  // Tambah guidance ke pathway alternatif untuk help Sie Renbang
+  // identify correct mechanism. Case study RS Batin Tikal 2025:
+  // layanan bedah saraf full operasional → add pagu Rp 1.7M → wrong
+  // mechanism jika via revisi POK kewenangan KPA. Correct: DIPA Hal III.
+  const message =
+    `Pagu satker ${direction} ${formatRupiah(Math.abs(selisih))} — ` +
+    `Semula ${formatRupiah(totalAwal)}, Revisi ${formatRupiah(totalRevisi)}. ` +
+    `Revisi POK kewenangan KPA tidak boleh mengubah total pagu satker ` +
+    `(Pasal 22 huruf b angka 1). ` +
+    `Untuk menambah/mengurangi total pagu satker, gunakan Revisi DIPA ` +
+    `Halaman III (kewenangan KAPK/Eselon I) atau revisi DIPA penuh — ` +
+    `bukan Revisi POK kewenangan KPA.`;
 
   return {
     constraintId: 'C1',
