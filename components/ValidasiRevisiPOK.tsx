@@ -74,6 +74,16 @@ interface ValidasiRevisiPOKProps {
    */
   lhrApipAcknowledged: boolean;
   onLhrApipChange: (acknowledged: boolean) => void;
+  /**
+   * [Tier 5a Phase 2.4] Submit handler — pass-through ke
+   * ValidationDashboardHeader. Optional kalau parent belum wire (test
+   * scenarios atau Phase 2.4 incomplete state).
+   */
+  onSubmit?: () => void;
+  /**
+   * [Tier 5a Phase 2.4] In-flight indicator — pass-through ke header.
+   */
+  isSubmitting?: boolean;
 }
 
 const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
@@ -86,6 +96,8 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
   onPendingConsumed,
   lhrApipAcknowledged,
   onLhrApipChange,
+  onSubmit,
+  isSubmitting,
 }) => {
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -165,6 +177,36 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
+      {/* [Tier 5a Phase 2.5] Banner V1 LHR APIP — R4a Owner choice (text-only,
+          no link). Conditional render kalau current year LHR APIP belum
+          di-acknowledge. Referensi: Pasal 22 huruf b angka 2 Perdirjen Renhan
+          Kemhan 7/2025 — LHR APIP wajib di-considered untuk revisi POK.
+          Strategy A V1 minimal (Owner-approved 13 Mei 2026): cukup notify,
+          banner hilang otomatis saat checkbox C8 di-check (state propagate
+          via `lhrApipAcknowledged` prop dari App.tsx). */}
+      {!lhrApipAcknowledged && (
+        <div
+          className="rounded-xl border-2 border-amber-300 bg-amber-50 p-4 flex items-start gap-3"
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center mt-0.5">
+            <span className="text-amber-800 font-bold text-sm">!</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-amber-900 leading-snug">
+              LHR APIP TA {selectedYear} belum di-acknowledge
+            </p>
+            <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+              Submit Revisi POK akan ditolak sampai Sie Renbang konfirmasi
+              review LHR APIP (Pasal 22 huruf b angka 2 Perdirjen Renhan
+              Kemhan No. 7 Tahun 2025). Cek checkbox di header dashboard
+              setelah review selesai.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <ValidationDashboardHeader
         result={result}
@@ -173,6 +215,8 @@ const ValidasiRevisiPOK: React.FC<ValidasiRevisiPOKProps> = ({
         ta={selectedYear}
         lhrApipAcknowledged={lhrApipAcknowledged}
         onLhrApipChange={onLhrApipChange}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
       />
 
       {/* [Tier 4c Phase 3c-toggle T9] C11 strategy toggle banner.

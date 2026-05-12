@@ -276,12 +276,302 @@ export const ROADMAP: RoadmapItem[] = [
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
-  // SSOT REFACTOR — Tier 3 + Tier 4 + Tier 5 (11-12 Mei 2026)
+  // SSOT REFACTOR — Tier 3 + Tier 4 + Tier 5 (11-13 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
   // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
   // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
   // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4a) + §0.10 (Tier 4b)
   // + §0.11 (Tier 4c) + §0.12 (Tier 5) untuk full decision log.
+
+  {
+    id:    'log-2026-05-13-tier-5a-phase-2.5-lhr-apip-r3c-complete',
+    date:  '2026-05-13',
+    phase: 'SSOT Refactor / Tier 5a / Phase 2.5 — LHR APIP R3c Migration',
+    title: 'Tier 5a Phase 2.5 COMPLETE — LHR APIP R3c Persistence + Tied Audit + Banner V1 (commit 93d9155)',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Phase 2.5 deliverable per docs/TIER-5-DESIGN.md §3.3 + §5 + PHASE-2-BACKEND-API-REFERENCE.md Recipe D + E. Strategy A (V1 minimal) per Owner-decision 13 Mei 2026 — checkbox-only UX, placeholder tied audit values, forward-compat ke Strategy B richer V2.
+
+**Three deliverables Phase 2.5:**
+
+1. **R3c Global Persistence** — \`lhrApipAcknowledgedByYear\` state shape migrate dari \`Record<number, boolean>\` ke \`LhrApipGlobalState\` (per-year entry dengan acknowledged + acknowledged_at + optional V2 nomor/tanggal). Load on mount via \`getSetting<LhrApipGlobalState>('lhr_apip_global')\` (existing helpers di lib/supabase.ts:194-207). Save on checkbox change via \`saveSetting\` — best-effort error handling (banner V1 re-show kalau save fail). JSONB-native AP-8 — TIDAK tambah service module baru, pakai existing system_settings pattern.
+
+2. **R3c Tied Audit** — \`deriveLhrApipForSubmission(state, year)\` pure helper derive \`UsulanLhrApip\` payload (Strategy A placeholder: nomor="(belum diisi)", tanggal=acknowledged_at.slice(0,10), acknowledged_at). \`executeSubmitRevisiPOK\` extended args accept \`lhrApipForYear?: UsulanLhrApip\` — kalau provided, populate \`usulan_revisi.data.lhr_apip\` saat \`createUsulanDraft\` call. Itjenad audit trail: "Usulan X memang acknowledge LHR Y pada tanggal Z saat Submit".
+
+3. **Banner V1 UI** (R4a Owner choice — text-only, no link) — di top \`<ValidasiRevisiPOK>\` (sebelum ValidationDashboardHeader). Conditional \`{!lhrApipAcknowledged && ...}\` — amber color scheme, alert role + aria-live=polite, citation Pasal 22 huruf b angka 2 Perdirjen Renhan Kemhan 7/2025. Predicate inline (consume existing \`lhrApipAcknowledged: boolean\` prop yang sudah carry info, tidak butuh extra prop).
+
+**Files MOD (4):**
+
+- \`utils/submitRevisiHelpers.ts\` (+137 lines): NEW types \`LhrApipYearEntry\` + \`LhrApipGlobalState\`, NEW const \`LHR_APIP_GLOBAL_KEY\`, NEW pure helpers \`shouldShowLhrApipBanner\` + \`deriveLhrApipForSubmission\`, EXTEND \`executeSubmitRevisiPOK\` args (\`lhrApipForYear?\`) + conditional spread to initialData.lhr_apip.
+
+- \`utils/submitRevisiHelpers.test.ts\` (+156 lines, +12 tests): 3 \`executeSubmitRevisiPOK\` propagation tests (undefined / Strategy A / Strategy B); 4 \`shouldShowLhrApipBanner\` tests (null state / no entry / unack / ack); 5 \`deriveLhrApipForSubmission\` tests (null / missing / unack / Strategy A placeholder / Strategy B real).
+
+- \`App.tsx\` (+90 / -16 lines): import extension (helpers + getSetting/saveSetting + 2 types), state shape migration (line 105), useEffect mount-load best-effort (line 152), \`handleLhrApipChange\` callback persist via saveSetting (line ~1077, post-currentRKKSYear declaration), \`handleSubmitRevisiPOK\` extended derive lhrApipForYear + pass orchestrator, prop pass-through update (line ~1339).
+
+- \`components/ValidasiRevisiPOK.tsx\` (+30 lines): Banner JSX block sebelum \`<ValidationDashboardHeader>\`, conditional render, amber styling, role="alert" aria-live="polite".
+
+**Forward-compat ke Strategy B V2:**
+Schema \`LhrApipYearEntry\` sudah include optional \`nomor?\` + \`tanggal?\` fields sejak V1, sehingga UI upgrade Strategy B tinggal tambah form input fields ke ValidationDashboardHeader (sebelah checkbox C8) tanpa JSONB schema migration. Spread bersyarat di \`handleLhrApipChange\` preserve existing V2 fields kalau user pernah isi.
+
+**Test baseline:** 598 → **610 pass** (+12). TS errors 8/8 maintained (7 App.tsx + 1 PaguAnggaran.tsx:512). Vite build success ~8.8s, 1.6MB minified.
+
+**Commit:** \`93d9155\` paired commit→push (single atomic, in-session per OWNER-POLICY v1.4 §P).
+
+**Next steps:**
+- **Phase 3** = Owner manual E2E test di Vercel Preview URL untuk \`feature/tier-5a-audit-trail-backend\` (auto-deployed post push). Smoke test flow: toggle checkbox C8 → banner toggle + Supabase write verify, refresh browser → state persisted, Submit dengan changed row → \`usulan_revisi.data.lhr_apip\` populated verify.
+- **Phase 4** = squash merge feature → main setelah Owner approve. Production update separate via \`main → production\` merge.`,
+    files: [
+      'utils/submitRevisiHelpers.ts',
+      'utils/submitRevisiHelpers.test.ts',
+      'App.tsx',
+      'components/ValidasiRevisiPOK.tsx',
+      'SSOT-REFACTOR-LOG.md',
+      'HANDOVER.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      'Strategy A (V1 minimal) chosen per Owner-decision 13 Mei 2026 — checkbox-only UX, placeholder tied audit',
+      'Forward-compat ke Strategy B preserved sejak V1 — optional nomor/tanggal di schema',
+      'Banner placement di ValidasiRevisiPOK (bukan App-level) — scope C8 gate hanya di tab Validasi',
+      'JSONB-native persistence pakai existing getSetting/saveSetting (BUKAN tambah service module baru) per AP-8',
+      'Pure helpers di submitRevisiHelpers.ts (BUKAN types.ts) — local scope, types.ts canonical untuk DB shapes',
+      'In-session commit + docs sync per OWNER-POLICY v1.4 §P (budget cukup, BUKAN handover)',
+    ],
+    related: ['log-2026-05-12-tier-5a-phase-2.5-handover-prep', 'log-2026-05-12-tier-5a-phase-2.4-submit-flow-complete'],
+  },
+  {
+    id:    'log-2026-05-12-tier-5a-phase-2.5-handover-prep',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 5a / Phase 2.5 Handover Prep',
+    title: 'Tier 5a Phase 2.4 COMPLETE + Phase 2.5 Handover Bundle SIAP — OWNER-POLICY v1.4',
+    type:  'docs',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Post Phase 2.4 commit \`958e426\` di sesi ini, prep handover ke fresh session untuk Phase 2.5 + Phase 3 Owner E2E test prep. Skenario B chosen per Owner direction (12 Mei 2026) — budget mid-session tipis (~35% remaining vs Phase 2.5 estimate ~30%), handover bundle pattern (recovery dari context loss, BUKAN primary path per OWNER-POLICY v1.4 §P).
+
+**OWNER-POLICY Addendum v1.4 ADDED (post v1.3):**
+- §P: In-Session Commit Principle — spoke session yang complete kerja substantif WAJIB commit + push di sesi yang sama, BUKAN handover ke fresh session. Bundle handover = recovery mechanism, BUKAN primary path. Owner correction real-time setelah AI bias toward "split aggressively" pattern (mid-session, hampir selesai vs precedent fresh-session-bootstrap konteks).
+- §Q: Phase 2.4 Success Template — DI orchestrator pattern, ~6-7 turn profile, in-session commit working as expected
+- §R: Phase 2.5 Handoff Specifics — Strategy A (V1 minimal) vs B (richer) decision framing untuk fresh session first turn
+
+**Handover bundle composition:**
+- BUNDLE-README.md (bootstrap)
+- OWNER-POLICY-FOR-AI-SESSIONS.md (v1.4 latest)
+- HANDOVER.md (Phase 2.4 COMPLETE \`958e426\` flag)
+- SESSION-START-HERE.md (Phase 2.5 orientation)
+- SSOT-REFACTOR-LOG.md (§0.12.10 Phase 2.4 execution log)
+- PHASE-2-BACKEND-API-REFERENCE.md (existing — service API + state machine reference)
+- docs/ (TIER-5-DESIGN.md, REVISI-POK-PAGU-vKoreksi.md, glossary.md)
+- constants/devLog.ts (this entry)
+
+Bundle ~500 KB target, self-contained — fresh session bootstrap dengan zero drift expected (pattern proven Phase 1.5 + 2.1-2.3 + 2.4 = 3 fresh sessions executed clean).`,
+    files: [
+      'HANDOVER.md',
+      'OWNER-POLICY-FOR-AI-SESSIONS.md',
+      'SESSION-START-HERE.md',
+      'SSOT-REFACTOR-LOG.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      'OWNER-POLICY v1.4 §P — in-session commit principle (codified Owner direction 12 Mei 2026)',
+      'Skenario B chosen mid-session — handover Phase 2.5 ke fresh session (budget tipis)',
+      'Strategy A default recommend untuk Phase 2.5 (V1 minimal, safer)',
+    ],
+    related: ['log-2026-05-12-tier-5a-phase-2.4-submit-flow-complete'],
+  },
+
+  {
+    id:    'log-2026-05-12-tier-5a-phase-2.4-submit-flow-complete',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 5a / Phase 2.4 — Submit Flow UI Integration',
+    title: 'Tier 5a Phase 2.4 COMPLETE — Submit Button Wired via DI Orchestrator (commit 958e426)',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Phase 2.4 deliverable per docs/TIER-5-DESIGN.md §8.1 #4. Submit Revisi POK button (di ValidationDashboardHeader.tsx) wired ke service layer Phase 2.3 via pure orchestrator + dependency injection pattern.
+
+**Architecture decision (codified SSOT §0.12.10):**
+Project tidak punya React Testing Library (verified package.json grep) → handler-level testing tidak feasible langsung. Solusi: extract orchestration logic ke pure async function \`executeSubmitRevisiPOK\` dengan \`SubmitRevisiServices\` interface DI. UI handler jadi thin wrapper untuk side effects (toast + setState).
+
+**Files (5 changed/created):**
+- NEW \`utils/submitRevisiHelpers.ts\` (+225 lines): 3 helpers — \`collectChangedRowsWithSection\` (pakai existing \`isChangedRow\` dari validators/helpers — AP-4 single source), \`summarizeChangedRows\`, \`executeSubmitRevisiPOK\` (returns discriminated \`SubmitRevisiResult\`: no_changes | state_rejected | service_error per phase | success)
+- NEW \`utils/submitRevisiHelpers.test.ts\` (+370 lines, 25 tests): 8 collect + 4 summarize + 13 orchestrator (happy path, no_changes, state_rejected ±reason, service_error per phase, non-Error rejection, multi-row, custom diusulkanOleh, lhrApip propagation)
+- MOD \`components/ValidationDashboardHeader.tsx\`: +\`onSubmit?\` + \`isSubmitting?\` props, wire \`onClick={onSubmit}\`, "Submitting..." label saat in-flight
+- MOD \`components/ValidasiRevisiPOK.tsx\`: pass-through props
+- MOD \`App.tsx\`: import service + orchestrator, +useState \`isSubmittingRevisi\`, +handleSubmitRevisiPOK (useCallback) thin UI wrapper, pass props ke \`<ValidasiRevisiPOK>\`
+
+**Submit sequence (per PHASE-2-BACKEND-API-REFERENCE.md Recipe A):**
+1. Extract changed rows; kalau 0 → toast.error "Tidak ada row..."
+2. createUsulanDraft(tahun, 'revisi_pok', {tanggal_pengajuan, diusulkan_oleh: 'Sie Renbang (R5a proxy)', justifikasi})
+3. addPerubahan × N parallel via Promise.all
+4. recordValidationAttempt(usulanId, 'pass') — audit Itjenad trail
+5. transitionUsulan(usulanId, 'direkomendasi', {validatorsPassed: true, lhrApipAcknowledged}) — gated state machine
+6. toast.success "Submit berhasil — N row di M section. Status: direkomendasi."
+
+**Phase 2.4 deliberately deferred (Phase 2.5 scope):**
+- \`data.lhr_apip\` belum di-populate (UsulanLhrApip butuh nomor+tanggal yang UI belum capture)
+- \`lhrApipAcknowledgedByYear\` masih ephemeral useState (Phase 2.5 migrate ke system_settings)
+- Banner V1 UI (Phase 2.5)
+
+**Commit + push paired (12 Mei 2026):**
+- Commit sha: \`958e426\`
+- Push status: ✅ \`b7f4164..958e426\` di feature/tier-5a-audit-trail-backend
+- PAT hygiene: ✅ verified clean post-push
+- Co-authored-by: AI Assistant <claude-ai@anthropic.local>
+
+**Baseline maintained:**
+- TS errors: 8/8 (7 App.tsx existing + 1 PaguAnggaran.tsx:512)
+- Tests: 573 → 598 (+25 new pass)
+- Vite build: success ~7.6s, 1.6MB minified
+
+In-session commit principle applied (OWNER-POLICY v1.4 §P) — committed di sesi yang lakukan kerja, BUKAN handover ke fresh session untuk task trivial-cost (commit/push = 2-3 bash call). Owner correction real-time setelah AI initial recommendation "split aggressively".`,
+    files: [
+      'utils/submitRevisiHelpers.ts',
+      'utils/submitRevisiHelpers.test.ts',
+      'components/ValidationDashboardHeader.tsx',
+      'components/ValidasiRevisiPOK.tsx',
+      'App.tsx',
+    ],
+    decisions: [
+      'DI orchestrator pattern (codified §0.12.10) — handler testable tanpa React Testing Library',
+      'Defer data.lhr_apip populate + banner ke Phase 2.5 (UI capture nomor+tanggal belum ada)',
+      'Strategy A vs B untuk Phase 2.5 LHR APIP capture — Owner decide di fresh session first turn',
+    ],
+    related: ['log-2026-05-12-tier-5a-phase-2-handover-prep'],
+  },
+
+  {
+    id:    'log-2026-05-12-tier-5a-phase-2-handover-prep',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 5a / Phase 2 Handover Prep',
+    title: 'Tier 5a Phase 2 Handover Bundle SIAP — OWNER-POLICY v1.3 + Vercel Verified',
+    type:  'docs',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Post Phase 1.5 success, current session prep handover untuk Phase 2 (significant scope split per Owner Konteks 14/15). Pattern mirror Tier 5 bundle yang sukses bawa fresh session execute Phase 1.5 dengan zero drift.
+
+**Foundation finding #2 (Vercel switch pending) CLOSED:**
+Owner share screenshot \`vercel.com/.../settings/environments\` menunjukkan Vercel UI sudah update (replace lama \`Settings → Git → Production Branch\` jadi \`Settings → Environments\` 3-tier model). Production environment Branch Tracking = \`production\` ✅. Preview = all unassigned (catches main + feature/*). Domain sikesumav31.vercel.app mapped to Production environment. v3.2 strategy **FULLY OPERATIONAL**.
+
+**Implikasi untuk Phase 2 dev:**
+- feature/tier-5a-* branches → Vercel Preview environment (preview URL terpisah, production untouched)
+- main commits → ALSO Preview (NOT production deployment auto)
+- Production update HANYA via explicit merge \`main → production\` (atau Vercel Dashboard "Promote to Production")
+- Phase 4 squash merge ke main aman, tidak akan accidentally publish ke production
+
+**OWNER-POLICY Addendum v1.3 ADDED (post v1.2):**
+- §L: Supabase Management API pattern — sbp_ token vs eyJ JWT distinction, endpoint /v1/projects/{ref}/database/query, AI verify token type protocol
+- §M: Vercel Environments page (UI update verified 12 Mei 2026)
+- §N: Phase 1.5 success template — pattern that worked (foundation findings reporting, pre-execute commit + display + execute + log, ~6 turn profile stayed below compaction)
+
+**Bundle prep deliverables (this turn):**
+- HANDOVER.md — Vercel CONFIRMED status updated, Phase 1.5 EXECUTED + Phase 2 PENDING markers
+- OWNER-POLICY-FOR-AI-SESSIONS.md — Addendum v1.3 appended (3 new sections L/M/N)
+- SESSION-START-HERE.md — rewritten for Phase 2 fresh session orientation (Phase 2.1-2.6 sub-phase guidance, state snapshot, anti-pattern reminders including new Tier 5-specific items #9-12)
+- constants/devLog.ts — this entry
+- tier5a-phase2-handover-bundle.zip — generated separately, presented to Owner
+
+**Bundle composition matches predecessor Tier 5 bundle (~500 KB target):**
+- Bootstrap docs (BUNDLE-README, SESSION-START-HERE, OWNER-POLICY)
+- Project state (HANDOVER, SSOT, devLog)
+- Design docs (TIER-5-DESIGN, TIER-3-PLUS-PLAN, TIER-4C-* predecessor refs, REVISI-POK-PAGU master domain, glossary)
+- NEW: migrations/*.sql (executed Phase 1.5 reference)
+- README
+
+**Next session expected workflow (per SESSION-START-HERE Phase 2 plan):**
+1. Bootstrap 5-step + verify state (likely 1 turn)
+2. Foundation Q&A kalau perlu surface finding (likely no findings — state stable)
+3. Phase 2.1: types module (1 turn)
+4. Phase 2.2: state machine + tests (1-2 turn)
+5. Phase 2.3: service layer + tests (1-2 turn)
+6. Phase 2.4: Submit flow integration (1 turn)
+7. Phase 2.5: LHR APIP R3c migration (1 turn)
+8. Phase 4: Owner E2E test → squash merge (gated by explicit main→production for prod deploy)
+
+Total estimate: 6-9 turn fresh session = within compaction-safe budget.`,
+    files: [
+      'HANDOVER.md',
+      'OWNER-POLICY-FOR-AI-SESSIONS.md',
+      'SESSION-START-HERE.md',
+      'constants/devLog.ts',
+    ],
+    related: [
+      'log-2026-05-12-tier-5a-phase-1-5-executed',
+      'log-2026-05-12-tier-5-design-phase-1-ready',
+    ],
+  },
+
+  {
+    id:    'log-2026-05-12-tier-5a-phase-1-5-executed',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 5a / Phase 1.5',
+    title: 'Tier 5a Phase 1.5 EXECUTED — 3 Tabel Audit Trail LIVE di Supabase',
+    type:  'schema',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Fresh AI session melanjutkan Tier 5 via handover bundle. Bootstrap 5-step + foundation consistency check selesai. Owner share Supabase Management API token (sbp_*) untuk AI auto-execute DDL Phase 1.5.
+
+**Branch:** \`feature/tier-5a-audit-trail-backend\` (created dari main \`535085f\`)
+
+**Pre-execute commit \`b834415\`** (chore tier-5a init):
+- migrations/tier-5-001-usulan-revisi-schema.sql (sha256:0f83edb49bd7)
+- migrations/tier-5-002-usulan-revisi-rls-policies.sql (sha256:18c3ee21e1a9)
+- migrations/tier-5-003-snapshot-pok-immutability.sql (sha256:a79e3dcc9cf8)
+- migrations/tier-5-004-rollback.sql (sha256:7e4c95839293)
+- HANDOVER.md (1-line sync 90a0278 → 535085f)
+
+**Execution result (timestamp UTC 2026-05-12T13:14:45Z):**
+- 001 → HTTP 201, 3 tables created: usulan_revisi (7 cols), usulan_revisi_perubahan (5 cols), snapshot_pok (6 cols). 7 custom indexes + 3 primary keys verified.
+- 002 → HTTP 201, RLS enabled di 3 tabel, 10 policies (4 usulan_revisi + 4 perubahan + 2 snapshot_pok permissive anon V1 mirror existing envelope pattern).
+- 003 → HTTP 201, trigger \`snapshot_pok_immutable\` BEFORE UPDATE + function \`snapshot_pok_prevent_update\` active.
+
+**Smoke test negative (R7c immutability):**
+1. INSERT dummy usulan_revisi row → 201 ✓
+2. INSERT dummy snapshot_pok (FK ref) → 201 ✓
+3. UPDATE snapshot_pok attempt → **HTTP 400 dengan custom exception verbatim**:
+   "ERROR: P0001: snapshot_pok records are immutable per Tier 5 R7c — cannot UPDATE row id=ee350856-..."
+4. ✅ Trigger fires as designed. Cleanup DELETE successful, row counts (0,0,0) final.
+
+**Credential audit:**
+- Token type: Supabase Management API PAT (\`sbp_*\`), bukan service_role JWT — beda mekanisme tapi sama-sama bisa execute DDL via endpoint \`POST /v1/projects/{ref}/database/query\`
+- Loaded ke env variable saja, tidak persisted di disk, tidak di-commit, unset setelah setiap call.
+
+**Foundation verification this session:**
+- 486/486 tests pass ✓
+- TS 8/8 baseline maintained ✓
+- Working tree clean ✓
+- Triple-source consistency (HANDOVER + SSOT + devLog) ✓
+- PAT hygiene clean (no leak di .git/config) ✓
+
+**Yang Tier 5a Phase 2 perlu lanjut (fresh session direkomendasikan):**
+1. TypeScript types untuk UsulanRevisi/UsulanRevisiPerubahan/SnapshotPok
+2. State machine module utils/usulanRevisiStateMachine.ts (transition rules + R6+ override)
+3. Supabase CRUD layer services/usulanRevisiService.ts (mirror lib/supabase.ts envelope pattern)
+4. Submit flow integration: ValidationDashboardHeader.tsx (wire onClick) → ValidasiRevisiPOK.tsx → App.tsx
+5. State machine tests ~30-40 tests
+6. LHR APIP migration ephemeral → system_settings + usulan_revisi.data.lhr_apip (R3c)
+
+Estimasi 5-7 substantive turn — significant per Owner Konteks 14. Direkomendasikan split ke fresh session via tier5a-phase2-handover-bundle.zip.
+
+**Owner Konteks 11 (v3.2 strategy) status:**
+- Branch production exists di GitHub di hash 90a0278 (Tier 4c MERGED stable)
+- Branch main di 535085f (1 commit ahead, Tier 5 docs)
+- Vercel Production Branch config switch ke 'production' = pending Owner action — AI proceed di feature branch saja (Vercel auto-create preview URL, production stays untouched until Owner explicitly merges).`,
+    files: [
+      'migrations/tier-5-001-usulan-revisi-schema.sql',
+      'migrations/tier-5-002-usulan-revisi-rls-policies.sql',
+      'migrations/tier-5-003-snapshot-pok-immutability.sql',
+      'migrations/tier-5-004-rollback.sql',
+      'HANDOVER.md',
+      'SSOT-REFACTOR-LOG.md',
+    ],
+    decisions: ['R1c', 'R2b', 'R5a', 'R7c', 'R8c'],
+    related: [
+      'log-2026-05-12-tier-5-design-phase-1-ready',
+      'log-2026-05-12-tier-4c-merged-to-main',
+    ],
+  },
 
   {
     id:    'log-2026-05-12-tier-5-design-phase-1-ready',

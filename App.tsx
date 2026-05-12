@@ -50,6 +50,27 @@ import {
   type ItemWithId,
 } from './lib/audit';
 import { ToastContainer, toast } from './components/Toast';
+// [Tier 5a Phase 2.4] Service layer untuk Submit handler — wire button
+// ke createUsulanDraft → addPerubahan × N → recordValidationAttempt →
+// transitionUsulan 'direkomendasi'. Pure helper untuk extract changed rows.
+import {
+  createUsulanDraft,
+  addPerubahan,
+  recordValidationAttempt,
+  transitionUsulan,
+} from './services/usulanRevisiService';
+import {
+  executeSubmitRevisiPOK,
+  // [Tier 5a Phase 2.5] R3c LHR APIP helpers — Strategy A V1 minimal
+  shouldShowLhrApipBanner,
+  deriveLhrApipForSubmission,
+  LHR_APIP_GLOBAL_KEY,
+  type LhrApipGlobalState,
+  type LhrApipYearEntry,
+} from './utils/submitRevisiHelpers';
+// [Tier 5a Phase 2.5] system_settings JSONB getter/setter — pakai existing
+// pattern (BUKAN tambah service module baru). JSONB-native AP-8.
+import { getSetting, saveSetting } from './lib/supabase';
 
 const MainTabButton = ({ active, onClick, label, icon }: any) => (
   <button onClick={onClick} className={`flex items-center gap-3 px-8 py-6 border-b-4 transition-all whitespace-nowrap ${active ? 'border-emerald-500 text-emerald-600 bg-emerald-50/30' : 'border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}>
@@ -87,10 +108,18 @@ const App: React.FC = () => {
   // klik "→ RPD" di Validasi detail panel untuk C11 violation; consumed
   // setelah scroll + 2s emerald glow selesai di RPD.tsx.
   const [pendingRpdRowHighlight, setPendingRpdRowHighlight] = useState<{ sectionId: string; rowId: string } | null>(null);
-  // [Tier 4b Phase 3c] LHR APIP acknowledgment per year — C8 gate.
-  // In-memory only v1 (per Decision S6); persistence di Tier 5 audit trail scope.
-  // App restart → re-confirm checkbox.
-  const [lhrApipAcknowledgedByYear, setLhrApipAcknowledgedByYear] = useState<Record<number, boolean>>({});
+  // [Tier 4b Phase 3c → Tier 5a Phase 2.5] LHR APIP acknowledgment per year — C8 gate.
+  // **Phase 2.5 R3c migration (13 Mei 2026):** state shape upgraded dari
+  // `Record<number, boolean>` ke `LhrApipGlobalState` (per-year entry dengan
+  // acknowledged + acknowledged_at + optional V2 nomor/tanggal). Loaded on mount
+  // dari `system_settings.lhr_apip_global` (JSONB key) via existing
+  // getSetting/saveSetting helpers. Strategy A V1 minimal — checkbox-only UX,
+  // V2 fields reserved untuk Strategy B upgrade tanpa schema change.
+  const [lhrApipAcknowledgedByYear, setLhrApipAcknowledgedByYear] = useState<LhrApipGlobalState>({});
+  // [Tier 5a Phase 2.4] Submit Revisi POK in-flight indicator — disable
+  // Submit button selama service calls async pending. Reset ke false saat
+  // success atau error (di handleSubmitRevisiPOK).
+  const [isSubmittingRevisi, setIsSubmittingRevisi] = useState<boolean>(false);
   // [Komunikasi] Unread message count untuk badge di gear icon. Simplified MVP:
   // count phase_messages WHERE created_at > localStorage last_global_read.
   // Per-discussion granularity = future (TD-15 / Phase 3).
@@ -117,6 +146,21 @@ const App: React.FC = () => {
   // Initial check on mount; re-check setiap kali Settings ditutup (user mungkin
   // sudah baca pesan baru → localStorage updated oleh PhaseDiscussionsModule).
   useEffect(() => { checkUnreadKomunikasi(); }, [checkUnreadKomunikasi]);
+
+  // [Tier 5a Phase 2.5] LHR APIP global state — load dari system_settings on mount.
+  // Best-effort: kalau Supabase error atau key belum exists, state tetap kosong
+  // (banner V1 akan show — fail-safe ke "belum acknowledge"). User re-check
+  // checkbox C8 di awal TA → trigger saveSetting via handleLhrApipChange.
+  useEffect(() => {
+    getSetting<LhrApipGlobalState>(LHR_APIP_GLOBAL_KEY)
+      .then((state) => {
+        if (state) setLhrApipAcknowledgedByYear(state);
+      })
+      .catch((err) => {
+        console.error('[Tier 5a Phase 2.5] Failed to load LHR APIP global state:', err);
+        // Tetap kosong → banner V1 show (safer default per R4a Owner choice)
+      });
+  }, []);
 
   const handleSettingsClose = useCallback(() => {
     setIsSettingsOpen(false);
@@ -1030,6 +1074,99 @@ const App: React.FC = () => {
     }
   };
 
+  /**
+   * [Tier 5a Phase 2.5] LHR APIP checkbox C8 change handler — persisted via
+   * saveSetting ke `system_settings.lhr_apip_global` (JSONB key).
+   *
+   * Strategy A V1 minimal (Owner-approved 13 Mei 2026): capture `acknowledged`
+   * + `acknowledged_at` timestamp. V2 fields (nomor/tanggal) di-preserve
+   * forward-compat — spread bersyarat hanya kalau defined (kalau Strategy B
+   * upgrade di V2, user input field via UI tambah jadi tidak hilang).
+   *
+   * Best-effort save: error di-log tapi tidak throw, UX tetap responsive.
+   * Banner V1 akan re-show kalau user re-load tanpa retry save successful.
+   */
+  const handleLhrApipChange = useCallback((acknowledged: boolean) => {
+    const existing = lhrApipAcknowledgedByYear[currentRKKSYear];
+    const entry: LhrApipYearEntry = {
+      acknowledged,
+      acknowledged_at: new Date().toISOString(),
+      ...(existing?.nomor !== undefined && { nomor: existing.nomor }),
+      ...(existing?.tanggal !== undefined && { tanggal: existing.tanggal }),
+    };
+    const next: LhrApipGlobalState = { ...lhrApipAcknowledgedByYear, [currentRKKSYear]: entry };
+    setLhrApipAcknowledgedByYear(next);
+    saveSetting(LHR_APIP_GLOBAL_KEY, next).catch((err) => {
+      console.error('[Tier 5a Phase 2.5] Failed to persist LHR APIP global state:', err);
+    });
+  }, [lhrApipAcknowledgedByYear, currentRKKSYear]);
+
+  /**
+   * [Tier 5a Phase 2.4 + 2.5] Submit Revisi POK handler — thin UI wrapper around
+   * `executeSubmitRevisiPOK` (pure orchestrator di utils/submitRevisiHelpers).
+   * Handler ini handle UI side effects (toast feedback, isSubmitting state).
+   *
+   * Reason separation: orchestration logic mudah di-unit-test (DI service
+   * deps). UI wrapper minimal — pure mapping result → toast.
+   *
+   * **Phase 2.5 R3c tied audit:** derive `UsulanLhrApip` payload dari global
+   * state via `deriveLhrApipForSubmission` (Strategy A placeholder atau
+   * Strategy B real values forward-compat). Pass ke orchestrator → populate
+   * `usulan_revisi.data.lhr_apip` JSONB tied to this submission for Itjenad
+   * audit trail (Pasal 22 huruf b angka 2 Perdirjen Renhan Kemhan 7/2025).
+   */
+  const handleSubmitRevisiPOK = useCallback(async () => {
+    if (isSubmittingRevisi) return; // re-entrancy guard
+    setIsSubmittingRevisi(true);
+    try {
+      // [Phase 2.5] Derive tied audit payload — null kalau belum acknowledge (gate
+      // by handler caller; UI button sudah disabled saat !lhrApipAcknowledged, tapi
+      // double-defense here untuk type safety).
+      const lhrApipForYear = deriveLhrApipForSubmission(
+        lhrApipAcknowledgedByYear,
+        currentRKKSYear
+      );
+
+      const result = await executeSubmitRevisiPOK({
+        paguSections,
+        tahunAnggaran: currentRKKSYear,
+        lhrApipAcknowledged: lhrApipAcknowledgedByYear[currentRKKSYear]?.acknowledged ?? false,
+        lhrApipForYear: lhrApipForYear ?? undefined, // R3c tied audit (Phase 2.5)
+        services: {
+          createUsulanDraft,
+          addPerubahan,
+          recordValidationAttempt,
+          transitionUsulan,
+        },
+      });
+
+      switch (result.kind) {
+        case 'no_changes':
+          toast.error('Tidak ada row yang berubah. Tidak bisa submit usulan kosong.');
+          break;
+        case 'state_rejected':
+          toast.error(`Submit gagal di state transition: ${result.reason}`, 7000);
+          break;
+        case 'service_error':
+          toast.error(`Submit gagal di phase ${result.phase}: ${result.message}`, 7000);
+          break;
+        case 'success':
+          toast.success(
+            `✅ Submit berhasil — ${result.summary}. Status: direkomendasi.`,
+            6000
+          );
+          break;
+      }
+    } finally {
+      setIsSubmittingRevisi(false);
+    }
+  }, [
+    isSubmittingRevisi,
+    paguSections,
+    currentRKKSYear,
+    lhrApipAcknowledgedByYear,
+  ]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* [F2.4 v2] Toast UI — render once at root, listens for toast.* calls anywhere in app */}
@@ -1199,10 +1336,10 @@ const App: React.FC = () => {
                   }}
                   initialSelectedConstraint={pendingValidasiConstraint}
                   onPendingConsumed={() => setPendingValidasiConstraint(null)}
-                  lhrApipAcknowledged={lhrApipAcknowledgedByYear[currentRKKSYear] ?? false}
-                  onLhrApipChange={(acknowledged) =>
-                    setLhrApipAcknowledgedByYear(prev => ({ ...prev, [currentRKKSYear]: acknowledged }))
-                  }
+                  lhrApipAcknowledged={lhrApipAcknowledgedByYear[currentRKKSYear]?.acknowledged ?? false}
+                  onLhrApipChange={handleLhrApipChange}
+                  onSubmit={handleSubmitRevisiPOK}
+                  isSubmitting={isSubmittingRevisi}
                 />
               )}
               {subTab === SubTab.BELANJA_JASA && (

@@ -32,6 +32,19 @@ interface ValidationDashboardHeaderProps {
    */
   lhrApipAcknowledged: boolean;
   onLhrApipChange: (acknowledged: boolean) => void;
+  /**
+   * [Tier 5a Phase 2.4] Submit handler — wire Submit button ke
+   * service layer (createUsulanDraft → addPerubahan × N →
+   * recordValidationAttempt → transitionUsulan 'direkomendasi').
+   * Optional: kalau undefined, button disabled (graceful degradation untuk
+   * test mount / preview).
+   */
+  onSubmit?: () => void;
+  /**
+   * [Tier 5a Phase 2.4] In-flight indicator — disable Submit button selama
+   * service calls async pending. Render label 'Submitting...' kalau true.
+   */
+  isSubmitting?: boolean;
 }
 
 const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
@@ -41,6 +54,8 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
   ta,
   lhrApipAcknowledged,
   onLhrApipChange,
+  onSubmit,
+  isSubmitting = false,
 }) => {
   // ─── Compute counters separating real status vs todo ───────────────
   const counters = useMemo(() => {
@@ -169,7 +184,8 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
         </p>
         <button
           type="button"
-          disabled={!submitEnabled}
+          onClick={onSubmit}
+          disabled={!submitEnabled || isSubmitting || !onSubmit}
           title={
             !allImplemented
               ? 'Menunggu Tier 4c — validator lengkap C1-C12'
@@ -177,18 +193,22 @@ const ValidationDashboardHeader: React.FC<ValidationDashboardHeaderProps> = ({
                 ? 'Check checkbox LHR APIP dulu sebelum submit (C8 pending)'
                 : !canSubmit
                   ? 'Masih ada FAIL / PENDING — perbaiki sebelum submit'
-                  : 'Submit Revisi POK ke KPA'
+                  : !onSubmit
+                    ? 'Handler Submit belum tersedia (Phase 2.4 wiring incomplete)'
+                    : isSubmitting
+                      ? 'Sedang memproses submit...'
+                      : 'Submit Revisi POK ke KPA'
           }
           className={`
             flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold
             transition-all
-            ${submitEnabled
+            ${submitEnabled && !isSubmitting && onSubmit
               ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md cursor-pointer'
               : 'bg-slate-100 text-slate-400 cursor-not-allowed'}
           `.replace(/\s+/g, ' ').trim()}
         >
           <FileCheck2 size={16} />
-          Submit Revisi POK
+          {isSubmitting ? 'Submitting...' : 'Submit Revisi POK'}
         </button>
       </div>
     </div>

@@ -559,3 +559,353 @@ After 5 steps complete, fresh AI session starts Tier 5 Phase 1.5 (DDL preparatio
 ---
 
 *Addendum v1.2 added by AI Assistant post-Tier-4c-merge, pre-Tier-5 handover. Codifies new procedural rules (Supabase access, v3.2 strategy, paired commit-push) + handover bundle pattern untuk fresh session continuity. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*
+
+---
+
+# Addendum v1.3 — Phase 1.5 Lessons Learned + Supabase Management API Pattern + Vercel UI Update
+
+**Added:** 12 Mei 2026 (post Tier 5a Phase 1.5 EXECUTED + pre Tier 5a Phase 2 implementation)
+
+**Context:** Fresh AI session berhasil execute Tier 5a Phase 1.5 (DDL untuk 3 tabel audit trail + RLS + R7c trigger). Beberapa lesson learned + procedural updates yang perlu di-codify untuk fresh session berikutnya (Phase 2 implementation).
+
+---
+
+## L. Supabase Management API Pattern (NEW — Phase 1.5 Lesson)
+
+### L.1. Discovery
+
+Addendum v1.2 §H mengasumsikan AI auto-execute DDL via "service_role JWT key". Realitanya, Owner share token type berbeda:
+
+| Token type | Format | Endpoint | DDL capability |
+|---|---|---|---|
+| Anon JWT | `eyJ...` (~200 char) | `/rest/v1/<table>` PostgREST | ❌ tunduk RLS |
+| Service role JWT | `eyJ...` (~200 char) | `/rest/v1/<table>` PostgREST | ✅ bypass RLS, data ops via PostgREST |
+| **Management API PAT** | **`sbp_...` (~50 char)** | **`/v1/projects/{ref}/database/query`** | **✅ via Supabase Management API SQL endpoint** |
+
+Owner di Phase 1.5 share **Management API PAT** (`sbp_...`), bukan service_role JWT. **Approach Management API actually lebih clean** karena:
+- DDL operations terpisah dari data plane (PostgREST untuk app traffic stays anon-restricted oleh RLS)
+- Token PAT tidak akan accidentally jadi credential aplikasi runtime
+- Audit trail Management API terpisah di Supabase Dashboard
+
+### L.2. AI Verification Pattern (REQUIRED at fresh session start)
+
+Saat Owner share Supabase token, fresh AI session HARUS verify token type SEBELUM use:
+
+```bash
+# Step 1: Identify token type by prefix
+TOKEN=$(grep -oE '(eyJ[A-Za-z0-9._-]+|sbp_[A-Za-z0-9]+)' /mnt/user-data/uploads/<file>.txt | head -1)
+
+# Step 2: If sbp_*, verify Management API access
+if [[ "$TOKEN" == sbp_* ]]; then
+  curl -s "https://api.supabase.com/v1/projects/<ref>" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); print('project:',d.get('name'),'status:',d.get('status'))"
+  # Expect: project: <name>  status: ACTIVE_HEALTHY
+fi
+
+# Step 3: If eyJ*, decode JWT payload to check role
+if [[ "$TOKEN" == eyJ* ]]; then
+  PAYLOAD=$(echo "$TOKEN" | cut -d. -f2)
+  # pad base64 to multiple of 4
+  PADDED=$(echo "$PAYLOAD" | awk '{n=length($0)%4; print $0 (n==2?"==":n==3?"=":"")}')
+  echo "$PADDED" | tr '_-' '/+' | base64 -d 2>/dev/null \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); print('role:',d.get('role'),'iss:',d.get('iss'))"
+  # Expect role: 'anon' OR 'service_role'
+fi
+```
+
+### L.3. DDL Execution Pattern via Management API
+
+```bash
+# Build JSON payload safely via Python (avoid shell escape issues with SQL)
+PAYLOAD=$(python3 -c "
+import json
+sql = open('migrations/tier-N-XXX.sql').read()
+print(json.dumps({'query': sql}))
+")
+
+curl -s -o /tmp/result.json -w "%{http_code}" \
+  -X POST "https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query" \
+  -H "Authorization: Bearer ${SBP_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD"
+# Success: HTTP 201, body = JSON array (rows returned by RETURNING clause atau []).
+# Failure: HTTP 400+, body = {"message": "ERROR: ..."} string.
+```
+
+### L.4. Audit Safeguards (REINFORCED from §H.2)
+
+Setiap Phase 1.5 (atau later) DDL execution MUST:
+
+1. ✅ **Display SQL ke Owner BEFORE execute** (chat message dengan code block)
+2. ✅ **Wait Owner explicit "ya, run"** (tidak boleh assume implicit approval)
+3. ✅ **Execute via Management API** dengan script hash logged
+4. ✅ **Verify result** via introspection query (e.g., `information_schema.tables`, `pg_policies`, `pg_proc`)
+5. ✅ **Smoke test negative cases** kalau ada (e.g., trigger reject)
+6. ✅ **Log di SSOT** dengan script hash + UTC timestamp + verification + smoke test result
+7. ✅ **Cleanup test data** sebelum end turn (final count = 0)
+
+Lihat `SSOT §0.12.7` untuk template lengkap.
+
+### L.5. Token Hygiene (Mirror PAT Hygiene §H.3)
+
+Same pattern dengan GitHub PAT, apply untuk Supabase tokens:
+
+- Load ke shell env variable only — `TOKEN=$(grep ...)`
+- Never persist di code atau .git/config
+- `unset TOKEN` setelah setiap operation block
+- No echo to chat (display only as masked: `eyJ***[JWT-MASKED]***` or `sbp_***[SBP-MASKED]***`)
+
+---
+
+## M. Vercel UI Update — Environments Page (NEW — 12 Mei 2026 Verified)
+
+### M.1. UI Change
+
+Vercel updated their Settings UI sometime in 2025-2026. Old vs new path:
+
+| Old (Addendum v1.2 §I referenced) | New (verified 12 Mei 2026) |
+|---|---|
+| `Settings → Git → Production Branch` (single dropdown) | `Settings → Environments` (3-tier table) |
+
+### M.2. New Environments Model
+
+Per Vercel current docs (https://vercel.com/docs/git), Vercel sekarang punya **3 environments** dengan branch tracking eksplisit:
+
+| Environment | Default Branch Tracking | Domain Assignment |
+|---|---|---|
+| **Production** | Default `main`, configurable (e.g. `production`) | Production custom domain(s) |
+| **Preview** | "All unassigned git branches" (catch-all) | No custom domain (auto-generated `<branch>-<project>.vercel.app`) |
+| **Development** | "Accessible via CLI" (vercel dev) | None |
+
+### M.3. SIKESUMA v3.2 Config (Verified Operational 12 Mei 2026)
+
+Owner screenshot di `/settings/environments` menunjukkan:
+- ✅ Production environment → Branch Tracking: `production`
+- ✅ Preview environment → All unassigned git branches (catches main, feature/*, etc.)
+- ✅ Production domain `sikesumav31.vercel.app` mapped to Production environment
+
+**Effect untuk Tier 5+ development:**
+- `feature/tier-5*` branches → Preview environment → auto preview URL (production untouched) ✅
+- `main` branch (after Phase 4 squash merge) → Preview environment, NOT production ✅
+- Production update HANYA via explicit merge `main → production` (atau Vercel Dashboard "Promote to Production") ✅
+
+### M.4. Verification Pattern (untuk fresh session)
+
+Saat fresh AI session start, kalau perlu verify Vercel state:
+- Request Owner screenshot of `vercel.com/<team>/<project>/settings/environments`
+- Confirm Production row's Branch Tracking column matches expected branch name
+- Foundation finding #2 (Vercel switch pending) di prior bundles → tutup kalau confirmed
+
+---
+
+## N. Tier 5a Phase 1.5 Success Template (untuk reference Phase 2+)
+
+### N.1. Achievement Summary
+
+Phase 1.5 sukses execute di fresh AI session pakai bundle handover pattern:
+
+| Metric | Result |
+|---|---|
+| Bootstrap 5-step | ✅ Complete |
+| Foundation findings surfaced | 3 (HANDOVER lag, Vercel switch, anon-key insufficient) |
+| Owner decisions received | 3 (sbp_ token, HANDOVER edit timing, Vercel proceed) |
+| DDL executed | 3 scripts (001 schema + 002 RLS + 003 trigger) |
+| Verification | All 3 scripts via introspection query + smoke test trigger |
+| Tests baseline | 486/486 maintained |
+| TS baseline | 8/8 maintained |
+| Commits | 2 (b834415 init + 06acf47 exec log) |
+| Branch | `feature/tier-5a-audit-trail-backend` |
+
+### N.2. Time Profile
+
+| Phase | Approx turns | Key activities |
+|---|---|---|
+| Bootstrap + verification | 1 | Read bundle, git verify, Supabase probe |
+| Foundation Q&A | 1 | Surface 3 findings, get Owner decisions |
+| Phase 1.5 prep | 1 | 4 SQL scripts + HANDOVER fix + commit/push + display |
+| Phase 1.5 execute | 1 | 3 DDL execute + smoke test + cleanup |
+| Phase 1.5 docs | 1 | SSOT §0.12.7 + HANDOVER + devLog + commit/push |
+| Handover prep | 1 (this turn) | OWNER-POLICY v1.3 + SESSION-START-HERE + bundle ZIP |
+| **TOTAL** | **~6 turn** | **Stayed well below compaction risk** |
+
+### N.3. Lessons Codified untuk Phase 2 Fresh Session
+
+1. **Verify Supabase token type first** (§L.2) — `sbp_` vs `eyJ` punya path berbeda
+2. **Management API pattern works** (§L.3) — endpoint `/v1/projects/{ref}/database/query` accept SQL strings via JSON body
+3. **Vercel UI updated** (§M) — pakai `Settings → Environments` page, bukan Git tab lama
+4. **Foundation findings reporting** = high-value pattern — surface inconsistencies between bundle docs vs actual state di turn 2 (after bootstrap), let Owner decide before substantive work
+5. **Token hygiene parallel ke PAT hygiene** — apply same load/use/unset pattern
+6. **Pre-execute commit + display + execute + log** = 3-step gate untuk DDL operations
+
+---
+
+## O. Version History
+
+| Version | Date | Changes |
+|---|---|---|
+| 1.0 | 11 Mei 2026 | Initial creation by Owner — permission scope + PAT policy |
+| 1.1 | 11 Mei 2026 (post Tier 4b merge) | Addendum: lessons learned + Tier 4c handover protocols |
+| 1.2 | 12 Mei 2026 (post Tier 4c MERGED) | Addendum: Supabase access policy + v3.2 strategy + paired commit→push reinforce + Tier 5 handover bundle pattern |
+| 1.3 | 12 Mei 2026 (post Tier 5a Phase 1.5 EXECUTED) | Addendum: Supabase Management API (sbp_*) pattern + Vercel UI update (Environments page) + Phase 1.5 success template + token type verification protocol |
+| **1.4** | **12 Mei 2026 (post Tier 5a Phase 2.4 EXECUTED)** | **Addendum: In-session commit principle + Phase 2.4 success template + DI orchestrator pattern (handler-testable tanpa React Testing Library)** |
+
+---
+
+*Addendum v1.3 added by AI Assistant post-Tier-5a-Phase-1.5-success, pre-Tier-5a-Phase-2 handover. Codifies Management API DDL execution pattern (different from service_role JWT assumption v1.2), Vercel Environments UI (replaces old Git Production Branch path), and Phase 1.5 success template. Supersedes v1.2 §H.1 assumption "likely service_role key" — token type can be sbp_ Management PAT instead, verification protocol now standardized. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*
+
+---
+
+# Addendum v1.4 — In-Session Commit Principle + Phase 2.4 Success Template
+
+**Added:** 12 Mei 2026 (post Tier 5a Phase 2.4 EXECUTED — Submit flow UI integration committed via `958e426`)
+
+**Context:** Mid-Phase-2.4 session, AI recommended split commit/push ke fresh session karena bias toward "split aggressively" pattern dari Phase 1.5 + 2.1-2.3 precedent. Owner pushed back dengan principle yang lebih natural — codified di sini sebagai authoritative governance.
+
+---
+
+## P. In-Session Commit Principle (NEW — Owner Direction 12 Mei 2026)
+
+### P.1. Principle Statement
+
+**Spoke AI session yang complete kerja substantif (code, tests, verification) WAJIB melakukan commit + push di sesi yang sama, BUKAN handover ke fresh session.**
+
+Handover bundle = **recovery mechanism** dari context loss / compaction event, **BUKAN primary path** untuk normal workflow.
+
+### P.2. Reasoning
+
+| Aspek | Spoke yang lakukan kerja commit | Fresh session commit dari bundle |
+|---|---|---|
+| Konteks perubahan | Penuh (immediate, knows every line rationale) | Harus re-verify dari bundle + diff |
+| Risiko apply | Zero (file sudah di working tree, tested OK) | Nonzero (file copy mismatch, patch conflict) |
+| Token cost | ~2-3 bash call (trivial) | ~5-8 verification step di fresh session (waste) |
+| Audit trail | Atomic — commit langsung setelah test pass | Discontinuous — gap antara "code complete" dan "git history" |
+
+### P.3. Application Rule
+
+**Sebelum AI session recommend handover bundle, MUST verify:**
+
+1. ☐ Tidak ada **trivial-cost** action yang masih bisa di-execute (commit, push, single small file edit) — jika ada → execute SEKARANG, jangan defer
+2. ☐ Substantive remaining work yang TRULY butuh fresh session = besar (>~25% remaining budget cost) atau highly complex
+3. ☐ Compaction risk = nyata (current usage >~60% atau ada uncertainty about full scope)
+
+**Failure mode:** AI di-trigger "bias toward split" karena precedent pattern, padahal precedent itu specifically untuk "fresh session bootstrap from scratch" (Phase 1.5, 2.1-2.3 — semua started fresh, dengan substantive work ahead). Bukan untuk mid-session that's almost done.
+
+### P.4. Self-Check Sequence
+
+Sebelum AI recommend handover ke fresh session:
+
+```
+1. AI estimate remaining work cost: ___% of remaining budget
+2. AI list any trivial-cost outstanding actions: [commit, push, file save, ...]
+3. IF trivial-cost actions exist → EXECUTE THEM IN CURRENT SESSION FIRST
+4. AFTER trivial actions done → re-estimate remaining work cost
+5. IF estimated_cost <= remaining_budget * 0.7 → CONTINUE in session
+6. IF estimated_cost > remaining_budget * 0.7 → THEN consider handover (with honest assessment to Owner)
+```
+
+### P.5. Bundle Bundle Quality Criteria (Updated)
+
+Saat handover bundle TRULY justified (per P.4 sequence above), bundle MUST:
+
+1. **Reflect git state, not working-tree state** — kalau code sudah committed, bundle BUKAN package source files lagi (waste). Bundle = context + decisions + checklist + git pull instruction.
+2. **Self-contained tapi minimal** — only what fresh session actually butuh. Source files yang sudah di git history = SKIP (fresh session `git pull` lebih clean dari file copy).
+3. **State-of-the-world snapshot timestamped** — explicit commit sha that bundle refers to, supaya fresh session bisa verify state match.
+
+---
+
+## Q. Phase 2.4 Success Template (untuk reference Phase 2.5+)
+
+### Q.1. Achievement Summary
+
+Phase 2.4 sukses execute di mid-session continuation (bukan fresh session bootstrap) — pattern hybrid:
+
+| Metric | Result |
+|---|---|
+| Bootstrap reading (re-use bundle dari Phase 2 backend) | ✅ 6-step complete |
+| Preflight verification (8 baseline metrics) | ✅ Zero drift detected |
+| Phase 2.4 implementation | ✅ 5 files (3 MOD + 2 NEW) |
+| Tests added | +25 (573 → 598) |
+| TS baseline maintained | ✅ 8/8 (7 App.tsx + 1 PaguAnggaran.tsx:512) |
+| Vite build | ✅ Success ~7.6s, 1.6MB minified |
+| Commit + push paired | ✅ `958e426` (atomic) |
+| PAT hygiene | ✅ Verified clean |
+| Owner correction applied real-time | ✅ Skenario A→B post-budget reassessment (after Owner P.1 principle stated) |
+
+### Q.2. Time Profile
+
+| Phase | Approx turns | Key activities |
+|---|---|---|
+| Bootstrap + verification | 1 | Read bundle, git verify, Supabase probe baseline |
+| Phase 2.4 implementation | 3-4 | Helper module + tests, 3 component MODs, App.tsx handler |
+| Commit + push paired | 1 (later, after Owner push back) | Atomic via git config user + `git commit -F` + paired push |
+| Documentation sync | 1 (this turn) | SSOT §0.12.10 + HANDOVER + devLog + OWNER-POLICY v1.4 + bundle |
+| **TOTAL** | **~6-7 turns** | **Comparable dengan Phase 1.5 success template** |
+
+### Q.3. Lessons Codified untuk Phase 2.5 Fresh Session
+
+1. **DI orchestrator pattern works** (§P / Q.4 below) — handler-level testing achievable tanpa React Testing Library
+2. **In-session commit principle** (§P.1) — overrides "split aggressively" bias dari precedent fresh-session pattern
+3. **Budget assessment terhadap substantive vs trivial** — distinguish carefully (commit/push = trivial, Phase 2.5 implementation = substantive)
+4. **Pure helper module pattern** (`utils/submitRevisiHelpers.ts`) reusable untuk Phase 5b kalau snapshot viewer butuh similar diff logic
+
+### Q.4. DI Orchestrator Pattern (Reference)
+
+Pattern proven di Phase 2.4 untuk handler-level orchestration testable tanpa React Testing Library:
+
+```typescript
+// Pure async orchestrator (testable via vi.fn() mocks)
+export async function executeXxx(args: {
+  /* inputs */
+  services: XxxServices;  // <-- DI here
+}): Promise<XxxResult>; // <-- discriminated union
+
+// UI handler (thin wrapper, NOT directly tested)
+const handleXxx = useCallback(async () => {
+  const result = await executeXxx({ ..., services: { fn1, fn2, ... } });
+  switch (result.kind) {
+    case 'success': toast.success(...); break;
+    /* other cases */
+  }
+}, [deps]);
+```
+
+Trade-off: handler UI side-effects (toast, setState) BUKAN tested. Orchestration logic (call order, error routing, payload shape) di-test exhaustively. Acceptable untuk V1 single-user app — V2 multi-user kalau perlu real E2E testing, install React Testing Library + Playwright.
+
+---
+
+## R. Phase 2.4 → Phase 2.5 Handoff Specifics
+
+### R.1. Fresh Session Bootstrap Pattern (Carry Over)
+
+Same 5-step mandatory as v1.3 §K.3:
+
+1. ☐ Read this `OWNER-POLICY-FOR-AI-SESSIONS.md` full (terutama Addendum v1.4 §P)
+2. ☐ Read `HANDOVER.md` — Phase 2.4 COMPLETE `958e426` + Phase 2.5 PENDING
+3. ☐ Read `SESSION-START-HERE.md` — Phase 2.5 orientation
+4. ☐ Run git verification: `git log --oneline -3` expect `958e426 → b7f4164 → 4990059`
+5. ☐ Read `SSOT-REFACTOR-LOG.md §0.12.10` — Phase 2.4 execution log + DI pattern rationale
+
+### R.2. Phase 2.5 Strategy Decision (FIRST TURN)
+
+Fresh AI session WAJIB present Strategy decision ke Owner sebelum substantive Phase 2.5 work:
+
+- **Strategy A (V1 minimal, default safer)**: Keep current checkbox-only UX. Persist `Record<number, {acknowledged, acknowledged_at}>` per year di `system_settings.lhr_apip_global`. Tied audit di `usulan_revisi.data.lhr_apip` pakai placeholder values untuk nomor/tanggal (mis. "(belum diisi)" + acknowledged_at-as-tanggal).
+- **Strategy B (richer)**: Add `nomor` + `tanggal` input fields next to C8 checkbox di ValidationDashboardHeader. Capture full LHR APIP info. Tied audit jadi real (Itjenad-friendly).
+
+Owner default approach: prefer safer / V1 minimal kalau unfamiliar dengan trade-off. AI default recommend: Strategy A unless Owner explicit prefer richer UX.
+
+### R.3. Estimated Phase 2.5 Scope
+
+| Sub-task | LoC estimate | Tests estimate |
+|---|---|---|
+| Migrate ephemeral → persisted (Strategy A) | +50 LoC App.tsx | 4-6 tests (mock getSetting/saveSetting) |
+| Extend `executeSubmitRevisiPOK` for `lhr_apip` populate | +20 LoC utils/submitRevisiHelpers.ts | 3-4 tests (extend orchestrator suite) |
+| Banner V1 UI (R4a text-only conditional) | +30 LoC App.tsx | 2-3 tests (banner predicate pure fn) |
+| **Total Phase 2.5 estimate** | **~100 LoC across 3 files** | **9-13 new tests** |
+
+Final post-Phase-2.5 target: **~607-611 tests pass** (598 + 9-13). TS 8/8 maintained.
+
+---
+
+*Addendum v1.4 added by AI Assistant mid-Phase-2.4-completion, post-Owner-correction-on-in-session-commit. Codifies (a) §P In-Session Commit Principle (Owner-direction 12 Mei 2026), (b) §Q Phase 2.4 Success Template, (c) §R Phase 2.4→2.5 Handoff Specifics + Strategy A vs B decision framing. Supersedes any guidance in older bundles that recommends "default split aggressively" without budget self-check protocol. Authoritative governance — overrides any conflicting guidance from compaction summaries.*

@@ -299,3 +299,184 @@ export interface RPDSection {
   linkedPaguSectionId: string;
   rows: RPDRow[];
 }
+
+// ============================================================================
+// Tier 5 — Audit Trail + State Machine (Phase 2.1)
+// ============================================================================
+// Ref: docs/TIER-5-DESIGN.md §3 schema + §4 state machine, Owner-approved
+//      R1c hybrid (columned status/tahun/jenis + JSONB data), R2b full snapshot,
+//      R6+ manual override, R7c snapshot immutability.
+// DB live: 3 tabel di Supabase (Phase 1.5 EXECUTED 12 Mei 2026, SSOT §0.12.7)
+// ============================================================================
+
+/**
+ * State machine status untuk usulan revisi POK.
+ * Normal flow: draft → direkomendasi → diteruskan → ditetapkan → berlaku_efektif
+ * Reject branch: any → ditolak (kecuali berlaku_efektif → ditolak via R6+ override)
+ */
+export type UsulanStatus =
+  | 'draft'
+  | 'direkomendasi'
+  | 'diteruskan'
+  | 'ditetapkan'
+  | 'berlaku_efektif'
+  | 'ditolak';
+
+/** Kategori usulan revisi per master domain vKoreksi §3 + §4. */
+export type UsulanJenis = 'revisi_pok' | 'pagu_berubah';
+
+/**
+ * Audit trail per attempt Submit (β JSONB-embedded di `usulan_revisi.data`).
+ * Per design §6 — useful untuk Itjenad audit. V2 extract ke separate table.
+ */
+export interface UsulanValidationAttempt {
+  attempted_at: string;                    // ISO timestamp
+  result: 'pass' | 'fail' | 'pending';
+  violations_summary?: {
+    constraintIds: string[];               // e.g., ['C8','C11']
+    total: number;
+  };
+}
+
+/**
+ * R6+ manual override audit entry. Setiap transisi via Override path
+ * append entry ini dengan flag `manual_override: true` untuk audit query.
+ */
+export interface UsulanManualOverrideEntry {
+  from_state: UsulanStatus;
+  to_state: UsulanStatus;
+  reason: string;                          // mandatory, min 5 char (validate at state machine)
+  actor: string;                           // Sie Renbang / Karumkit / KPA
+  timestamp: string;                       // ISO timestamp
+  manual_override: true;                   // discriminator untuk audit query
+}
+
+/**
+ * R3c LHR APIP — tied audit per submission (companion ke system_settings global).
+ * Per Pasal 22 huruf b angka 2 Perdirjen Renhan Kemhan 7/2025.
+ */
+export interface UsulanLhrApip {
+  nomor: string;
+  tanggal: string;                         // ISO date
+  acknowledged_at: string;                 // ISO timestamp (saat Sie Renbang check checkbox)
+}
+
+/**
+ * Tier 5+6 forward-compat (β) — schema accommodate Tier 6 SK template fields.
+ * Populate manual di Tier 5; Tier 6 nanti add UI editor.
+ * Per design §5.2.
+ */
+export interface UsulanTemplateSkMetadata {
+  template_version?: string;               // e.g., 'v3-13.1'
+  signatory_list?: Array<{
+    name: string;
+    jabatan: string;
+    pangkat?: string;
+    nrp?: string;
+  }>;
+  bas_context?: unknown;                   // freeform, Tier 6 define
+  nomor_sk_format?: {
+    prefix?: string;
+    auto_increment?: boolean;
+  };
+}
+
+/**
+ * Shape JSONB `data` column di tabel `usulan_revisi`.
+ * Semua field optional saat draft; di-populate progresif sepanjang state machine.
+ */
+export interface UsulanRevisiData {
+  // SK + dates (populated as workflow progresses)
+  no_sk?: string;
+  tanggal_pengajuan?: string;              // ISO date (saat status = direkomendasi)
+  tanggal_penetapan?: string;              // ISO date (= tanggal SK, saat status = ditetapkan)
+  tanggal_berlaku_efektif?: string;        // = tanggal_penetapan per §3.6 vKoreksi
+
+  // Actors (R5a single-user — Sie Renbang act as proxy)
+  diusulkan_oleh?: string;                 // Sie Renbang
+  direkomendasi_oleh?: string;             // Karumkit
+  ditetapkan_oleh?: string;                // KPA Palembang
+
+  // Content
+  justifikasi?: string;                    // Pasal 22 narrative
+  dasar_perintah?: string;                 // untuk pagu_berubah
+
+  // R3c LHR APIP audit (tied to this submission)
+  lhr_apip?: UsulanLhrApip;
+
+  // R5+ validation history audit (β JSONB-embedded)
+  validation_attempts?: UsulanValidationAttempt[];
+
+  // R6+ manual override log
+  manual_override_log?: UsulanManualOverrideEntry[];
+
+  // Tier 5+6 overlap β (forward-compatible)
+  template_sk_metadata?: UsulanTemplateSkMetadata;
+}
+
+/**
+ * Row tabel `usulan_revisi` — R1c hybrid (columned + JSONB).
+ * Schema live Supabase: 7 cols (id, status, tahun_anggaran, jenis, data, created_at, updated_at).
+ * Note: BERBEDA dari pure envelope convention — tidak ada created_by/updated_by.
+ */
+export interface UsulanRevisi {
+  id: string;                              // UUID
+  status: UsulanStatus;
+  tahun_anggaran: number;
+  jenis: UsulanJenis;
+  data: UsulanRevisiData;
+  created_at: string;                      // ISO timestamp
+  updated_at: string;                      // ISO timestamp
+}
+
+/**
+ * Shape JSONB `data` column di tabel `usulan_revisi_perubahan`.
+ * Per-row diff entry — apa yang berubah di 1 baris pagu dalam usulan ini.
+ */
+export interface UsulanRevisiPerubahanData {
+  kode: string;                            // pagu kode (mis. 521115)
+  description?: string;                    // snapshot description saat usulan dibuat
+  nilai_semula: number;                    // jumlahBiayaAwal
+  nilai_revisi: number;                    // jumlahBiayaRevisi
+  alasan?: string;                         // optional per-row justifikasi
+  section_id?: string;                     // parent section reference
+}
+
+/**
+ * Row tabel `usulan_revisi_perubahan` — R1c hybrid.
+ * Schema live Supabase: 5 cols (id, usulan_id, pagu_row_id, data, created_at).
+ */
+export interface UsulanRevisiPerubahan {
+  id: string;                              // UUID
+  usulan_id: string;                       // FK ke usulan_revisi.id
+  pagu_row_id: string;                     // references PaguRow di JSONB data
+  data: UsulanRevisiPerubahanData;
+  created_at: string;
+}
+
+/**
+ * Shape JSONB `snapshot_data` column di tabel `snapshot_pok`.
+ * R2b full snapshot — entire POK state at tanggal_efektif.
+ */
+export interface SnapshotPokData {
+  pagu_sections: PaguSection[];            // full pagu state
+  total_pagu: number;                      // pre-computed for fast display
+  total_realisasi?: number;                // kalau available
+  generated_from_usulan_id: string;
+  generated_at: string;                    // ISO timestamp
+}
+
+/**
+ * Row tabel `snapshot_pok` — R1c hybrid + R7c immutable.
+ * Schema live Supabase: 6 cols (id, tahun_anggaran, tanggal_efektif, usulan_id, snapshot_data, created_at).
+ * NOTE JSONB column name = `snapshot_data` (BUKAN `data`) — beda dengan 2 tabel lain.
+ * R7c immutability enforced via DB trigger `snapshot_pok_immutable BEFORE UPDATE` + app no-UPDATE endpoint.
+ */
+export interface SnapshotPok {
+  id: string;                              // UUID
+  tahun_anggaran: number;
+  tanggal_efektif: string;                 // ISO date (= tanggal_penetapan SK)
+  usulan_id: string;                       // FK ke usulan_revisi.id
+  snapshot_data: SnapshotPokData;
+  created_at: string;
+}

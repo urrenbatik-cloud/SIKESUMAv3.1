@@ -1,213 +1,316 @@
 # SESSION-START-HERE — SIKESUMA Handover Bundle
 
-**Generated:** 11 Mei 2026, ~11:15 UTC
-**For:** Next AI session continuing Tier 4a Phase 2b
+**Generated:** 13 Mei 2026 (post Tier 5a Phase 2.5 COMPLETE — LHR APIP R3c migration committed `93d9155`)
+**For:** Next AI session continuing **Tier 5a Phase 3** (Owner E2E test post Phase 2.5) — atau **Phase 4** kalau Owner sudah approve
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c MERGED + Tier 5 Phase 1 Design Ready)
+> ## ✅ STATUS UPDATE (13 Mei 2026, post Tier 5a Phase 2.5 LHR APIP R3c migration COMPLETE)
 >
-> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c MERGED** `9174782` (12 Mei 2026). All 12 validators (C1-C12) **LIVE in production**. UI integration full. **486 tests baseline** + **TS 8 maintained**.
+> **Tier 4 fully merged** + **Tier 5a Phase 1.5 (DDL) + Phase 2.1+2.2+2.3 (backend) + Phase 2.4 (UI wiring) + Phase 2.5 (LHR APIP R3c) ALL COMPLETE**:
+> - Tier 4a `abe193c` + Tier 4b `d13be80` + Tier 4c `9174782` MERGED → all 12 validators LIVE in production
+> - **Tier 5a Phase 1.5 EXECUTED** (12 Mei 2026): 3 tabel + 7 indexes + 10 RLS + R7c trigger LIVE. Lihat `SSOT §0.12.7`.
+> - **Tier 5a Phase 2 Backend Foundation COMPLETE** (12 Mei 2026, HEAD `4990059`): Types (`8ad4e40`) + State machine (`8ad4e40`) + Service layer (`4990059`) + 87 tests. Lihat `SSOT §0.12.9`.
+> - **Tier 5a Phase 2.4 Submit Flow UI Integration COMPLETE** (12 Mei 2026, HEAD `958e426`): Submit button wired via DI orchestrator + 25 tests. Lihat `SSOT §0.12.10`.
+> - **🆕 Tier 5a Phase 2.5 LHR APIP R3c Migration COMPLETE** (13 Mei 2026, HEAD `93d9155`) — Strategy A (V1 minimal) Owner-approved:
+>   - `utils/submitRevisiHelpers.ts` (+137 lines): NEW types `LhrApipYearEntry` + `LhrApipGlobalState`, NEW const `LHR_APIP_GLOBAL_KEY`, NEW pure helpers `shouldShowLhrApipBanner` + `deriveLhrApipForSubmission`, EXTEND `executeSubmitRevisiPOK` args (`lhrApipForYear?`).
+>   - `utils/submitRevisiHelpers.test.ts` (+12 tests): 3 propagation + 4 banner predicate + 5 derive.
+>   - `App.tsx` (+90 / -16 lines): state shape migration `Record<number, boolean>` → `LhrApipGlobalState`, useEffect mount-load `getSetting`, handleLhrApipChange callback persist `saveSetting`, handleSubmitRevisiPOK derive lhrApipForYear, prop pass-through update.
+>   - `components/ValidasiRevisiPOK.tsx` (+30 lines): Banner V1 UI text-only di top tab Validasi (R4a Owner choice), conditional `{!lhrApipAcknowledged && ...}`, citation Pasal 22 huruf b angka 2 Perdirjen Renhan Kemhan 7/2025.
+>   - **Forward-compat ke Strategy B V2:** schema include optional `nomor?` + `tanggal?` fields sejak V1 — upgrade tidak perlu schema migration.
+> - **Tests baseline: 610 pass** (598 prior + 12 Phase 2.5) + **TS 8/8 maintained**.
+> - Lihat `SSOT §0.12.12` untuk Phase 2.5 execution log lengkap + architectural rationale.
 >
-> **TIER 4 FULLY COMPLETE — Submit Revisi POK button UNLOCKED first time in project history.**
+> **🚧 TIER 5a PHASE 3 PENDING — OWNER MANUAL E2E TEST DI VERCEL PREVIEW URL.**
 >
-> **🆕 TIER 5 PHASE 1 DESIGN READY** (12 Mei 2026) — `docs/TIER-5-DESIGN.md` BARU dengan **R1-R8 + R6+ manual override** Owner-approved.
+> Setelah push commit `93d9155`, Vercel auto-deploy preview URL untuk branch `feature/tier-5a-audit-trail-backend`. Owner manual smoke test flow (4 checks):
 >
-> **IMPLEMENTATION HANDED OFF KE FRESH AI SESSION** via `tier5-handover-bundle.zip` untuk avoid context budget exhaustion + drift/bias.
+> 1. **Toggle Banner V1:** Buka tab Validasi (sub-tab 1.5). Pastikan banner amber "LHR APIP TA 2026 belum di-acknowledge" muncul di atas dashboard header. Check checkbox C8 → banner hilang instant + checkbox jadi emerald.
+> 2. **Persisted state:** Refresh browser (F5). Banner tetap hilang + checkbox tetap ter-check (state ter-load dari Supabase `system_settings.lhr_apip_global`). Buka Supabase Dashboard → table `system_settings` → search key=`lhr_apip_global` → verify JSONB shape `{2026: {acknowledged: true, acknowledged_at: "..."}}`.
+> 3. **Uncheck persist:** Uncheck checkbox C8. Banner muncul lagi. Refresh → banner tetap muncul (state persisted: `{2026: {acknowledged: false, ...}}`).
+> 4. **Tied audit Submit:** Edit 1 row Pagu Anggaran (ubah harga satuan), kembali ke tab Validasi, check checkbox C8 lagi, click Submit Revisi POK. Verify toast "Submit berhasil... Status: direkomendasi". Buka Supabase → table `usulan_revisi` → verify row baru dengan `data.lhr_apip = {nomor: "(belum diisi)", tanggal: "2026-MM-DD", acknowledged_at: "..."}` (Strategy A placeholder).
 >
-> **🆕 V3.2 PRODUCTION BRANCH STRATEGY** (12 Mei 2026 Owner-approved):
-> - Branch `production` di-create dari `main` HEAD `90a0278`
-> - main = dev branch (Vercel preview only)
-> - production = explicit promote (Vercel production deployment)
-> - Owner Vercel config pending — Settings → Git → Production Branch = `production`
+> Setelah 4 checks PASSED, lapor "Phase 3 OK" → fresh AI session bisa proceed **Phase 4 squash merge** `feature/tier-5a-audit-trail-backend → main`.
 >
-> **MANDATORY untuk fresh AI session Tier 5 — first 5 steps (urut wajib):**
-> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (especially Addendum v1.2 — Supabase access + v3.2 + paired commit-push)
-> 2. ☐ Read `HANDOVER.md` — current state authoritative
+> **Vercel Preview URL** untuk feature branch: cek di Vercel dashboard `Deployments` tab, atau Owner request via "list preview URLs feature branch tier-5a".
+>
+> **🆕 V3.2 PRODUCTION BRANCH STRATEGY — ✅ OPERATIONAL** (verified 12 Mei 2026):
+> - feature/tier-5a branch → Preview URL (production `sikesumav31.vercel.app` untouched)
+> - Phase 4 squash merge ke main → ALSO Preview (not production)
+> - Production update HANYA via explicit `main → production` merge — separate decision setelah field testing
+>
+> **MANDATORY untuk fresh AI session Phase 3 atau Phase 4 — first 5 steps (urut wajib):**
+> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (Addendum v1.4 = paling baru — §P In-Session Commit Principle)
+> 2. ☐ Read `HANDOVER.md` — current state authoritative (Phase 2.5 COMPLETE `93d9155`)
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
-> 4. ☐ Run git verification commands (per OWNER-POLICY Section B)
-> 5. ☐ Read `docs/TIER-5-DESIGN.md` — Phase 1 design dengan R1-R8 + R6+ override locked
+> 4. ☐ Run git verification: `git log --oneline -3` (expect `93d9155 → fedfca5 → 958e426`)
+> 5. ☐ Read `SSOT-REFACTOR-LOG.md §0.12.12` — Phase 2.5 execution log + extension points untuk Phase 3 testing
 >
-> **🚨 MANDATORY workflow rules (BARU dan REINFORCED 12 Mei 2026 — Owner direction):**
-> - **Paired commit→push action**: Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama. Detail di OWNER-POLICY Addendum v1.2 §J.
-> - **Supabase access policy**: Read operations bebas, DDL operations butuh explicit per-operation Owner approval. Detail di OWNER-POLICY Addendum v1.2 §H.
-> - **v3.2 strategy**: All dev di main → preview Vercel. Production promotion via merge main → production branch. Detail di OWNER-POLICY Addendum v1.2 §I.
+> **HANYA setelah 5 langkah ini, baru lanjut substantive work.**
 >
-> **HANYA setelah 5 langkah ini, baru lanjut substantive work:**
-> - Branch creation: `git checkout -b feature/tier-5a-audit-trail-backend` (R8c split — backend first)
-> - Implementation per `TIER-5-DESIGN.md` §8 — Phase 1.5 (DDL prep) → Phase 2 (state machine + persistence + Submit integration) → Phase 3 (UI: tab + modal + snapshot viewer + deadline banner)
-> - Expected ~11-16 fresh session turns total (5-8 turn Tier 5a + 5-7 turn Tier 5b)
-> - Test baseline target: ~520-540 tests (486 + 30-50 Tier 5)
-> - Implementation = SIGNIFICANT scope per session-split policy (avoid compaction risk)
->
-> Bundle ini di-preserve sebagai self-contained handover dengan all required context untuk fresh session continuity (mirror successful `tier4c-handover-bundle.zip` pattern).
+> **First action recommended (Phase 3):** Ask Owner status E2E test (sudah test atau belum). Kalau belum → walk Owner through 4-check smoke test list di atas (Vercel preview URL + Supabase verification queries). Kalau sudah PASSED → proceed Phase 4 squash merge proposal.
 
 ---
 
 ## 🚨 BACA INI DULU SEBELUM CODING APAPUN
 
-Bundle ini self-contained — semua file yang next session perlu untuk lanjut kerja tanpa drift atau bias.
+Bundle ini self-contained — semua file yang fresh session perlu untuk lanjut kerja Phase 2 tanpa drift atau bias.
 
 ### Reading order (mandatory, dalam urutan ini):
 
-1. **`OWNER-POLICY-FOR-AI-SESSIONS.md`** ← rules sebelum apapun
-2. **`SESSION-START-HERE.md`** ← file ini (overview + checklist)
-3. **`HANDOVER.md`** ← latest project state snapshot
-4. **`SSOT-REFACTOR-LOG.md`** ← anti-patterns + decision logs §0.7, §0.8, §0.9
-5. **`docs/TIER-4-DESIGN.md`** ← current Tier 4 architecture spec
-6. **`docs/REVISI-POK-PAGU-vKoreksi.md`** ← master domain (C1-C12 verbatim)
+1. **`OWNER-POLICY-FOR-AI-SESSIONS.md`** ← rules sebelum apapun (Addendum v1.3 = paling baru, terutama §L Management API pattern + §M Vercel Environments + §N Phase 1.5 success template)
+2. **`SESSION-START-HERE.md`** ← file ini (Phase 2 orientation)
+3. **`HANDOVER.md`** ← Tier 5a Phase 1.5 EXECUTED, Phase 2 PENDING
+4. **`SSOT-REFACTOR-LOG.md`** ← §0.12 Tier 5 decisions log, **§0.12.7 Phase 1.5 execution log**
+5. **`docs/TIER-5-DESIGN.md`** ← §3 schema (DDL sudah live, schema is fact) + **§4 state machine + §8.1 Phase 2 deliverables**
+6. **`docs/REVISI-POK-PAGU-vKoreksi.md`** ← master domain (Pasal 22 + 24 + 13)
 
 Setelah baca, baru sentuh kode.
 
 ---
 
-## 📋 STATE SNAPSHOT (per 11 Mei 2026)
+## 📋 STATE SNAPSHOT (per 12 Mei 2026, post Phase 1.5 execute)
 
 ### Repository: https://github.com/urrenbatik-cloud/SIKESUMAv3.1
-### Live preview: https://sikesumav31.vercel.app (production = main branch)
+### Live preview: https://sikesumav31.vercel.app (production environment, deployed from `production` branch)
 
 ### Branch State
 
 ```
-main:                                  05335f5 (post-compaction docs sync)
-                                       32bb1d7 (TIER-4-DESIGN.md)
-                                       73c7afb (Tier 3 post-merge docs)
-                                       6c8f640 (Tier 3 SQUASH MERGE — see §0.8)
-
-feature/tier-4a-pagu-structure:        a5e9d0b (4 commits ahead of main, ACTIVE)
-                                       ├── a5e9d0b Turn 2: C3 + helpers extraction
-                                       ├── 52ed3a3 Phase 2b partial: C1 + C4
-                                       ├── ed4650b Phase 2a: 13 fixture scenarios
-                                       └── 4191915 Phase 1: types + 12 specs
-
-feature/tier-4b-revisi-mechanism:      TBD (next setelah 4a squash merge)
-feature/tier-4c-procedural-references: TBD (later)
+main:                                            535085f (Tier 5 Phase 1 design + handover prep)
+                                                 — Vercel Preview environment (NOT production)
+production:                                      90a0278 (Tier 4c MERGED stable state)
+                                                 — Vercel Production environment ✅
+feature/tier-5a-audit-trail-backend:             4990059 (ACTIVE — Phase 2 backend foundation COMPLETE, ready Phase 2.4)
+                                                 — Vercel Preview environment (auto preview URL)
+                                                 ├── 4990059 feat(tier-5a phase 2.3): service layer + 41 tests
+                                                 ├── 8ad4e40 feat(tier-5a phase 2.1+2.2): types + state machine + 46 tests
+                                                 ├── 05a4ac3 docs(tier-5a phase 2 handover prep)
+                                                 ├── 06acf47 docs(tier-5a phase 1.5): DDL execution log
+                                                 ├── b834415 chore(tier-5a init): branch + DDL scripts + HANDOVER sync
+                                                 └── (forked from 535085f)
+feature/tier-5b-audit-trail-ui:                  TBD (later — separate fresh session, R8c part 2)
 ```
 
-### Test Metrics
+### Supabase Live State (post Phase 1.5)
 
-- **Total Vitest tests:** 253 pass (24 C1 + 8 C4 + 20 C3 + 201 Tier 3)
-- **TS baseline:** 11 errors di feature branch (8 di main — devLog cleanup belum propagate, will resolve saat squash merge)
+```
+Project: urrenbatik-cloud's Project (qjijsftbytozcoyrtric, ap-northeast-2, ACTIVE_HEALTHY)
+
+Existing tables (Tier 1-4): pagu_sections, bills, patient_claims, audit_log, doctors,
+                            system_settings, phase_discussions, revenue_targets, jasa_verification_files
+
+NEW Tier 5 tables (Phase 1.5 LIVE):
+  ✅ usulan_revisi          (7 cols, 4 indexes incl. PK, 4 RLS policies)
+  ✅ usulan_revisi_perubahan (5 cols, 3 indexes incl. PK, 4 RLS policies, FK→usulan_revisi)
+  ✅ snapshot_pok           (6 cols, 3 indexes incl. PK, 2 RLS policies, FK→usulan_revisi,
+                             R7c immutability trigger ACTIVE + verified via smoke test)
+
+All Tier 5 tables EMPTY (0 rows) — clean slate for Phase 2 Submit flow integration.
+```
+
+### Test + TS Metrics
+
+| Metric | Baseline | Status |
+|---|---|---|
+| Vitest tests pass | **486** | ✅ Maintained |
+| TS errors | **8** (7 App.tsx + 1 PaguAnggaran.tsx, pre-existing) | ✅ Maintained |
+| Vite build | Success ~5-6s | ✅ |
 
 ### Tier Status Summary
 
 | Tier | Status | Notes |
 |---|---|---|
-| Tier 1-2 | ✅ DONE | Master domain integrated, LaporanRevisi corrected |
-| Tier 3 | ✅ MERGED | Metadata schema 92.1% high confidence, commit 6c8f640 |
-| **Tier 4a** | 🚧 IN-PROGRESS | Phase 1+2a complete, Phase 2b 3-of-5 done (C1, C3, C4) |
-| Tier 4b | ⏳ Pending | C6-C9 (revisi mechanism) |
-| Tier 4c | ⏳ Pending | C10-C12 (procedural/references) |
-| Tier 5 | ⏳ Pending | Audit trail (need Owner DDL action) |
-| Tier 6 | ⏳ Pending | Later |
+| Tier 1-2 | ✅ DONE | Master domain integrated |
+| Tier 3 | ✅ MERGED | Metadata schema, `6c8f640` |
+| Tier 4a | ✅ MERGED | C1-C5 validators, `abe193c` |
+| Tier 4b | ✅ MERGED | C6-C9 validators, `d13be80` |
+| Tier 4c | ✅ MERGED | C10-C12 validators + UI integration, `9174782` |
+| **Tier 5a Phase 1.5** | ✅ **EXECUTED** | **3 tables + RLS + R7c trigger LIVE di Supabase** |
+| **Tier 5a Phase 2** | 🚧 **THIS SESSION'S WORK** | **Types + state machine + service + Submit integration** |
+| Tier 5a Phase 4 | ⏳ Pending | Squash merge (gated: explicit `main → production` for prod deploy) |
+| Tier 5b | ⏳ Pending | UI tab + modal + snapshot viewer (separate fresh session) |
+| Tier 6-7 | ⏳ Pending | Template SK + audit export |
 
 ---
 
-## 🎯 PENDING WORK — Next Session Continuation
+## 🎯 PHASE 2 WORK — Detailed Scope
 
-### Turn 3: C2 Validator (Pergeseran dalam 1 KRO/RO sama)
+### Phase 2.1 — TypeScript Types (`types/usulanRevisi.ts`)
 
-**File to create:**
-- `utils/validators/c2.ts` (~120 lines)
-- `utils/validators/c2.test.ts` (~20 tests)
+Per `TIER-5-DESIGN.md §3.1 + §3.2 + §3.3`, define:
 
-**Algorithm (Decision R1-R3 already approved):**
-1. Collect changed leaf rows via `helpers.collectChangedLeaves`
-2. Determine grouping field (skema-dependent):
-   - For now, group by `kro_code` (default — most cases skema 5.a)
-   - Future: detect skema from data shape, use `ro_code` untuk 5.b/5.c
-3. Strict pending (R2): kalau ANY changed row missing `kro_code` → pending
-4. Distinct count > 1 → fail dengan list distinct codes
-5. Else → pass
+```typescript
+export type UsulanStatus = 
+  | 'draft' | 'direkomendasi' | 'diteruskan' 
+  | 'ditetapkan' | 'berlaku_efektif' | 'ditolak';
 
-**Edge cases yang harus di-test:**
-- Vacuous pass (no changes)
-- Pending dengan partial missing kro_code
-- Konteks 1 fallback rows (R1: not counted as changed)
-- Override behavior (R3: override doesn't fill data → still pending if null)
-- Multi-section aggregation
-- 2+ distinct kro_codes fail
+export type UsulanJenis = 'revisi_pok' | 'pagu_berubah';
 
-**Reference scenarios di fixture:** `utils/fixtures/validation-scenarios-4a.json` c2[] (3 scenarios: pass-same-kro, fail-mixed, pending-missing-kro)
+export interface UsulanRevisiData {
+  no_sk?: string;
+  tanggal_pengajuan?: string;
+  tanggal_penetapan?: string;
+  tanggal_berlaku_efektif?: string;
+  diusulkan_oleh?: string;
+  direkomendasi_oleh?: string;
+  ditetapkan_oleh?: string;
+  justifikasi?: string;
+  dasar_perintah?: string;
+  lhr_apip?: { nomor: string; tanggal: string; acknowledged_at: string };
+  validation_attempts?: Array<{
+    attempted_at: string;
+    result: 'pass' | 'fail' | 'pending';
+    violations_summary?: { constraintIds: string[]; total: number };
+  }>;
+  manual_override_log?: Array<{
+    from_state: UsulanStatus;
+    to_state: UsulanStatus;
+    reason: string;
+    actor: string;
+    timestamp: string;
+    manual_override: true;
+  }>;
+  template_sk_metadata?: { /* Tier 5+6 overlap β */ };
+}
 
-### Turn 4: C5 Validator (Volume + Satuan RO tidak berubah)
+export interface UsulanRevisi {
+  id: string; // UUID
+  status: UsulanStatus;
+  tahun_anggaran: number;
+  jenis: UsulanJenis;
+  data: UsulanRevisiData;
+  created_at: string;
+  updated_at: string;
+}
 
-**File to create:**
-- `utils/validators/c5.ts` (~150 lines)
-- `utils/validators/c5.test.ts` (~15 tests)
+export interface UsulanRevisiPerubahanData {
+  kode: string;
+  description?: string;
+  nilai_semula: number;
+  nilai_revisi: number;
+  alasan?: string;
+  section_id?: string;
+}
 
-**Algorithm:**
-1. Collect leaf rows (not necessarily changed — C5 cek consistency in ALL rows)
-2. Group by `ro_code`
-3. Per group, cek consistency `volume_ro` dan `satuan_ro`:
-   - Distinct values in group > 1 → fail (inconsistent target output)
-   - All values same → pass
-4. NA threshold (Decision R5): kalau ALL rows missing volume_ro → na
-5. Mixed handling: kalau SEBAGIAN missing, evaluate yang ada + warn
+export interface UsulanRevisiPerubahan {
+  id: string;
+  usulan_id: string;
+  pagu_row_id: string;
+  data: UsulanRevisiPerubahanData;
+  created_at: string;
+}
 
-**Reference scenarios:** `c5[]` (3 scenarios: pass-consistent, fail-inconsistent-volume, na-missing-data)
+export interface SnapshotPokData {
+  pagu_sections: PaguSection[]; // import from main types.ts
+  total_pagu: number;
+  total_realisasi?: number;
+  generated_from_usulan_id: string;
+  generated_at: string;
+}
 
-### Decisions Already Locked (R1-R5)
+export interface SnapshotPok {
+  id: string;
+  tahun_anggaran: number;
+  tanggal_efektif: string;
+  usulan_id: string;
+  snapshot_data: SnapshotPokData;
+  created_at: string;
+}
+```
 
-| Decision | Description | Status |
-|---|---|---|
-| R1 | "Changed row" = pakai effective values (Konteks 1 fallback consistent) | ✓ Locked |
-| R2 | Pending = strict (ANY changed row missing → pending) | ✓ Locked |
-| R3 | Override (metadata_review.override_to=high) tidak fill data → null tetap pending | ✓ Locked |
-| R4 | C5 grouping per leaf row dalam RO yang sama (5 children RO 962 harus share volume_ro) | ✓ Locked |
-| R5 | C5 NA = strict (ALL missing → na). MIXED = warn evaluate yang ada | ✓ Locked |
+### Phase 2.2 — State Machine (`utils/usulanRevisiStateMachine.ts`)
 
-### After Phase 2b Complete
+Per `TIER-5-DESIGN.md §4.2 + §4.3`:
 
-- **Phase 3:** UI dashboard "Validasi Revisi POK" + inline indicators di Pagu Anggaran tab (per Decision O3). Reference design di `docs/TIER-4-DESIGN.md` §5
-- **Phase 4:** Owner Vercel preview test → squash merge `feature/tier-4a-pagu-structure` → main → start `feature/tier-4b-revisi-mechanism`
+- 6 transition rules (#1-#5 normal + #6 manual override R6+)
+- `TransitionContext` + `TransitionResult` interfaces
+- `validateTransition(ctx)` function
+- `TRANSITION_RULES` map dengan validators per from→to pair
+- R6+ override path: catch-all any→any dengan mandatory reason (min 5 char) + audit log
+
+### Phase 2.3 — Service Layer (`services/usulanRevisiService.ts`)
+
+Mirror `lib/supabase.ts` envelope pattern. Operations:
+- `createUsulanDraft(tahun, jenis, data?)`: returns `UsulanRevisi` with status='draft'
+- `getUsulanById(id)`: returns `UsulanRevisi | null`
+- `listUsulan(filter?)`: returns `UsulanRevisi[]` filtered by status, tahun, jenis
+- `transitionUsulan(id, toStatus, ctx?)`: validates via state machine, updates row
+- `recordManualOverride(id, fromStatus, toStatus, reason, actor)`: append to `manual_override_log[]`
+- `recordValidationAttempt(id, result, violations?)`: append to `validation_attempts[]`
+- `createSnapshot(usulanId, tahun, tanggalEfektif, paguSections)`: INSERT to `snapshot_pok` (no UPDATE — R7c)
+- `getSnapshotByDate(tahun, tanggalEfektif)`: time-travel query
+- `addPerubahan(usulanId, paguRowId, data)`: per-row diff entry
+
+**No UPDATE endpoint untuk `snapshot_pok`** — R7c enforcement defense in depth (DB trigger reject + service layer don't expose).
+
+### Phase 2.4 — Submit Flow Integration
+
+Reference: `ValidationDashboardHeader.tsx` line 170-194 — Submit button currently no-op.
+
+Path:
+- `ValidationDashboardHeader.tsx`: tambah prop `onSubmit?: () => void`, wire ke onClick
+- `ValidasiRevisiPOK.tsx`: handler `handleSubmit()` panggil `usulanRevisiService.createUsulanDraft(...)`, juga `recordValidationAttempt('pass', ...)`
+- `App.tsx`: state untuk current usulan, loading state, error display
+
+### Phase 2.5 — LHR APIP Migration (R3c)
+
+LHR APIP saat ini ephemeral in-memory state. R3c says BOTH:
+- Global: `system_settings.lhr_apip_global` (current session ack status)
+- Per-submission audit: `usulan_revisi.data.lhr_apip` (tied to specific Submit attempt)
+
+Phase 2 = migrate logic + integrate ke Submit flow.
+
+### Phase 2.6 — Tests
+
+Target ~30-40 new tests:
+- State machine: 6 transition rules × ~5 cases each = ~25-30 tests
+- Service layer: ~10 tests (CRUD happy path + edge cases, mocked Supabase)
+- Override path: ~5 tests (reason validation, audit log append, any→any allowed)
 
 ---
 
-## ⚠️ CRITICAL DON'TS (Anti-Patterns AP-1..AP-8)
+## ⚠️ CRITICAL DON'TS (Anti-Patterns AP-1..AP-8 + Tier 5-specific)
 
 Per `SSOT-REFACTOR-LOG.md §0.7`:
 
-1. **AP-1**: ❌ JANGAN pakai `row.level > 0` untuk detect leaf — pakai traversal-based via `helpers.isLeaf(rows, idx)`
-2. **AP-2**: ❌ JANGAN pakai raw `row.jumlahBiayaRevisi` — pakai `helpers.effectiveRevisi(row)` dengan Konteks 1 fallback
-3. **AP-3**: ❌ JANGAN assume `row.metadata_review.override_to='high'` mengisi data fields — override hanya forces confidence
-4. **AP-4**: ❌ JANGAN duplicate helpers — semua shared logic di `utils/validators/helpers.ts`
-5. **AP-5**: ❌ JANGAN draft DDL untuk SIKESUMA tables yang sudah pakai JSONB envelope (kecuali CREATE TABLE baru)
-6. **AP-6**: ❌ JANGAN micro-step commit per validator — minimum 1 commit per Turn (substantial)
+1. **AP-1**: ❌ JANGAN pakai `row.level > 0` untuk detect leaf — pakai traversal `helpers.isLeaf(rows, idx)`
+2. **AP-2**: ❌ JANGAN pakai raw `row.jumlahBiayaRevisi` — pakai `helpers.effectiveRevisi(row)` (Konteks 1 fallback)
+3. **AP-3**: ❌ JANGAN assume override fills data fields — override hanya forces confidence
+4. **AP-4**: ❌ JANGAN duplicate helpers — shared logic di `utils/validators/helpers.ts`
+5. **AP-5**: ❌ JANGAN draft DDL untuk existing JSONB envelope tables (Tier 5 sudah DDL Phase 1.5, jangan re-DDL)
+6. **AP-6**: ❌ JANGAN micro-step commit per file — minimum 1 commit per Turn (substantial)
 7. **AP-7**: ❌ JANGAN skip Vitest run sebelum commit
-8. **AP-8**: ❌ JANGAN ubah schema PaguRow di types.ts tanpa diskusi (extend di Tier dedicated)
+8. **AP-8**: ❌ JANGAN ubah schema PaguRow di types.ts tanpa diskusi
+
+**Tier 5-specific DON'Ts:**
+
+9. ❌ JANGAN expose UPDATE endpoint untuk `snapshot_pok` di service layer — R7c immutability defense in depth (DB trigger sudah enforce, app layer harus mirror)
+10. ❌ JANGAN re-execute Phase 1.5 DDL scripts — tabel sudah LIVE, rerun akan fail atau no-op (IF EXISTS guards). Kalau perlu rollback, pakai `migrations/tier-5-004-rollback.sql` dengan Owner explicit approval
+11. ❌ JANGAN allow state transition tanpa via `validateTransition()` — bypass = bug + audit trail incomplete
+12. ❌ JANGAN forget validation_attempts entry saat Submit — itu yang Itjenad audit trail butuhkan
 
 ## ✅ MUST DO
 
-- Baca OWNER-POLICY-FOR-AI-SESSIONS.md sebelum mulai
+- Baca OWNER-POLICY-FOR-AI-SESSIONS.md sebelum mulai (terutama Addendum v1.3)
 - Pakai PAT hygiene pattern (set-url temp + restore + grep verify)
+- Pakai token type verify pattern (Addendum v1.3 §L.2) kalau Owner share Supabase token baru
 - Plain language explanations dengan analogi medis untuk Owner
 - Step-by-step substantial pacing (bukan micro-step)
-- Test berjalan sebelum commit (npx vitest run)
-- TS baseline maintained (check `npx tsc --noEmit --skipLibCheck | grep -c "error TS"`)
-- Commit ke feature branch, push, verify .git/config clean
+- Test berjalan sebelum commit (`npx vitest run`)
+- TS baseline maintained (`npx tsc --noEmit --skipLibCheck | grep -c "error TS"`)
+- Paired commit→push (Addendum v1.2 §J) — atomic action pair
+- Co-authored-by attribution di commit messages
 
 ---
 
-## 📞 Owner Communication Pattern
+## 🔧 Credentials
 
-dr Ferry preferences (recap untuk context):
+### GitHub PAT
 
-- **Background:** Neurosurgeon, not tech/akuntansi background
-- **Communication style:** Indonesian, prefers step-by-step substantial (bukan terlalu micro-step, bukan terlalu agresif batch)
-- **Default approach:** Accept defaults / safer path saat unfamiliar dengan istilah teknis
-- **Friendly to:** Medical analogies untuk istilah teknis (constraint = surgical checklist, validator = diagnostic algorithm, fixture = simulated patient cases)
-- **Friendly to:** Tables untuk comparison + plain language paragraphs untuk concepts
-- **NOT friendly to:** Wall of jargon, overwhelming list, premature optimization
-
-**Bias check duty:** Saat dr Ferry confirm option, AI must check apakah pilihannya bias (e.g., fatigue, decision overload, premature scope). Flag dengan respectful note + recommendation kalau ada concern.
-
----
-
-## 🔧 PAT Hygiene (Working Pattern)
+Owner provide via `/mnt/user-data/uploads/temporary_GitHub_PAT.txt` di fresh session start. Pattern:
 
 ```bash
-# Get PAT from /mnt/user-data/uploads/temporary_GitHub_PAT.txt (shared by Owner)
-PAT="<paste-PAT-here>"  # Format: ghp_XXXXXXXXXXXX...
+PAT=$(grep -oE 'ghp_[A-Za-z0-9]+' /mnt/user-data/uploads/temporary_GitHub_PAT.txt | head -1)
 git remote set-url origin "https://x-access-token:${PAT}@github.com/urrenbatik-cloud/SIKESUMAv3.1.git"
 git push origin <branch>
 git remote set-url origin "https://github.com/urrenbatik-cloud/SIKESUMAv3.1.git"
@@ -215,48 +318,97 @@ unset PAT
 grep -E "ghp_|x-access-token" .git/config && echo "❌ LEAKED" || echo "✅ clean"
 ```
 
-**NEVER** `git push -u <url-with-PAT>` — leaks PAT ke branch tracking config.
-**NEVER** hardcode PAT di committed files — GitHub push protection will reject (good!).
+### Supabase Token (Phase 2 likely doesn't need new DDL — Phase 1.5 sudah)
+
+Phase 2 mostly **does NOT need DDL execution** — semua DDL sudah live Phase 1.5. Phase 2 = TypeScript + service layer + UI integration. Service layer pakai **anon JWT** (Vite env `VITE_SUPABASE_ANON_KEY`) via existing `lib/supabase.ts` — same key existing tables pakai.
+
+**Kalau** Phase 2 butuh additional DDL (mis. tweak schema, add column), pakai pattern Addendum v1.3 §L.3 dengan Owner explicit approval per-operation.
+
+---
+
+## 🏁 First Substantive Action After Bootstrap
+
+```bash
+# 1. Verify current state matches handover claims
+git status
+git log --oneline -5
+# Expected: 4990059 (Phase 2.3 service layer) → 8ad4e40 (Phase 2.1+2.2 types+state machine)
+#           → 05a4ac3 (handover prep) → 06acf47 (Phase 1.5 exec log) → b834415 (init)
+
+npx vitest run        # Expect: 573 tests pass (486 prior + 87 Phase 2 backend)
+npx tsc --noEmit --skipLibCheck | grep -c "error TS"   # Expect: 8
+
+# 2. If state matches → proceed dengan Phase 2.4 (Submit flow UI integration)
+#    Confirm dengan dr Ferry sebelum mulai coding (per "konfirmasi dulu" workflow)
+
+# 3. Reading priority untuk Phase 2.4 + 2.5:
+#    - SSOT-REFACTOR-LOG.md §0.12.9 (Phase 2 backend execution log — pahami apa yang sudah dibuat)
+#    - services/usulanRevisiService.ts (ready import — 11 functions)
+#    - utils/usulanRevisiStateMachine.ts (ready import — validateTransition + helpers)
+#    - types.ts bagian akhir (UsulanRevisi + UsulanLhrApip + UsulanRevisiData types ready)
+#    - components/ValidationDashboardHeader.tsx:170-194 (Submit button — currently no onClick)
+#    - App.tsx:93 (lhrApipAcknowledgedByYear ephemeral state — perlu R3c migration di Phase 2.5)
+#    - docs/TIER-5-DESIGN.md §8.1 (Phase 2 deliverable checklist — items 1-3 DONE, items 4-5 TODO)
+#    - lib/supabase.ts (envelope pattern reference + getSetting/saveSetting for Phase 2.5)
+
+# 4. Phase 2 sub-phase status:
+#    Phase 2.1 ✅ DONE (commit 8ad4e40): types appended ke types.ts
+#    Phase 2.2 ✅ DONE (commit 8ad4e40): state machine + 46 tests
+#    Phase 2.3 ✅ DONE (commit 4990059): service layer + 41 tests
+#    Phase 2.4 ⏳ TODO (1-2 turn): Submit integration wiring (App.tsx + 2 components)
+#    Phase 2.5 ⏳ TODO (1-2 turn): LHR APIP migration R3c (system_settings + tied audit + banner V1)
+#    Phase 3 ⏳ TODO: Owner manual E2E test on Preview URL
+#    Phase 4 ⏳ TODO: squash merge feature/tier-5a → main (gated by Owner approval)
+#    [Note: production update SEPARATE step via explicit main→production merge]
+```
+
+---
+
+## 📞 Owner Communication Pattern
+
+dr Ferry preferences (recap):
+- **Background:** Neurosurgeon, not tech/akuntansi background
+- **Communication style:** Indonesian, prefers step-by-step substantial (bukan terlalu micro-step, bukan terlalu agresif batch)
+- **Default approach:** Accept defaults / safer path saat unfamiliar dengan istilah teknis
+- **Friendly to:** Medical analogies untuk istilah teknis (state machine = patient care pathway, snapshot = catatan medis tanggal X, immutable trigger = DNR order)
+- **Friendly to:** Tables untuk comparison + plain language paragraphs untuk concepts
+- **NOT friendly to:** Wall of jargon, overwhelming list, premature optimization
+
+**Bias check duty:** Saat dr Ferry confirm option, AI must check apakah pilihannya bias (e.g., fatigue, decision overload, premature scope). Flag dengan respectful note + recommendation kalau ada concern.
 
 ---
 
 ## 📦 Files Included in This Bundle
 
-| File | Purpose | Size |
+| File | Purpose | Size approx |
 |---|---|---|
-| `SESSION-START-HERE.md` | Bundle README (this file) | ~9 KB |
-| `OWNER-POLICY-FOR-AI-SESSIONS.md` | Permission scope + ethics | ~9 KB |
-| `HANDOVER.md` | Project state snapshot | ~8 KB |
-| `README.md` | Project overview + Watchlist | ~34 KB |
-| `SSOT-REFACTOR-LOG.md` | Anti-patterns + Tier 3/4 decision logs | ~52 KB |
-| `docs/TIER-4-DESIGN.md` | Current Tier 4 architecture spec | ~12 KB |
-| `docs/REVISI-POK-PAGU-vKoreksi.md` | Master domain (canonical C-specs) | ~70 KB |
-| `utils/validators/types.ts` | Validation type catalogue (12 specs) | ~15 KB |
-| `utils/validators/helpers.ts` | Shared validator helpers | ~5 KB |
-| `utils/validators/c1.ts` | C1 validator (example) | ~5 KB |
-| `utils/validators/c3.ts` | C3 validator (example) | ~6 KB |
-| `utils/validators/c4.ts` | C4 validator (example) | ~3 KB |
-| `utils/fixtures/validation-scenarios-4a.json` | Ground truth scenarios | ~20 KB |
+| `BUNDLE-README.md` | Bootstrap instructions | ~5 KB |
+| `SESSION-START-HERE.md` | This file (Phase 2 orientation) | ~15 KB |
+| `OWNER-POLICY-FOR-AI-SESSIONS.md` | Owner permissions + Addendum v1.1/v1.2/**v1.3 BARU** | ~37 KB |
+| `HANDOVER.md` | Project state snapshot Phase 1.5 EXECUTED | ~12 KB |
+| `SSOT-REFACTOR-LOG.md` | Decisions log §0.7 + §0.8 (Tier 3) + §0.9-§0.11 (Tier 4) + **§0.12 (Tier 5) + §0.12.7 BARU (Phase 1.5 exec log)** | ~90 KB |
+| `docs/TIER-5-DESIGN.md` | Phase 1 design (R1-R8 + R6+, schema sudah live) | ~24 KB |
+| `docs/TIER-3-PLUS-PLAN.md` | Original Tier 3-7 blueprint | ~24 KB |
+| `docs/TIER-4C-DESIGN.md` + `TIER-4C-PHASE-3-UI-DESIGN.md` | Predecessor patterns | ~40 KB |
+| `docs/REVISI-POK-PAGU-vKoreksi.md` | Master domain reference | ~72 KB |
+| `docs/glossary.md` | Glossary | ~8 KB |
+| `migrations/tier-5-001..004.sql` | DDL scripts (already executed Phase 1.5 — for reference) | ~22 KB |
+| `constants/devLog.ts` | Development timeline | ~130 KB |
 
-Total bundle: ~250 KB. Self-contained — semua context yang next session perlu.
-
----
-
-## 🎬 First Action Next Session
-
-```bash
-# 1. Read this file (you're doing it now ✓)
-# 2. Read OWNER-POLICY-FOR-AI-SESSIONS.md
-# 3. Check current state:
-git status
-git log --oneline -5
-npx vitest run        # Expect: 253 tests pass
-npx tsc --noEmit --skipLibCheck | grep -c "error TS"   # Expect: 11 (feature branch)
-
-# 4. If state matches → proceed dengan Turn 3 (C2 validator)
-# 5. Tanya dr Ferry konfirmasi sebelum mulai coding
-```
+Total bundle: ~500 KB. Self-contained — semua context yang fresh session perlu.
 
 ---
 
-*Bundle generated 11 Mei 2026 setelah Turn 2 (C3 validator) complete. Untuk regenerate, lihat workflow di SSOT §0.9 atau tanya dr Ferry.*
+## 🎓 Successful Predecessor Patterns (Reference)
+
+Pattern proven works:
+- Tier 4c handover bundle → fresh session executed Tier 4c successfully (all 12 validators + UI)
+- Tier 5 handover bundle → fresh session executed Phase 1.5 successfully (3 tables LIVE + smoke test passed)
+
+This bundle = Tier 5a Phase 2 handover. Pattern same.
+
+---
+
+**Good luck dengan Tier 5a Phase 2 implementation!** 🚀
+
+Bundle prep di akhir session sebelumnya (12 Mei 2026, post Phase 1.5 execute). Fresh session continue dari `feature/tier-5a-audit-trail-backend` branch HEAD `06acf47` per playbook di SESSION-START-HERE.md ini.

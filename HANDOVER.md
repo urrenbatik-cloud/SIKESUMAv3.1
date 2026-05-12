@@ -14,25 +14,31 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 6. **[`README.md`](./README.md)** § "SSOT Lattice & IV Checks" + § "Key Decisions Log → SSOT Refactor" + § "Watchpoints".
 7. **[`SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md`](./SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md)** — 3 HB resolutions + Konteks 6.
 
-**Status singkat (per 12 Mei 2026, post-Tier-4c-MERGED + Tier 5 Design Phase 1 ready):**
+**Status singkat (per 13 Mei 2026, fresh session resumed Tier 5a Phase 2.5 EXECUTED):**
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
 - **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration.
 - **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — 5 validators C1-C5 + UI integration.
 - **Tier 4b MERGED TO MAIN** sebagai commit `d13be80` (11 Mei 2026) — 4 validators C6-C9 + LHR APIP checkbox + Submit triple gating.
 - **Tier 4c MERGED TO MAIN** sebagai commit `9174782` (12 Mei 2026) — 3 validators C10/C11/C12 + T9 toggle + cross-tab nav. **All 12 validators LIVE — Submit Revisi POK button ENABLES first time**.
-- **Tier 5 Phase 1 Design Ready** (12 Mei 2026, di main, pre-implementation): `docs/TIER-5-DESIGN.md` BARU dengan **R1-R8 + R6+ manual override** Owner-approved. Schema R1c hybrid (typed columns + JSONB), R8c partition (5a backend + 5b frontend), Tier 5+6 overlap β forward-compat. Implementation di-handed-off ke **fresh AI session** via `tier5-handover-bundle.zip`. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.2.
-- **v3.2 Production Branch Strategy** (12 Mei 2026): Branch `production` di-create dari main HEAD `90a0278`. Vercel config update ke production branch = `production` (Owner action). main = dev preview only, production = explicit promote. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` §I.
+- **Tier 5 Phase 1 Design Ready** (12 Mei 2026, commit `535085f` di main): `docs/TIER-5-DESIGN.md` dengan **R1-R8 + R6+ manual override** Owner-approved. Schema R1c hybrid, R8c partition (5a backend + 5b frontend), Tier 5+6 overlap β forward-compat.
+- **Tier 5a Phase 1.5 EXECUTED** (12 Mei 2026, fresh session, branch `feature/tier-5a-audit-trail-backend`): 3 tables (`usulan_revisi`, `usulan_revisi_perubahan`, `snapshot_pok`) + 7 custom indexes + 10 RLS policies + R7c immutability trigger LIVE di Supabase. Smoke test trigger fired verbatim ("immutable per Tier 5 R7c"). Lihat `SSOT-REFACTOR-LOG.md §0.12.7` untuk execution log lengkap.
+- **Tier 5a Phase 2 Backend Foundation COMPLETE** (12 Mei 2026, fresh session continuation, branch `feature/tier-5a-audit-trail-backend` HEAD `4990059`): Phase 2.1 types (R1c hybrid append ke root `types.ts`, +181 lines) + Phase 2.2 state machine (`utils/usulanRevisiStateMachine.ts` +292 lines, 6 rules + R6+ override catch-all + 46 tests) + Phase 2.3 service layer (`services/usulanRevisiService.ts` +430 lines, 11 functions CRUD untuk 3 tabel, NO `updateSnapshot` for R7c defense + 41 tests). Test baseline 486 → **573 tests pass** (+87). TS 8/8 maintained. 2 atomic paired commits: `8ad4e40` (Phase 2.1+2.2) + `4990059` (Phase 2.3). Lihat `SSOT-REFACTOR-LOG.md §0.12.9` untuk execution log lengkap.
+- **Tier 5a Phase 2.4 Submit Flow UI Integration COMPLETE** (12 Mei 2026, fresh session, branch `feature/tier-5a-audit-trail-backend` HEAD `958e426`): Submit button di `ValidationDashboardHeader` wired ke service layer via pure orchestrator + DI pattern. NEW `utils/submitRevisiHelpers.ts` (+225 lines, 3 helpers: `collectChangedRowsWithSection`, `summarizeChangedRows`, `executeSubmitRevisiPOK` async with `SubmitRevisiServices` DI) + NEW `utils/submitRevisiHelpers.test.ts` (+370 lines, 25 tests covering all SubmitRevisiResult kinds: no_changes, state_rejected ±reason, service_error per phase, success, multi-row, custom diusulkanOleh, lhrApip propagation). MOD 3 files: `App.tsx` (+useState isSubmittingRevisi + handleSubmitRevisiPOK + prop pass-through), `ValidasiRevisiPOK.tsx` (props pass-through), `ValidationDashboardHeader.tsx` (+onSubmit?/isSubmitting? props, wire onClick, "Submitting..." label). Test baseline 573 → **598 tests pass** (+25). TS 8/8 maintained. Single paired commit `958e426`. Lihat `SSOT-REFACTOR-LOG.md §0.12.10` untuk execution log lengkap + architectural rationale (DI pattern karena project tidak punya React Testing Library).
+- **🆕 Tier 5a Phase 2.5 LHR APIP R3c Migration COMPLETE** (13 Mei 2026, fresh session, branch `feature/tier-5a-audit-trail-backend` HEAD `93d9155`): Strategy A V1 minimal (Owner-approved 13 Mei 2026) — ephemeral `lhrApipAcknowledgedByYear` `Record<number, boolean>` → persisted `LhrApipGlobalState` di `system_settings.lhr_apip_global` (JSONB key, getSetting/saveSetting pattern AP-8 JSONB-native). R3c tied audit: `deriveLhrApipForSubmission` derive placeholder payload (nomor="(belum diisi)", tanggal=acknowledged_at.slice(0,10), acknowledged_at) → `executeSubmitRevisiPOK` populate `usulan_revisi.data.lhr_apip` saat `createUsulanDraft`. Banner V1 UI text-only (R4a Owner choice) di top `<ValidasiRevisiPOK>` saat current year unacknowledged. Forward-compat ke Strategy B V2: schema include optional `nomor?` + `tanggal?` fields sejak V1, upgrade tidak butuh schema migration. EXTEND `utils/submitRevisiHelpers.ts` (+137 lines: 2 types + 1 const + 2 pure helpers + extended orchestrator args), `utils/submitRevisiHelpers.test.ts` (+12 tests = 3 propagation + 4 banner predicate + 5 derive). MOD `App.tsx` (state shape + mount-load useEffect + handleLhrApipChange callback persist + handleSubmitRevisiPOK derive lhrApipForYear + prop pass-through), `components/ValidasiRevisiPOK.tsx` (banner JSX). Test baseline 598 → **610 pass** (+12). TS 8/8 maintained. Single paired commit `93d9155`. Lihat `SSOT-REFACTOR-LOG.md §0.12.12` untuk execution log lengkap.
+- **🚧 Tier 5a Phase 3 PENDING — Owner E2E Manual Test di Vercel Preview URL.** Vercel auto-deploy preview untuk branch `feature/tier-5a-audit-trail-backend` setelah push `93d9155`. Owner manual flow: (1) check/uncheck checkbox C8 → verify banner toggle + Supabase `lhr_apip_global` key write; (2) refresh browser → state persisted; (3) trigger Submit flow dengan changed row → verify `usulan_revisi.data.lhr_apip` populated. Setelah approve → Phase 4 squash merge feature → main.
+- **v3.2 Production Branch Strategy** (12 Mei 2026): ✅ **OPERATIONAL** — Vercel `Settings → Environments` (UI baru, replace lama `Settings → Git → Production Branch`) menunjukkan **Production environment tracking branch = `production`**. main = Preview environment, all unassigned branches = Preview. Foundation finding #2 (switch pending) → CLOSED 12 Mei 2026 via Owner screenshot verification. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.3.
 - **Tier 6-7 pending** — Template SK Revisi POK generation (anticipated di Tier 5 schema), Itjenad/BPK audit export, dll.
 - TS baseline: **8 errors** maintained sejak post-devLog.ts cleanup 11 Mei 2026
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10 + §0.11 + §0.12` untuk full detail):**
 ```
-main:        90a0278 (TIER-4C MERGED + post-merge sync) — dev branch, Vercel preview only
-production:  90a0278 (= main HEAD post-Tier-4c) — Vercel production deployment source
+main:        535085f (Tier 5 Phase 1 design + handover prep, 1 commit ahead of production) — dev branch, Vercel preview only
+production:  90a0278 (Tier 4c MERGED state) — Vercel production deployment source
 
-  Top-of-trunk commits (both branches at same hash):
+  Top-of-trunk commits (main):
+  ├── 535085f docs(tier-5 phase 1): design ready + handover prep + v3.2 strategy + OWNER-POLICY v1.2 (main only)
   ├── 90a0278 docs(post-merge): Tier 4c MERGED status sync
   ├── 9174782 feat(tier-4c): Validation Engine sub-branch 4c — squash merge
   ├── 114ad4e docs(handover): sync branch state tree
@@ -52,7 +58,18 @@ feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup)
 feature/tier-4b-revisi-mechanism:        DELETED (post-squash-merge cleanup)
 feature/tier-4c-procedural-references:   DELETED (post-squash-merge cleanup — 12 Mei 2026)
 
-feature/tier-5a-audit-trail-backend:     TBD (next sub-branch — fresh AI session, R8c part 1)
+feature/tier-5a-audit-trail-backend:     ACTIVE — HEAD 93d9155 (Phase 2.5 LHR APIP R3c migration COMPLETE, 7 commits beyond main 535085f)
+  Commits di branch (newest first):
+  ├── 93d9155 feat(tier-5a phase 2.5): LHR APIP R3c migration + banner V1 + 12 tests (13 Mei 2026)
+  ├── fedfca5 docs(tier-5a phase 2.4 complete + 2.5 handover prep): SSOT §0.12.10 + HANDOVER + OWNER-POLICY v1.4 + SESSION-START redirect + devLog
+  ├── 958e426 feat(tier-5a phase 2.4): Submit flow UI integration + 25 tests (12 Mei 2026)
+  ├── b7f4164 docs(tier-5a phase 2 backend complete): handover prep — HANDOVER + SSOT §0.12.9 + SESSION-START redirect
+  ├── 4990059 feat(tier-5a phase 2.3): service layer + 41 tests (12 Mei 2026)
+  ├── 8ad4e40 feat(tier-5a phase 2.1+2.2): types + state machine + 46 tests (12 Mei 2026)
+  ├── 05a4ac3 docs(tier-5a phase 2 handover prep): OWNER-POLICY v1.3 + Vercel CONFIRMED + Phase 2 SESSION-START
+  ├── 06acf47 docs(tier-5a phase 1.5): DDL execution log — 3 tables LIVE in Supabase
+  └── b834415 chore(tier-5a init): branch foundation — Phase 1.5 DDL scripts + HANDOVER snapshot sync
+
 feature/tier-5b-audit-trail-ui:          TBD (later — fresh AI session, R8c part 2)
 ```
 
@@ -73,7 +90,7 @@ feature/tier-5b-audit-trail-ui:          TBD (later — fresh AI session, R8c pa
 - Vitest 2.1.9 (devDep). Run: `npm test` / `npm run test:watch` / `npm run test:fixture`
 - Tests location: colocated `*.test.ts` next to source (mis. `utils/metadataRecommender.test.ts`)
 - Fixtures: `utils/fixtures/` (mis. `pagu-leaves-ta2025.json` = 38 leaves ground truth, `validation-scenarios-4c.json` = 18 scenarios)
-- Baseline: **486 tests pass** post Tier 4c Phase 3 (12 Mei 2026): 201 Tier 3 + 103 Tier 4a + 88 Tier 4b + **94 Tier 4c** (C12 17 + C10 32 + C11 45 incl. T9 toggle). Target estimasi awal 449 tests; actual +37 over because T9 toggle scope addition mid-Phase-2b per Owner direction.
+- Baseline: **598 tests pass** post Tier 5a Phase 2.4 Submit flow UI integration (12 Mei 2026): 573 post Phase 2 backend + **25 Phase 2.4** (8 collectChangedRowsWithSection + 4 summarizeChangedRows + 13 executeSubmitRevisiPOK orchestrator coverage). 486 prior baseline + **87 Phase 2 backend** (46 state machine `utils/usulanRevisiStateMachine.test.ts` + 41 service layer `services/usulanRevisiService.test.ts`). Sebelum Phase 2: 201 Tier 3 + 103 Tier 4a + 88 Tier 4b + 94 Tier 4c (C12 17 + C10 32 + C11 45 incl. T9 toggle).
 
 ---
 
@@ -119,13 +136,23 @@ GEMINI_API_KEY=your-gemini-api-key
 |---|---|---|
 | `system_settings` | Konfigurasi global: PNBP config, BPJS settings, reasoning categories, mapping akun, scenario settings, dll. | Schema BUKAN `id` — gunakan `?key=eq.{name}` untuk query. Audit drift sudah resolved (S3.2 #1) |
 
-### 3.3 Tabel Future (Tier 3-5, BELUM dibuat per snapshot)
+### 3.3 Tabel Tier 5 LIVE *(R1c hybrid: columned status/tahun/jenis + JSONB data; LIVE sejak Phase 1.5, 12 Mei 2026)*
 
-| Tabel | Tier | Scope |
-|---|---|---|
-| `usulan_revisi` | Tier 5 | State machine per pengajuan Revisi POK (Draft → Direkomendasi → Diteruskan → Ditetapkan → Berlaku Efektif) |
-| `usulan_revisi_perubahan` | Tier 5 | Detail per-row perubahan dalam 1 usulan (nilai_semula, nilai_revisi, alasan) |
-| `snapshot_pok` | Tier 5 | Snapshot full POK state per tanggal penetapan KPA (immutable) |
+| Tabel | Tier | Scope | Schema |
+|---|---|---|---|
+| `usulan_revisi` | Tier 5a | State machine per pengajuan Revisi POK (Draft → Direkomendasi → Diteruskan → Ditetapkan → Berlaku Efektif) | 7 cols (id, status, tahun_anggaran, jenis, data JSONB, created_at, updated_at). Types di `types.ts` `UsulanRevisi` + `UsulanRevisiData` (Phase 2.1) |
+| `usulan_revisi_perubahan` | Tier 5a | Detail per-row perubahan dalam 1 usulan (nilai_semula, nilai_revisi, alasan) | 5 cols (id, usulan_id FK, pagu_row_id, data JSONB, created_at). Types di `types.ts` `UsulanRevisiPerubahan` |
+| `snapshot_pok` | Tier 5a | Snapshot full POK state per tanggal penetapan KPA (R2b, R7c immutable via DB trigger + app no-UPDATE) | 6 cols (id, tahun_anggaran, tanggal_efektif, usulan_id FK, **snapshot_data** JSONB bukan `data`, created_at). Types di `types.ts` `SnapshotPok` |
+
+**Status komponen Tier 5a:**
+- ✅ DDL (Phase 1.5, 12 Mei 2026): 3 tabel + 7 indexes + 10 RLS policies + R7c trigger LIVE
+- ✅ Types (Phase 2.1, 12 Mei 2026): Appended ke root `types.ts` per Owner preference
+- ✅ State machine (Phase 2.2): `utils/usulanRevisiStateMachine.ts` — 6 rules + R6+ override
+- ✅ Service layer (Phase 2.3): `services/usulanRevisiService.ts` — 11 functions CRUD, NO `updateSnapshot` (R7c defense)
+- ✅ Submit flow integration (Phase 2.4, 12 Mei 2026): wire via DI orchestrator pattern (commit `958e426`)
+- ✅ LHR APIP R3c migration (Phase 2.5, 13 Mei 2026): persist global state di `system_settings.lhr_apip_global`, tied audit di `usulan_revisi.data.lhr_apip`, banner V1 UI text-only (commit `93d9155`). Strategy A (V1 minimal) — forward-compat ke Strategy B richer audit di V2.
+- ⏳ Owner E2E test di Vercel Preview URL (Phase 3): pending Owner manual smoke test (toggle checkbox + browser refresh + Submit flow verification)
+- ⏳ Squash merge `feature/tier-5a-audit-trail-backend → main` (Phase 4): gated by Owner approval Phase 3
 
 Schema migration nullable additive ke `pagu_row` (Tier 3): `kro_code`, `kegiatan_code`, `komponen_code`, `volume_ro`, `satuan_ro`, `sumber_dana_kode` — lihat `docs/TIER-3-PLUS-PLAN.md`.
 
