@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { RPDSection, RPDRow, PaguSection } from '../types';
 import { formatIDR } from './Formatters';
 import { buildPaguByKode } from '../utils/paguLookup';
@@ -12,10 +12,60 @@ interface RPDProps {
   onSectionsChange: (newSections: RPDSection[]) => void;
   viewMode: 'SEMULA' | 'REVISI' | 'SEMUA';
   selectedYear: number;
+  /**
+   * [Tier 4c Phase 3c-nav] Row yang harus di-scroll dan di-highlight saat
+   * RPD tab di-mount (consumed dari pendingRpdRowHighlight di App.tsx).
+   * Diset saat user klik "→ RPD" di Validasi detail panel untuk C11
+   * violation. UseEffect handle scrollIntoView + 2s emerald glow.
+   * Mirror PaguAnggaran Tier 4a Phase 3d pattern.
+   */
+  pendingRowHighlight?: { sectionId: string; rowId: string } | null;
+  /**
+   * Callback untuk clear pendingRpdRowHighlight di parent setelah
+   * di-consume. Mencegah re-trigger highlight saat re-render.
+   */
+  onRowHighlightConsumed?: () => void;
 }
 
-const RPD: React.FC<RPDProps> = ({ sections, paguSections, onSectionsChange, viewMode, selectedYear }) => {
+const RPD: React.FC<RPDProps> = ({
+  sections, paguSections, onSectionsChange, viewMode, selectedYear,
+  pendingRowHighlight, onRowHighlightConsumed,
+}) => {
   const [collapsedRows, setCollapsedRows] = useState<Set<string>>(new Set());
+
+  // ─── [Tier 4c Phase 3c-nav] Scroll + highlight row on cross-tab navigation ──
+  // Saat user click "→ RPD" di Validasi detail panel (C11 violation), parent
+  // (App.tsx) set pendingRpdRowHighlight + switch sub-tab. Tab ini mount,
+  // useEffect cari element via data-row-id, scroll into view + add ring
+  // glow class ~2s, lalu clear. Mirror PaguAnggaran Tier 4a Phase 3d.
+  //
+  // Silent no-op kalau:
+  //   - pendingRowHighlight null (normal mount)
+  //   - Element tidak ada di DOM (row collapsed, atau RPD belum ada untuk
+  //     pagu yang ter-revisi — graceful clear)
+  useEffect(() => {
+    if (!pendingRowHighlight) return;
+    // Defer ke next tick supaya DOM stable setelah mount
+    const timeoutId = setTimeout(() => {
+      const el = document.querySelector(
+        `[data-rpd-row-id="${pendingRowHighlight.rowId}"]`
+      ) as HTMLElement | null;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add highlight glow — Tailwind ring + transition
+        el.classList.add('ring-4', 'ring-emerald-400', 'ring-offset-2', 'transition-all', 'duration-500');
+        // Remove highlight after 2s
+        setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-emerald-400', 'ring-offset-2');
+          onRowHighlightConsumed?.();
+        }, 2000);
+      } else {
+        // Row not in DOM (hidden by collapse atau missing data) — silent clear
+        onRowHighlightConsumed?.();
+      }
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [pendingRowHighlight, onRowHighlightConsumed]);
 
   // [Sprint A2] SSOT: Pagu lookup map. RPDRow.totalBudget tidak lagi disimpan;
   // semua tampilan budget di-derive dari paguSections via buildPaguByKode.
@@ -242,7 +292,7 @@ const RPD: React.FC<RPDProps> = ({ sections, paguSections, onSectionsChange, vie
                       const isCollapsed = collapsedRows.has(row.id);
 
                       return (
-                        <tr key={row.id} className={`${hasChildren ? 'bg-slate-50/50 font-black' : 'bg-white'} ${isInvalidKode ? 'bg-red-50/40' : ''} hover:bg-blue-50 transition-colors group text-[10px]`}>
+                        <tr key={row.id} data-rpd-row-id={row.id} className={`${hasChildren ? 'bg-slate-50/50 font-black' : 'bg-white'} ${isInvalidKode ? 'bg-red-50/40' : ''} hover:bg-blue-50 transition-colors group text-[10px]`}>
                           <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-100 align-top" style={{ paddingLeft: `${indentation + 1}rem` }}>
                              {hasChildren && (
                               <button onClick={() => toggleRowCollapse(row.id)} className={`mr-2 w-4 h-4 rounded bg-slate-200 text-slate-600 items-center justify-center transition-transform inline-flex ${isCollapsed ? '-rotate-90' : ''}`}>

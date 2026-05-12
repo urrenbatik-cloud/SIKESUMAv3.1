@@ -4,31 +4,33 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4c Foundation Phase)
+> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c Phase 3)
 >
-> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c Foundation Phase COMPLETE** di main. 9 of 12 validators di production (C1-C9 live, C10-C12 todo placeholder). UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating). **392 tests baseline** + **TS 8 maintained**. Bundle ini originally generated **sebelum** Tier 4a/4b/4c — ketiga sudah selesai sejak generate timestamp.
+> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c Foundation Phase COMPLETE** di main (`9c82265`) + **Tier 4c Phase 2 + 3 COMPLETE** di feature branch (12 Mei 2026, 9 commits ahead). All 12 validators LIVE (C1-C12, no more placeholders). UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating ENABLES, cross-tab navigation pagu↔rpd, C11 strategy toggle inline banner). **486 tests baseline** + **TS 8 maintained**. Ready Phase 4: Owner Vercel E2E test → squash merge ke main.
 >
-> **TIER 4C IMPLEMENTATION READY FOR FRESH AI SESSION:**
-> - Foundation di main: design doc `230ba43`, Konteks 1 TD fix `303df65`, Phase 1.5 types narrow `857e98c`, governance updated
-> - Owner approve T1-T8 defaults (di SSOT §0.11.1)
-> - Pre-existing Konteks 1 TD RESOLVED (was `PaguAnggaran.tsx:50-51`, fixed at line 368 via T8a)
-> - Branch `feature/tier-4c-procedural-references` **belum di-create** (handed off ke fresh session)
+> **TIER 4C PHASE 4 (PRE-MERGE STATE):**
+> - Branch state: `feature/tier-4c-procedural-references` @ Phase 3d docs-sync commit (this one)
+> - Phase 2b breakdown: C12 Turn 1 (17 tests) + C10 Turn 2 (32 tests, FIRST warn) + C11 Turn 3 (35 tests, cross-table) + T9 Toggle Turn 4 (10 tests + 2 fixture)
+> - Phase 3 breakdown: 3a UI design brief → 3b cards live + ctx wiring → 3c cross-tab nav refactor + C11 toggle UI absorbed → 3d docs sync (this)
+> - **94 Tier 4c tests added** (target estimasi 57; actual +65% justified karena T9 toggle scope addition Owner-direction 12 Mei 2026)
+> - Owner direction batched: Q1-Q5 Phase 3a defaults approve, Mode B execution pacing
 >
-> **MANDATORY untuk fresh AI session — first 5 steps (urut wajib):**
-> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full text (terutama Addendum v1.1)
+> **MANDATORY untuk fresh AI session post-merge (first 5 steps urut wajib):**
+> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full text (terutama Addendum v1.1 + procedural rules)
 > 2. ☐ Read `HANDOVER.md` — current state authoritative
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
 > 4. ☐ Run git verification commands (lihat OWNER-POLICY Section B)
-> 5. ☐ Read `docs/TIER-4C-DESIGN.md` — the plan dengan T1-T8 decisions locked
+> 5. ☐ Read `docs/TIER-4-DESIGN.md` (or future Tier 5+ design doc)
+>
+> **🚨 MANDATORY workflow rule (BARU 12 Mei 2026 — Owner direction):**
+> **Paired commit→push action**: Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama. Tidak boleh "lupa" push. Pattern: commit + push = atomic action pair. Justifikasi: Owner mengandalkan GitHub state untuk visibility — local commit yang tidak di-push = invisible. AI session apa saja yang baca handover ini = wajib follow. Detail di HANDOVER.md "Workflow procedural rules".
 >
 > **HANYA setelah 5 langkah ini, baru lanjut substantive work:**
-> - Branch creation: `git checkout -b feature/tier-4c-procedural-references`
-> - Implementation per `TIER-4C-DESIGN.md` §6 — Phase 2a → 2b Turn 1 (C12) → Turn 2 (C10) → Turn 3 (C11) → Phase 3a-d → Phase 4
-> - Expected ~7-10 fresh session turns total
-> - Final test baseline target: ~449 tests (392 + 57)
-> - Implementation = SIGNIFICANT scope per session-split policy (avoid 2nd compaction)
+> - Next likely scope: Tier 5 (Audit Trail) — butuh Owner DDL action `CREATE TABLE usulan_revisi`
+> - Atau bug-fix / refinement berdasarkan Sie Renbang feedback dari Tier 4c production use
+> - Tier 4 fully complete sejak Phase 3 — Submit Revisi POK button unlocked first time in project history
 >
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b (R1-R5/S1-S6 derivation, UI design rationale, dll).
+> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b/4c (R1-R5/S1-S6/T1-T9 derivation, UI design rationale, dll).
 
 ---
 

@@ -317,6 +317,22 @@ export interface ValidationContext {
   sbmDictionary?: unknown; // shape TBD di Tier 4c
   /** Evaluation timestamp untuk C12 deadline check */
   evaluatedAt?: Date;
+  /**
+   * [Tier 4c Phase 2b Turn 4 — Decision T9 BARU 12 Mei 2026]
+   * Strategy untuk C11 vacuous-vs-pending decision tree.
+   *
+   * - 'permisif' (default development setting): vacuous-wins. Jika 0
+   *   changed leaves DAN rpdsData undefined → pass (vacuous, missing
+   *   data irrelevant). Default-safe interpretation untuk fase eksplorasi.
+   * - 'ketat': pending-first. rpdsData undefined → pending dulu, walau
+   *   0 changed leaves. Default-skeptical interpretation.
+   *
+   * Owner direction: toggle architecture-ready sekarang. UI toggle di
+   * Phase 3c (in-context di card C11 dashboard, localStorage persist
+   * per-device). Sie Renbang dapat eksperimen kedua mode untuk pilih
+   * preference akhirnya — pattern "learning by doing".
+   */
+  c11Strategy?: 'permisif' | 'ketat';
 }
 
 // ────────────────────────────────────────────────────────────────────────

@@ -276,12 +276,246 @@ export const ROADMAP: RoadmapItem[] = [
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
-  // SSOT REFACTOR — Tier 3 + Tier 4 (11 Mei 2026)
+  // SSOT REFACTOR — Tier 3 + Tier 4 (11-12 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
   // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
   // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
   // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4a) + §0.10 (Tier 4b)
   // + §0.11 (Tier 4c) untuk full decision log.
+
+  {
+    id:    'log-2026-05-12-tier-4c-phase-3-complete',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 4c',
+    title: 'Tier 4c Phase 3 COMPLETE — All 12 Validators Live + Cross-Tab Nav + C11 Toggle',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 4c sub-branch \`feature/tier-4c-procedural-references\` Phase 2 (validators) + Phase 3 (UI integration) **selesai**. Branch siap untuk Phase 4 (Owner Vercel preview E2E test → squash merge ke main).
+
+**Branch state:** \`feature/tier-4c-procedural-references\` (9 commits ahead of main \`9c82265\`)
+
+**Tier 4c commits audit trail (9 commits squashable):**
+- \`114ad4e\` docs(handover): sync branch state tree post-foundation (drift patch)
+- \`7a1582e\` feat phase 2a: fixture validation-scenarios-4c.json — 18 skenario C10/C11/C12 + toggle
+- \`1315914\` feat phase 2b Turn 1: C12 Deadline validator + 17 tests
+- \`e4f1405\` feat phase 2b Turn 2: C10 SBM/SBK validator + 32 tests (FIRST warn severity)
+- \`edc8f15\` feat phase 2b Turn 3: C11 RPD validator + 35 tests (CROSS-TABLE)
+- \`cb0435e\` feat phase 2b Turn 4: T9 toggle architecture (permisif/ketat) + 10 tests
+- \`0e8853d\` docs phase 3a: UI integration design delta brief — D1+D2+D3 plan
+- \`c440b29\` feat phase 3b: cards C10/C11/C12 LIVE + ValidationContext wiring
+- \`4cf3341\` feat phase 3c: cross-tab nav refactor + C11 toggle UI absorbed
+
+**12 validators live final state (post-Phase-3b):**
+
+| Constraint | Status | Tests | Special note |
+|---|---|---|---|
+| C1-C5 (Tier 4a) | ✅ live | 103 | Pagu structure |
+| C6-C9 (Tier 4b) | ✅ live | 88 | Revisi mechanism + LHR APIP |
+| **C10 SBM** | ✅ live | **32** | First WARN severity (amber dot 10-25%) |
+| **C11 RPD** | ✅ live | **45** | Cross-table check + T9 strategy toggle |
+| **C12 Deadline** | ✅ live | **17** | Procedural date check, dashboard-only |
+
+**Test baseline:** 392 (post-Tier-4b) → **486 pass** (94 Tier 4c added: C12 17 + C10 32 + C11 45). Target estimasi 57; actual +65% over because T9 toggle scope addition (10 tests + 2 fixture scenarios mid-Phase-2b per Owner direction).
+
+**UI deltas Phase 3 (3 sub-phases):**
+
+Phase 3b — Cards Live + ValidationContext Wiring:
+- \`runAllValidators.ts\` flip C10/C11/C12 placeholder ('4c') → null (live)
+- \`ValidasiRevisiPOK.tsx\` accept \`rpdSections\` + \`c11Strategy\` props
+- \`PaguAnggaran.tsx\` accept \`rpdSections\` (Q5 default — konsistensi UX inline indicators)
+- \`App.tsx\` pass \`rpdSections\` ke 2 children
+- Implemented counter 9/12 → **12/12 (100% progress bar)**
+
+Phase 3c — Cross-Tab Nav Refactor + C11 Toggle (absorbed):
+- T7 signature change: \`onNavigate(target: 'pagu' | 'rpd', sectionId, rowId)\` new unified callback
+- \`onNavigateToPagu\` @deprecated marker (Q3 default — keep selama transition)
+- \`DetailPanel\` dual buttons untuk C11 violations (→ Pagu emerald + → RPD blue)
+- \`App.tsx\` new state \`pendingRpdRowHighlight\` + \`handleValidationNavigate\` route handler
+- \`RPD.tsx\` scroll/highlight implementation (mirror PaguAnggaran Tier 4a Phase 3d):
+  * \`data-rpd-row-id\` attribute (avoid namespace collision dengan PaguAnggaran)
+  * useEffect scrollIntoView + Tailwind ring-4 emerald glow + 2s auto-clear
+- T9 toggle banner UI (Q1 Opsi A soft — Banner BETWEEN header dan card grid):
+  * Native radio (accent-emerald permisif / accent-amber ketat)
+  * Lucide Info icon hover tooltip 3-paragraph trade-off explainer
+  * Right-aligned status note (default pengembangan / strict mode aktif)
+  * localStorage key \`c11PendingStrategy\` per device
+
+**Submit button finally ENABLES** for first time in project history (allImplemented = true). Triple-gating preserved: canSubmit AND lhrApipAcknowledged AND allImplemented.
+
+**Owner direction received during implementation:**
+- 12 Mei 2026: T9 BARU (C11 strategy toggle) — insert as Phase 2b Turn 4 architecture, UI absorbed di Phase 3c
+- Mode B Phase 3 execution: batch-approve Q1-Q5 defaults, aggressive 2-3 turn pacing
+- Procedural fix: paired commit→push rule untuk avoid missed pushes
+
+**Tests added Phase 2b breakdown (94):**
+- C12 (Turn 1, 17 tests): fixture-driven 5 + edge cases 12 covering year boundary, timezone WIB, leap year, etc.
+- C10 (Turn 2, 32 tests): first WARN severity verification, threshold boundary (10%/25%), float-precision multiplier comparison (avoid IEEE-754 \`10.000000000000002\` artifact)
+- C11 (Turn 3+4, 45 tests): cross-table validator pertama, Konteks 1 PAKAI (vs C9/C10 bypass), pending vs vacuous decision tree, T5a strict match precision, multi-section/multi-RPD aggregation, violation detail content untuk Phase 3c cross-tab nav, c11Strategy toggle behavior
+
+**Smoke test final state:**
+- TS errors: 8 maintained (baseline, no new errors)
+- Vitest: 486 pass (no regression)
+- Vite build: success ~6-7s
+
+**Cross-references:**
+- SSOT decisions log: \`SSOT-REFACTOR-LOG.md\` §0.11.1 T1-T8 + §0.11.1a T9 BARU + §0.11 closure update
+- Predecessor milestone: \`log-2026-05-11-tier-4c-foundation-phase\`
+- Tier 4b predecessor squash: \`d13be80\`
+- Design docs: \`docs/TIER-4C-DESIGN.md\` (foundation) + \`docs/TIER-4C-PHASE-3-UI-DESIGN.md\` (delta brief)
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 + §3.5
+
+**Next milestones:**
+1. Owner Vercel preview E2E test pada feature branch
+2. Squash merge ke main (1 commit per tier convention)
+3. Feature branch cleanup (remote + local delete)
+4. Post-merge sync commit (HANDOVER + SESSION-START-HERE update)
+
+Setelah merge, Tier 4 fully complete (12/12 validators live, Submit unlocked). Ready Tier 5 (Audit Trail) — butuh Owner DDL action untuk CREATE TABLE \`usulan_revisi\`.`,
+    files: [
+      'utils/validators/c10.ts',
+      'utils/validators/c11.ts',
+      'utils/validators/c12.ts',
+      'utils/validators/runAllValidators.ts',
+      'utils/validators/types.ts',
+      'utils/fixtures/validation-scenarios-4c.json',
+      'components/ValidasiRevisiPOK.tsx',
+      'components/PaguAnggaran.tsx',
+      'components/RPD.tsx',
+      'App.tsx',
+      'docs/TIER-4C-PHASE-3-UI-DESIGN.md',
+    ],
+    decisions: [
+      '§Tier4c-T1', '§Tier4c-T2', '§Tier4c-T3', '§Tier4c-T4',
+      '§Tier4c-T5', '§Tier4c-T6', '§Tier4c-T7', '§Tier4c-T8',
+      '§Tier4c-T9 (BARU)',
+      '§Tier4c-Phase3a-Q1', '§Tier4c-Phase3a-Q2', '§Tier4c-Phase3a-Q3',
+      '§Tier4c-Phase3a-Q4', '§Tier4c-Phase3a-Q5',
+    ],
+    related: [
+      'log-2026-05-11-tier-4c-foundation-phase',
+      'log-2026-05-12-c11-toggle-feature',
+      'log-2026-05-11-tier-4b-merged-to-main',
+    ],
+  },
+
+  {
+    id:    'log-2026-05-12-c11-toggle-feature',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 4c / T9',
+    title: 'C11 Strategy Toggle — Permisif/Ketat User-Configurable Validator Mode',
+    type:  'feature',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Architecture + UI baru untuk C11 RPD validator. Owner direction 12 Mei 2026 di tengah Phase 2b Turn 3 — saat AI assistant report "vacuous-wins-over-pending" sebagai custom interpretation (NOT pre-locked T1-T8) untuk edge case "0 changed leaves + rpdsData undefined".
+
+**Background:**
+
+Saat implementasi C11 (cross-table check Pagu vs RPD), discovered edge case dengan dua interpretasi semantic yang sama-sama defensible:
+- Interpretasi A (vacuous-wins): kalau 0 changed leaves, tidak ada yang perlu di-evaluate, missing rpdsData irrelevant → \`pass\`
+- Interpretasi B (pending-first): kalau rpdsData undefined, validator tidak bisa evaluate, regardless changed count → \`pending\`
+
+Daripada lock-in di salah satu, Owner direction: jadikan **user-configurable toggle** supaya Sie Renbang dapat eksperimen kedua mode + pilih preference akhirnya based on workflow experience ("learning by doing" pattern, Owner-explicit di SESSION-START-HERE).
+
+**Decision T9 (BARU 12 Mei 2026):**
+
+\`ValidationContext.c11Strategy?: 'permisif' | 'ketat'\` field baru. Validator decision tree branch berdasarkan strategy:
+
+\`\`\`typescript
+if (strategy === 'permisif') {
+  if (changedLeaves.length === 0) return pass;   // vacuous
+  if (rpdsData === undefined)      return pending;
+  // ... continue to cross-table eval
+}
+if (strategy === 'ketat') {
+  if (rpdsData === undefined)      return pending;  // pending-first
+  if (changedLeaves.length === 0) return pass;
+  // ... continue
+}
+\`\`\`
+
+**Diff antara 2 mode HANYA muncul di edge case spesifik tersebut.** Semua kasus lain (changed > 0, atau rpdsData defined) output identical di kedua mode.
+
+**Naming Indonesian** per Owner preference (RS TNI AD primary language; alternative pair 'vacuous'/'strict' = technical jargon ditolak).
+
+**Default 'permisif'** untuk backward compat + natural UX. Toggle ke 'ketat' = opt-in via UI.
+
+**Implementation phases:**
+
+Phase 2b Turn 4 (commit \`cb0435e\`) — Architecture:
+- Extend \`ValidationContext\` dengan field
+- Refactor \`validateC11\` decision tree
+- Extract \`buildPendingResult\` helper (DRY)
+- Append strategyNote ke setiap summary (pattern soft-onboarding)
+- 8 new tests + 2 fixture scenarios = 10 tests added (45 total C11)
+
+Phase 3c absorbed (commit \`4cf3341\`) — UI:
+- Toggle banner BETWEEN \`ValidationDashboardHeader\` dan card grid
+  (Q1 Opsi A soft interpretation — \`ValidationConstraintCard\` adalah
+  \`<button>\` element, nested radio invalid HTML; banner pre-grid satisfy
+  discoverability intent)
+- Compact 1-line layout:
+  \`Mode evaluasi C11: ⓘ ◉ Permisif ○ Ketat   (status note)\`
+- Lucide Info icon hover tooltip dengan 3-paragraph trade-off explainer
+- Native radio dengan accent-emerald (permisif) / accent-amber (ketat)
+- localStorage key \`c11PendingStrategy\` per device per user
+- Right-aligned status note: \`(default pengembangan — fitur dapat di-upgrade)\` / \`(strict mode aktif)\`
+- Re-validate auto-trigger via \`useCallback\` deps include \`c11Strategy\`
+
+**User-facing note di validator summary:**
+
+Setiap C11 result punya strategyNote appendix di summary string (semua status pass/fail/pending):
+
+- Permisif: \`[Mode: PERMISIF — default pengembangan, vacuous pass aktif. Mode KETAT (validate-first) tersedia via toggle UI Phase 3c.]\`
+- Ketat:    \`[Mode: KETAT — strict pending-first aktif. Mode PERMISIF (default, lebih lenient) tersedia via toggle.]\`
+
+Tujuan: drive eksplorasi tanpa intrusif. Pattern "soft-onboarding".
+
+**UX flow yang Sie Renbang akan rasakan:**
+
+1. Open tab Validasi → see compact toggle banner di top
+2. Hover ⓘ → tooltip muncul, baca trade-off penjelasan
+3. (Optional) Klik radio "Ketat" → C11 card flip behavior (pending muncul saat 0 changed + RPD belum loaded)
+4. Refresh halaman → setting persist dari localStorage
+5. Field-test selama beberapa hari, decide preference
+6. (Optional V2 future) Kalau konvergen ke salah satu mode, simplification = hardcode
+
+**Files modified:**
+
+Phase 2b Turn 4:
+- \`utils/validators/types.ts\` (+18 LOC) — ValidationContext field
+- \`utils/validators/c11.ts\` (+183/-53) — refactor decision tree + helper
+- \`utils/validators/c11.test.ts\` (+113) — 8 new tests
+- \`utils/fixtures/validation-scenarios-4c.json\` (+46) — 2 new scenarios
+
+Phase 3c absorbed:
+- \`components/ValidasiRevisiPOK.tsx\` (+264/-51) — toggle banner + DetailPanel refactor + setC11Strategy
+- (RPD.tsx + App.tsx changes are nav-related, separate concerns)
+
+**Cross-references:**
+
+- SSOT decision log: \`SSOT-REFACTOR-LOG.md\` §0.11.1a T9 (BARU)
+- Architecture: validator file docblock \`utils/validators/c11.ts\`
+- Related milestone: \`log-2026-05-12-tier-4c-phase-3-complete\`
+- UI design rationale: \`docs/TIER-4C-PHASE-3-UI-DESIGN.md\` §5
+
+**Reversibility:** Kalau Sie Renbang feedback indicates konvergen ke salah satu mode (mis. all-permisif lebih natural), V2 simplification = remove toggle + hardcode chosen default. Tetapi keep architecture inside validator untuk reversibility kalau preferences shift di future. Cost reversal: ~2 line code change di c11.ts + 1 line removal di types.ts.`,
+    files: [
+      'utils/validators/c11.ts',
+      'utils/validators/c11.test.ts',
+      'utils/validators/types.ts',
+      'utils/fixtures/validation-scenarios-4c.json',
+      'components/ValidasiRevisiPOK.tsx',
+    ],
+    decisions: [
+      '§Tier4c-T9 (BARU 12 Mei 2026)',
+      '§Tier4c-Phase3a-Q1 (Opsi A soft interpretation — banner placement)',
+    ],
+    related: [
+      'log-2026-05-12-tier-4c-phase-3-complete',
+      'log-2026-05-11-tier-4c-foundation-phase',
+    ],
+  },
 
   {
     id:    'log-2026-05-11-tier-4c-foundation-phase',

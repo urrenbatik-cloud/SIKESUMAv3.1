@@ -730,6 +730,27 @@ Owner direction 11 Mei 2026 — **approve all T1-T8 defaults** batch:
 - **T7 (Cross-tab nav signature):** Refactor `onNavigate(target: 'pagu' | 'rpd', sectionId, rowId)` baru. Affects ValidasiRevisiPOK + DetailPanel + App.tsx + RPD.tsx.
 - **T8 (Konteks 1 TD fix):** T8a re-derive via `getEffectiveValue` helper di write-time storage line 368. Standalone pre-flight commit BEFORE Tier 4c branch.
 
+#### 0.11.1a Decision T9 BARU — C11 Pending Strategy Toggle (12 Mei 2026)
+
+Owner direction 12 Mei 2026 di fresh AI session (mid-Phase-2b Turn 3) — saat saya report "vacuous-wins-over-pending" sebagai custom interpretation (NOT pre-locked di T1-T8) untuk edge case "0 changed leaves + rpdsData undefined". Owner ingin Sie Renbang dapat eksperimen kedua interpretasi semantic via toggle UI (pattern "learning by doing").
+
+- **T9 (C11 strategy toggle):** Dua mode user-configurable di ValidationContext field `c11Strategy?: 'permisif' | 'ketat'`.
+  - **`permisif`** (default development setting): vacuous-wins. 0 changed leaves + rpdsData undefined → `pass`. Default-safe interpretation. Match natural app-startup flow tanpa surprise pending state.
+  - **`ketat`** (strict opt-in): pending-first. rpdsData undefined → `pending` checked first, walau 0 changed leaves. Default-skeptical — paksa user verify data dulu sebelum claim aman.
+  - **Diff** antara 2 mode HANYA muncul di edge case spesifik tersebut. Semua kasus lain (changed > 0, atau rpdsData defined) output identical.
+  - **Naming Indonesian** per Owner preference (RS TNI AD primary language).
+  - **Default `'permisif'`** untuk backward compat + natural UX.
+  - **UI placement:** Toggle banner di-render BETWEEN `ValidationDashboardHeader` dan card grid (Q1 Opsi A soft interpretation — `ValidationConstraintCard` adalah `<button>` HTML element, nested radio inputs tidak valid; banner pre-grid tetap satisfy discoverability goal). Compact 1-line layout dengan Lucide Info icon hover tooltip (3-paragraph trade-off explainer). Right-aligned status note untuk transparansi mode aktif.
+  - **localStorage** key `c11PendingStrategy` per device per user. Re-validate auto-trigger via useCallback deps include `c11Strategy`.
+  - **User-facing note** di validator summary string (semua status pass/fail/pending): `[Mode: PERMISIF — default pengembangan, vacuous pass aktif. Mode KETAT (validate-first) tersedia via toggle UI Phase 3c.]` — pattern "soft onboarding" supaya user aware fitur dapat di-upgrade.
+
+**Implementation reference:**
+- Architecture commit: `cb0435e` (Phase 2b Turn 4) — ValidationContext field + validator decision tree branch + 10 new tests
+- UI commit: `4cf3341` (Phase 3c absorbed) — toggle banner + radio + localStorage persist + tooltip
+- Tests: `c11.test.ts` section "edge cases — c11Strategy toggle (T9)" 8 tests + 2 fixture scenarios
+
+**Future consideration:** Kalau Sie Renbang field-test feedback indicates konvergen ke salah satu mode (mis. semua user prefer permisif), V2 simplification = remove toggle + hardcode chosen default. Tetapi keep architecture untuk reversibility kalau preferences shift.
+
 #### 0.11.2 Phase Structure Per Sub-Branch 4c
 
 Split ke 2 fase session karena token budget:
@@ -799,6 +820,8 @@ Zero PaguRow field additions. Zero DDL. Pattern consistent dengan Tier 4a/4b min
 ---
 
 *§0.11 ditambahkan 11 Mei 2026 setelah Owner approve TIER-4C-DESIGN.md T1-T8 defaults batch. Foundation work + handover prep di-eksekusi current session. Implementation work split ke fresh AI session per Owner direction (avoid 2nd compaction). All foundation ✅ Done — branch `feature/tier-4c-procedural-references` belum di-create (handed off ke fresh session).*
+
+*§0.11 UPDATE 12 Mei 2026 (fresh AI session) — Phase 2 + Phase 3 IMPLEMENTATION COMPLETE. Owner approve T9 BARU (C11 strategy toggle) mid-Phase-2b. Squash-merge-ready state: 7 commits di-branch `feature/tier-4c-procedural-references` (foundation post `9c82265` → `7a1582e` Phase 2a → `1315914` C12 → `e4f1405` C10 → `edc8f15` C11 → `cb0435e` T9 toggle → `0e8853d` Phase 3a → `c440b29` Phase 3b → `4cf3341` Phase 3c). 94 tests Tier 4c added (target estimasi 57, +65% justified karena T9 scope addition). Test baseline 392 → 486 (TS 8 maintained). Ready Phase 4: Owner Vercel E2E test → squash merge ke main. Phase 3d docs sync = this commit pattern (HANDOVER + SSOT T9 + devLog + README + SESSION-START-HERE).*
 
 ---
 

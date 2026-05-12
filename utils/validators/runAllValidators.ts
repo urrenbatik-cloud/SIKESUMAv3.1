@@ -5,10 +5,10 @@
  * Created: 11 Mei 2026 (Tier 4a Phase 3b — UI integration)
  *
  * Single entry point untuk run all validators. Returns aggregate
- * ValidationResult dengan results untuk semua 12 constraint. C1-C5
- * di-run via implemented validators; C6-C12 di-mark sebagai 'todo'
- * placeholder state (rendering-only — not part of ConstraintStatus
- * enum, attached via dedicated marker di summary field).
+ * ValidationResult dengan results untuk semua 12 constraint. C1-C12
+ * di-run via implemented validators (Tier 4a + 4b + 4c). Pre-Tier-4c,
+ * C10-C12 di-mark 'todo' placeholder; setelah Phase 3b transition,
+ * todoIds = [] (semua live).
  *
  * Per §0.9.1 Decision Q7 (default): full re-run on demand — 5 validators
  * × ~38 leaves baseline = ~5ms total, no perf concern. No caching layer.
@@ -39,6 +39,9 @@ import { validateC6 } from './c6';
 import { validateC7 } from './c7';
 import { validateC8 } from './c8';
 import { validateC9 } from './c9';
+import { validateC10 } from './c10';
+import { validateC11 } from './c11';
+import { validateC12 } from './c12';
 
 /**
  * Marker special yang ditandai pada `result.summary` untuk constraint
@@ -59,7 +62,7 @@ export const TODO_MARKER = '__TODO__';
 const PENDING_CONSTRAINTS: Record<ConstraintId, '4b' | '4c' | null> = {
   C1: null, C2: null, C3: null, C4: null, C5: null,  // Tier 4a implemented
   C6: null, C7: null, C8: null, C9: null,             // Tier 4b implemented (Phase 2b complete)
-  C10: '4c', C11: '4c', C12: '4c',                    // Tier 4c pending
+  C10: null, C11: null, C12: null,                    // Tier 4c implemented (Phase 2b Turn 1-4 complete, Phase 3b live)
 };
 
 /**
@@ -113,7 +116,7 @@ function buildTodoResult(
 export function runAllValidators(ctx: ValidationContext): ValidationResult {
   const evaluatedAt = (ctx.evaluatedAt ?? new Date()).toISOString();
 
-  // Run Phase 2b validators (Tier 4a C1-C5 + Tier 4b C6-C9)
+  // Run Phase 2b validators (Tier 4a C1-C5 + Tier 4b C6-C9 + Tier 4c C10-C12)
   const liveResults: Record<string, ConstraintResult> = {
     C1: validateC1(ctx),
     C2: validateC2(ctx),
@@ -124,10 +127,14 @@ export function runAllValidators(ctx: ValidationContext): ValidationResult {
     C7: validateC7(ctx),
     C8: validateC8(ctx),
     C9: validateC9(ctx),
+    C10: validateC10(ctx),
+    C11: validateC11(ctx),
+    C12: validateC12(ctx),
   };
 
-  // Build placeholder for Tier 4c constraints (still pending)
-  const todoIds: ConstraintId[] = ['C10', 'C11', 'C12'];
+  // Tier 4c Phase 3b: todoIds empty — all 12 validators live. UI cards
+  // dashboard akan render real validator output untuk semua.
+  const todoIds: ConstraintId[] = [];
   todoIds.forEach(id => {
     liveResults[id] = buildTodoResult(id, evaluatedAt);
   });
@@ -153,10 +160,9 @@ export function runAllValidators(ctx: ValidationContext): ValidationResult {
   });
 
   // canSubmit logic: 0 fail with blocker severity + 0 pending.
-  // During Phase 3 (only C1-C5 implemented), canSubmit tetap effectively
-  // false karena C6-C12 'na' (todo) — meskipun na tidak block submit by
-  // logic, UI dashboard akan render "Submit" button disabled selama
-  // 4b+4c belum complete (per Phase 3a design §5 Submit button section).
+  // Post Phase 3b Tier 4c: semua 12 validator live. Submit button gating
+  // di UI tetap pakai triple-gate (canSubmit + allImplemented + lhrApipAcknowledged
+  // — Tier 4b S6). allImplemented sekarang true by default (todoIds = []).
   const canSubmit = failCount === 0 && pendingCount === 0;
 
   return {

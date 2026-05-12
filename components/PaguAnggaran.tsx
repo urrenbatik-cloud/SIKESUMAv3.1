@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { PaguRow, PaguSection } from '../types';
+import { PaguRow, PaguSection, RPDSection } from '../types';
 import { formatIDR } from './Formatters';
 import { Plus, Trash2, TrendingUp, DollarSign, Wallet, ChevronDown, ChevronRight, Landmark, Calendar, Printer, FileSpreadsheet, ListChecks, ShieldCheck } from 'lucide-react';
 import { YEARS } from '../constants';
@@ -56,6 +56,14 @@ interface PaguAnggaranProps {
    * di-consume. Mencegah re-trigger highlight saat re-render.
    */
   onRowHighlightConsumed?: () => void;
+  /**
+   * [Tier 4c Phase 3b] RPD sections untuk C11 cross-table check di
+   * inline indicator path. Tanpa prop ini, C11 akan stuck pending dan
+   * dot inline untuk C11 affected rows tidak akan muncul di kolom Kode.
+   * Wajib pass dari App.tsx per Q5 default (konsistensi UX dengan
+   * dashboard validation).
+   */
+  rpdSections?: RPDSection[];
   metrics: {
     total: { budget: number; real: number };
   };
@@ -64,7 +72,8 @@ interface PaguAnggaranProps {
 const PaguAnggaran: React.FC<PaguAnggaranProps> = ({ 
   sections, onSectionsChange, onAddSection, onDeleteSection, 
   viewMode, selectedYear, onYearChange, metrics,
-  onNavigateToValidasi, pendingRowHighlight, onRowHighlightConsumed
+  onNavigateToValidasi, pendingRowHighlight, onRowHighlightConsumed,
+  rpdSections,
 }) => {
 
   // Sprint D Item #2 Phase 2 — Inline filter (Opsi A)
@@ -297,9 +306,19 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
   // for 304 leaves); useMemo memoize per sections + year change.
   // Per Decision Q7: full re-run on demand (no caching layer beyond
   // React memoization).
+  //
+  // [Tier 4c Phase 3b] rpdSections wajib di-pass untuk C11 cross-table
+  // check di inline indicator path (Q5 default — konsistensi UX dengan
+  // dashboard). c11Strategy default 'permisif' (read localStorage di
+  // ValidasiRevisiPOK, untuk inline path biarkan default = baseline UX).
   const validationResult = useMemo(
-    () => runAllValidators({ ta: selectedYear, sections, evaluatedAt: new Date() }),
-    [sections, selectedYear]
+    () => runAllValidators({
+      ta: selectedYear,
+      sections,
+      evaluatedAt: new Date(),
+      rpdsData: rpdSections,
+    }),
+    [sections, selectedYear, rpdSections]
   );
   const rowConstraintMap = useMemo(
     () => buildRowConstraintMap(validationResult),

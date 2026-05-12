@@ -82,6 +82,11 @@ const App: React.FC = () => {
   // Diset saat user click "→ Pagu Anggaran" di Validasi detail panel; consumed
   // setelah scroll + 2s highlight glow selesai.
   const [pendingPaguRowHighlight, setPendingPaguRowHighlight] = useState<{ sectionId: string; rowId: string } | null>(null);
+  // [Tier 4c Phase 3c-nav] Pending row untuk scroll + highlight di RPD tab.
+  // Mirror pattern pendingPaguRowHighlight (Tier 4a Phase 3d). Diset saat user
+  // klik "→ RPD" di Validasi detail panel untuk C11 violation; consumed
+  // setelah scroll + 2s emerald glow selesai di RPD.tsx.
+  const [pendingRpdRowHighlight, setPendingRpdRowHighlight] = useState<{ sectionId: string; rowId: string } | null>(null);
   // [Tier 4b Phase 3c] LHR APIP acknowledgment per year — C8 gate.
   // In-memory only v1 (per Decision S6); persistence di Tier 5 audit trail scope.
   // App restart → re-confirm checkbox.
@@ -1136,13 +1141,21 @@ const App: React.FC = () => {
         <div className="max-w-[98%] mx-auto px-6 py-6 pb-32">
            <div className="animate-in fade-in slide-in-from-bottom-2 duration-700">
               {activeTabType === TabType.PAGU && (
-                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, tahun: currentRKKSYear, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} onNavigateToValidasi={(constraintId) => { setPendingValidasiConstraint(constraintId); handleSubTabChange(SubTab.VALIDASI); }} pendingRowHighlight={pendingPaguRowHighlight} onRowHighlightConsumed={() => setPendingPaguRowHighlight(null)} />
+                <PaguAnggaran metrics={{ total: { budget: realisasiMetrics.totalPagu, real: realisasiMetrics.totalReal } }} sections={paguSections} onSectionsChange={s => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: s})} onAddSection={() => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: [...paguSections, { id: `pagu-${currentRKKSYear}-${Date.now()}`, tahun: currentRKKSYear, title: '', rows: [] }]})} onDeleteSection={id => !isPaguLocked && setDataByYear({...dataByYear, [currentRKKSYear]: paguSections.filter(s => s.id !== id)})} viewMode={budgetViewMode} selectedYear={currentRKKSYear} onYearChange={setSelectedYear} onNavigateToValidasi={(constraintId) => { setPendingValidasiConstraint(constraintId); handleSubTabChange(SubTab.VALIDASI); }} pendingRowHighlight={pendingPaguRowHighlight} onRowHighlightConsumed={() => setPendingPaguRowHighlight(null)} rpdSections={rpdSections} />
               )}
               {activeTabType === TabType.RAB && (
                 <RAB paguSections={paguSections} categories={rabCategories} onCategoriesChange={setRabCategories} selectedYear={currentRKKSYear} />
               )}
               {activeTabType === TabType.RPD && (
-                <RPD sections={rpdSections} paguSections={paguSections} onSectionsChange={setRpdSections} viewMode={budgetViewMode} selectedYear={currentRKKSYear} />
+                <RPD
+                  sections={rpdSections}
+                  paguSections={paguSections}
+                  onSectionsChange={setRpdSections}
+                  viewMode={budgetViewMode}
+                  selectedYear={currentRKKSYear}
+                  pendingRowHighlight={pendingRpdRowHighlight}
+                  onRowHighlightConsumed={() => setPendingRpdRowHighlight(null)}
+                />
               )}
               {activeTabType === TabType.REALISASI && (
                 <RealisasiRPD
@@ -1168,11 +1181,21 @@ const App: React.FC = () => {
                 <ValidasiRevisiPOK
                   paguSections={paguSections}
                   selectedYear={currentRKKSYear}
-                  onNavigateToPagu={(sectionId, rowId) => {
-                    if (sectionId && rowId) {
-                      setPendingPaguRowHighlight({ sectionId, rowId });
+                  rpdSections={rpdSections}
+                  onNavigate={(target, sectionId, rowId) => {
+                    // [Tier 4c Phase 3c-nav] Unified handler — route ke
+                    // Pagu atau RPD subtab + set respective pending state.
+                    if (target === 'pagu') {
+                      if (sectionId && rowId) {
+                        setPendingPaguRowHighlight({ sectionId, rowId });
+                      }
+                      handleSubTabChange(SubTab.PAGU_ANGGARAN);
+                    } else if (target === 'rpd') {
+                      if (sectionId && rowId) {
+                        setPendingRpdRowHighlight({ sectionId, rowId });
+                      }
+                      handleSubTabChange(SubTab.RPD);
                     }
-                    handleSubTabChange(SubTab.PAGU_ANGGARAN);
                   }}
                   initialSelectedConstraint={pendingValidasiConstraint}
                   onPendingConsumed={() => setPendingValidasiConstraint(null)}

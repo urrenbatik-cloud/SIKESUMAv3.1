@@ -1,0 +1,632 @@
+{
+  "$schema": "tier-4c-validation-fixture-v1",
+  "generated_at": "2026-05-12T10:30:00Z",
+  "description": "Test scenarios untuk Tier 4c Phase 2b validators (C12 Deadline, C10 SBM/SBK, C11 Tidak Ubah RPD). Pattern analogi pre-operative checklist final 3 — setiap skenario = simulated case dengan ground truth outcome. Validator implementation harus return status sesuai 'expected'. C12 procedural (no sections needed semantically, placeholder minimal), C10 per-row deviasi % (first WARN severity validator!), C11 cross-table Pagu↔RPD (strict linkedPaguSectionId+kode match per T5a).",
+  "ta": 2026,
+  "satker": "685784 Kesdam II/Sriwijaya",
+  "reference": {
+    "constraint_specs": "utils/validators/types.ts CONSTRAINT_SPECS C10-C12",
+    "master_domain": "docs/REVISI-POK-PAGU-vKoreksi.md §3.3",
+    "design_doc": "docs/TIER-4C-DESIGN.md §2.1-§2.3",
+    "decisions": "SSOT-REFACTOR-LOG.md §0.11.1 T1-T8 (defaults all Owner-approved)"
+  },
+  "scenarios": {
+    "c12": [
+      {
+        "name": "C12 pass — mid-year submission (well before deadline)",
+        "description": "Pengajuan revisi di pertengahan TA 2026 (15 Juni 2026). Jauh dari deadline 27 Desember. Klasik valid timing.",
+        "ctx_ta": 2026,
+        "ctx_evaluatedAt": "2026-06-15T09:30:00+07:00",
+        "sections": [
+          {
+            "id": "test-c12-pass-midyear",
+            "tahun": 2026,
+            "title": "TEST C12 PASS — Mid-year",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C12 pass — boundary 1 detik sebelum deadline",
+        "description": "evaluatedAt = 26 Desember 2026 23:59:59 WIB. Satu detik sebelum deadline 27 Desember 00:00. Edge case verifikasi strict-less-than (sebelum deadline = pass).",
+        "ctx_ta": 2026,
+        "ctx_evaluatedAt": "2026-12-26T23:59:59+07:00",
+        "sections": [
+          {
+            "id": "test-c12-pass-boundary",
+            "tahun": 2026,
+            "title": "TEST C12 PASS — Boundary",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C12 fail — exactly at deadline (27 Desember 00:00)",
+        "description": "evaluatedAt = 27 Desember 2026 00:00:00 WIB tepat. Per Pasal 24 ayat 11 huruf d Perdirjen Renhan 7/2025, harus diajukan SEBELUM 27 Desember. Strict-greater-than-or-equal triggers fail.",
+        "ctx_ta": 2026,
+        "ctx_evaluatedAt": "2026-12-27T00:00:00+07:00",
+        "sections": [
+          {
+            "id": "test-c12-fail-atdeadline",
+            "tahun": 2026,
+            "title": "TEST C12 FAIL — At deadline",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C12",
+              "severity": "blocker",
+              "messageContains": "27 Desember"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C12 fail — past deadline (31 Desember)",
+        "description": "evaluatedAt = 31 Desember 2026 15:30 WIB. Sudah lewat deadline beberapa hari. Violation message harus arahkan ke pengajuan TA berikutnya.",
+        "ctx_ta": 2026,
+        "ctx_evaluatedAt": "2026-12-31T15:30:00+07:00",
+        "sections": [
+          {
+            "id": "test-c12-fail-past",
+            "tahun": 2026,
+            "title": "TEST C12 FAIL — Past deadline",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C12",
+              "severity": "blocker",
+              "messageContains": "TA berikutnya"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C12 pass — cross-year (TA 2027 start, baru tahun baru)",
+        "description": "evaluatedAt = 5 Januari 2027, ctx.ta = 2027. Deadline TA 2027 adalah 27 Desember 2027 — masih ~358 hari kedepan. Verifikasi deadline pakai ctx.ta (BUKAN hardcoded year).",
+        "ctx_ta": 2027,
+        "ctx_evaluatedAt": "2027-01-05T10:00:00+07:00",
+        "sections": [
+          {
+            "id": "test-c12-pass-newyear",
+            "tahun": 2027,
+            "title": "TEST C12 PASS — New TA",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "DUMMY ROW",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      }
+    ],
+    "c10": [
+      {
+        "name": "C10 pass — deviasi minor 5% (well below warn threshold 10%)",
+        "description": "1 row dengan hsa=100.000, hsr=105.000. Deviasi |105k-100k|/100k = 5%. Di bawah warn threshold 10% per Decision T4. Status pass.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c10-pass-small",
+            "tahun": 2026,
+            "title": "TEST C10 PASS — Small deviasi",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 105000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 105000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C10 warn — deviasi 15% (antara warn 10% dan fail 25%)",
+        "description": "1 row dengan hsa=100.000, hsr=115.000. Deviasi 15%. Trigger first WARN severity validator — UI render amber card border. Status warn (BUKAN fail).",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c10-warn-mid",
+            "tahun": 2026,
+            "title": "TEST C10 WARN — Mid deviasi",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor inflasi",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 115000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 115000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "warn",
+          "violations": [
+            {
+              "constraintId": "C10",
+              "severity": "warning",
+              "affectedRowId": "r1",
+              "messageContains": "15"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C10 fail — deviasi 30% (di atas fail threshold 25%)",
+        "description": "1 row dengan hsa=100.000, hsr=130.000. Deviasi 30%. Di atas fail threshold 25%. Status fail — likely wrong baseline atau real anomaly worth flagging.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c10-fail-large",
+            "tahun": 2026,
+            "title": "TEST C10 FAIL — Large deviasi",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor anomali",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 130000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 130000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C10",
+              "severity": "blocker",
+              "affectedRowId": "r1",
+              "messageContains": "30"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C10 pass — boundary exactly 10% (warn threshold edge)",
+        "description": "1 row dengan hsa=100.000, hsr=110.000. Deviasi tepat 10%. Per algoritma 'deviasi_pct <= warnThreshold → no violation' — exactly 10% = pass (BUKAN warn). Edge case verifikasi strict-greater-than di threshold compare.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c10-pass-boundary",
+            "tahun": 2026,
+            "title": "TEST C10 PASS — At boundary",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor batas",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 110000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 110000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C10 fail — multi-row aggregation (mix pass+warn+fail+skip)",
+        "description": "5 rows campur: r1 deviasi 5% pass, r2 deviasi 15% warn, r3 deviasi 30% fail, r4 hsr=0 (skip — no revisi per Konteks 1 fallback), r5 hsa=0 (skip — cannot compute baseline). Aggregate status fail karena ≥1 fail (precedence: fail > warn > pass).",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c10-fail-multi",
+            "tahun": 2026,
+            "title": "TEST C10 FAIL — Multi-row mix",
+            "rows": [
+              {
+                "id": "r1", "kode": "521111", "kode_bas": "521111", "description": "Pass 5%",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 105000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 105000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521112", "kode_bas": "521112", "description": "Warn 15%",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 115000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 115000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r3", "kode": "521113", "kode_bas": "521113", "description": "Fail 30%",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 130000,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 130000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r4", "kode": "521114", "kode_bas": "521114", "description": "Skip hsr=0",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 100000, "hargaSatuanRevisi": 0,
+                "jumlahBiayaAwal": 100000, "jumlahBiayaRevisi": 100000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r5", "kode": "521115", "kode_bas": "521115", "description": "Skip hsa=0",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 0, "hargaSatuanRevisi": 100000,
+                "jumlahBiayaAwal": 0, "jumlahBiayaRevisi": 100000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C10",
+              "severity": "warning",
+              "affectedRowId": "r2",
+              "messageContains": "15"
+            },
+            {
+              "constraintId": "C10",
+              "severity": "blocker",
+              "affectedRowId": "r3",
+              "messageContains": "30"
+            }
+          ]
+        }
+      }
+    ],
+    "c11": [
+      {
+        "name": "C11 pass — vacuous (zero changed leaves)",
+        "description": "Tidak ada row yang ter-revisi (semua hsr = hsa). collectChangedLeaves return empty array. rpdsData provided tapi tidak relevant — vacuous pass.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-pass-vacuous",
+            "tahun": 2026,
+            "title": "TEST C11 PASS — Vacuous",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor (unchanged)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_rpdsData": [
+          {
+            "id": "rpd-2026-test",
+            "title": "RPD TEST",
+            "linkedPaguSectionId": "test-c11-pass-vacuous",
+            "rows": [
+              {
+                "id": "rpd-r1", "kode": "521115", "description": "RPD untuk honor", "level": 0,
+                "monthly": { "m1": 416667, "m2": 416667, "m3": 416667, "m4": 416667, "m5": 416667, "m6": 416667, "m7": 416667, "m8": 416667, "m9": 416667, "m10": 416667, "m11": 416667, "m12": 416663 }
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C11 pass — changed leaf tapi kode tidak ada di RPD",
+        "description": "1 row ter-revisi (kode 521115), tapi rpdsData row punya kode berbeda (521119). RPD lookup miss → tidak ada affected → pass. Verifikasi kode-level strict match.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-pass-kodemiss",
+            "tahun": 2026,
+            "title": "TEST C11 PASS — Kode mismatch",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor revisi",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4500000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_rpdsData": [
+          {
+            "id": "rpd-2026-test2",
+            "title": "RPD TEST 2",
+            "linkedPaguSectionId": "test-c11-pass-kodemiss",
+            "rows": [
+              {
+                "id": "rpd-r1", "kode": "521119", "description": "Operasional (beda kode)", "level": 0,
+                "monthly": { "m1": 100000, "m2": 100000, "m3": 100000, "m4": 100000, "m5": 100000, "m6": 100000, "m7": 100000, "m8": 100000, "m9": 100000, "m10": 100000, "m11": 100000, "m12": 100000 }
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C11 pass — kode match tapi linkedPaguSectionId berbeda (T5a strict)",
+        "description": "1 row ter-revisi di section A (id=test-c11-section-A) dengan kode 521115. rpdsData section linked ke section B (BUKAN A), walaupun punya RPD row kode 521115. Per T5a strict match: linkedPaguSectionId HARUS exact match section.id. Tidak match → pass.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-section-A",
+            "tahun": 2026,
+            "title": "TEST C11 PASS — Section A (changed)",
+            "rows": [
+              {
+                "id": "r-A1", "kode": "521115", "kode_bas": "521115", "description": "Honor section A",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4500000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          },
+          {
+            "id": "test-c11-section-B",
+            "tahun": 2026,
+            "title": "TEST C11 PASS — Section B (target of RPD)",
+            "rows": [
+              {
+                "id": "r-B1", "kode": "521115", "kode_bas": "521115", "description": "Honor section B (unchanged)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 3000000, "hargaSatuanRevisi": 3000000,
+                "jumlahBiayaAwal": 3000000, "jumlahBiayaRevisi": 3000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_rpdsData": [
+          {
+            "id": "rpd-2026-B",
+            "title": "RPD linked to Section B only",
+            "linkedPaguSectionId": "test-c11-section-B",
+            "rows": [
+              {
+                "id": "rpd-rB1", "kode": "521115", "description": "RPD untuk section B", "level": 0,
+                "monthly": { "m1": 250000, "m2": 250000, "m3": 250000, "m4": 250000, "m5": 250000, "m6": 250000, "m7": 250000, "m8": 250000, "m9": 250000, "m10": 250000, "m11": 250000, "m12": 250000 }
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C11 fail — single affected RPD row",
+        "description": "1 row ter-revisi di section A (kode 521115). rpdsData section linked ke A dengan RPD row kode 521115. Match exact (linkedPaguSectionId + kode) → 1 affected RPD row. Status fail dengan violation listing affected row. Eskalasi: revisi POK KPA tidak boleh ubah RPD — naik ke revisi DIPA Hal III (KAPK/Eselon I).",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-fail-single",
+            "tahun": 2026,
+            "title": "TEST C11 FAIL — Single affected",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor (revisi triggers RPD)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4500000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_rpdsData": [
+          {
+            "id": "rpd-2026-fail1",
+            "title": "RPD section yang akan ter-impact",
+            "linkedPaguSectionId": "test-c11-fail-single",
+            "rows": [
+              {
+                "id": "rpd-r1", "kode": "521115", "description": "RPD untuk kode 521115", "level": 0,
+                "monthly": { "m1": 416667, "m2": 416667, "m3": 416667, "m4": 416667, "m5": 416667, "m6": 416667, "m7": 416667, "m8": 416667, "m9": 416667, "m10": 416667, "m11": 416667, "m12": 416663 }
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C11",
+              "severity": "blocker",
+              "affectedRowId": "r1",
+              "messageContains": "RPD"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C11 fail — multi affected (3 changed, 2 matching RPD rows)",
+        "description": "3 row ter-revisi (kode 521115, 521119, 521211). rpdsData punya 2 RPD row matching kode (521115, 521119). Kode 521211 changed tapi tidak di RPD → tidak masuk affected. Status fail dengan 2 violations.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-fail-multi",
+            "tahun": 2026,
+            "title": "TEST C11 FAIL — Multi affected",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor changed (in RPD)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4500000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r2", "kode": "521119", "kode_bas": "521119", "description": "Operasional changed (in RPD)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 3000000, "hargaSatuanRevisi": 3500000,
+                "jumlahBiayaAwal": 3000000, "jumlahBiayaRevisi": 3500000,
+                "sumberDana": "RM", "level": 0
+              },
+              {
+                "id": "r3", "kode": "521211", "kode_bas": "521211", "description": "Bahan changed (NOT in RPD)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 2000000, "hargaSatuanRevisi": 2500000,
+                "jumlahBiayaAwal": 2000000, "jumlahBiayaRevisi": 2500000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "ctx_rpdsData": [
+          {
+            "id": "rpd-2026-fail-multi",
+            "title": "RPD section dengan 2 matching",
+            "linkedPaguSectionId": "test-c11-fail-multi",
+            "rows": [
+              {
+                "id": "rpd-rA", "kode": "521115", "description": "RPD untuk honor", "level": 0,
+                "monthly": { "m1": 416667, "m2": 416667, "m3": 416667, "m4": 416667, "m5": 416667, "m6": 416667, "m7": 416667, "m8": 416667, "m9": 416667, "m10": 416667, "m11": 416667, "m12": 416663 }
+              },
+              {
+                "id": "rpd-rB", "kode": "521119", "description": "RPD untuk operasional", "level": 0,
+                "monthly": { "m1": 250000, "m2": 250000, "m3": 250000, "m4": 250000, "m5": 250000, "m6": 250000, "m7": 250000, "m8": 250000, "m9": 250000, "m10": 250000, "m11": 250000, "m12": 250000 }
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "fail",
+          "violations": [
+            {
+              "constraintId": "C11",
+              "severity": "blocker",
+              "affectedRowId": "r1",
+              "messageContains": "RPD"
+            },
+            {
+              "constraintId": "C11",
+              "severity": "blocker",
+              "affectedRowId": "r2",
+              "messageContains": "RPD"
+            }
+          ]
+        }
+      },
+      {
+        "name": "C11 pending — ctx.rpdsData undefined",
+        "description": "1 row ter-revisi tapi ctx.rpdsData undefined (RPD context belum di-wire dari caller, atau App.tsx state belum loaded). Status pending — validator tidak bisa evaluate cross-table check tanpa RPD data. UI render amber pending state, BUKAN false-fail.",
+        "ctx_ta": 2026,
+        "sections": [
+          {
+            "id": "test-c11-pending-norpd",
+            "tahun": 2026,
+            "title": "TEST C11 PENDING — No RPD data",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor revisi",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 4500000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 4500000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": {
+          "status": "pending",
+          "violations": []
+        }
+      },
+      {
+        "name": "C11 pass — toggle permisif explicit: 0 changed + rpdsData undefined → vacuous wins",
+        "description": "[T9 BARU] Verifikasi toggle ctx.c11Strategy='permisif' (default development setting) untuk edge case '0 changed + rpdsData undefined'. Mode permisif: vacuous wins — pass dulu, walau rpdsData belum loaded. 0 row ter-revisi (hsr = hsa = 5jt). rpdsData tidak diset (undefined). Expected: pass (vacuous, missing rpdsData irrelevant).",
+        "ctx_ta": 2026,
+        "ctx_c11Strategy": "permisif",
+        "sections": [
+          {
+            "id": "test-c11-toggle-permisif",
+            "tahun": 2026,
+            "title": "TEST C11 PERMISIF — Vacuous wins",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor (unchanged)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pass", "violations": [] }
+      },
+      {
+        "name": "C11 pending — toggle ketat explicit: 0 changed + rpdsData undefined → pending wins",
+        "description": "[T9 BARU] Verifikasi toggle ctx.c11Strategy='ketat' (strict opt-in) untuk edge case yang sama. Mode ketat: pending-first — pending dulu, walau 0 changed. Same data shape sebagai scenario sebelumnya (0 row ter-revisi + rpdsData undefined), tapi strategy='ketat' → status flip dari pass ke pending. INILAH satu-satunya kasus di mana permisif vs ketat berbeda outputnya — semua kasus lain (changed > 0, atau rpdsData defined) identical.",
+        "ctx_ta": 2026,
+        "ctx_c11Strategy": "ketat",
+        "sections": [
+          {
+            "id": "test-c11-toggle-ketat",
+            "tahun": 2026,
+            "title": "TEST C11 KETAT — Pending wins",
+            "rows": [
+              {
+                "id": "r1", "kode": "521115", "kode_bas": "521115", "description": "Honor (unchanged)",
+                "volume": 1, "satuan": "TAHUN",
+                "hargaSatuanAwal": 5000000, "hargaSatuanRevisi": 5000000,
+                "jumlahBiayaAwal": 5000000, "jumlahBiayaRevisi": 5000000,
+                "sumberDana": "RM", "level": 0
+              }
+            ]
+          }
+        ],
+        "expected": { "status": "pending", "violations": [] }
+      }
+    ]
+  }
+}
