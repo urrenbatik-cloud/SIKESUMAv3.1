@@ -21,26 +21,30 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 - **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — Validation Engine sub-branch 4a: 5 validators (C1-C5) + UI integration full (dashboard "1.5 Validasi Revisi POK" + 12-card grid + inline indicators + bidirectional navigation + row-level scroll/highlight). Feature branch dihapus post-merge cleanup. Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
 - **Tier 4b MERGED TO MAIN** sebagai commit `d13be80` (11 Mei 2026) — Validation Engine sub-branch 4b: 4 validators (C6 Jenis Belanja, C7 Sumber Dana, C8 LHR APIP, C9 Akun Minus) + UI integration full (cards C6-C9 live + LHR APIP checkbox NEW UX + Submit button triple gating). Plus C1 violation message UX enhancement batched (DIPA Hal III pathway guidance). Feature branch dihapus post-merge cleanup. **392 tests pass** (201 Tier 3 + 103 Tier 4a + 88 Tier 4b). Lihat `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`.
 - **Tier 4c Foundation Phase COMPLETE** (11 Mei 2026, di main, pre-implementation handover): Design doc `230ba43` + Konteks 1 TD fix `303df65` + Phase 1.5 types narrow `857e98c` + governance docs sync. Owner approve all T1-T8 defaults. Implementation phase (Phase 2a fixture + Phase 2b validators C10/C11/C12 + Phase 3 UI cross-tab refactor + Phase 4 squash merge) split ke **fresh AI session** untuk avoid 2nd compaction risk. Lihat `SSOT-REFACTOR-LOG.md §0.11` + `docs/TIER-4C-DESIGN.md` + `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.1.
-- **Tier 4b/4c pending** — `feature/tier-4b-revisi-mechanism` (C6-C9) + `feature/tier-4c-procedural-references` (C10-C12), sequential setelah 4a merged.
+- **Tier 4c implementation pending** — `feature/tier-4c-procedural-references` (C10 SBM + C11 RPD + C12 Deadline). Foundation Phase ✅ di main, implementation handed off ke fresh AI session per Owner session-split policy. Tier 4b sudah MERGED `d13be80`.
 - **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
 - TS baseline: **8 errors** (turun dari 11 post-devLog.ts cleanup 11 Mei 2026)
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
 
-**Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10` untuk full detail):**
+**Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10 + §0.11` untuk full detail):**
 ```
-main:                                    d13be80 (TIER-4B MERGED)
-  ├── d13be80 feat(tier-4b): Validation Engine 4b squash merge (C6-C9 + UI)
-  ├── bdba7a1 docs(operational): briefing Sie Renbang TA 2026
-  ├── 49535f9 docs(post-merge): Tier 4a status sync
-  ├── abe193c feat(tier-4a): Validation Engine 4a squash merge (C1-C5 + UI)
-  ├── 6922508 docs(handover): SESSION-START-HERE.md anti-drift
-  └── 6c8f640 feat(tier-3): metadata schema squashed merge
+main:                                    9c82265 (TIER-4C FOUNDATION COMPLETE)
+  ├── 9c82265 docs(tier-4c handover prep): SSOT §0.11 + governance + devLog + anti-drift triple-source sync
+  ├── 857e98c feat(tier-4c phase 1.5): types narrow rpdsData unknown[] → RPDSection[]
+  ├── 303df65 fix(konteks-1 TD): UI display jumlahBiayaRevisi pakai Konteks 1 fallback semantic
+  ├── 230ba43 docs(tier-4c phase 1): draft design document — C10/C11/C12 + Konteks 1 TD + decisions T1-T8
+  ├── 7f23ae0 docs(post-merge consistency sync): devLog Phase 4 milestone + SSOT §0.10 final state
+  ├── 882bb58 docs(post-merge): Tier 4b MERGED status sync — HANDOVER + README + SESSION-START-HERE
+  ├── d13be80 feat(tier-4b): Validation Engine sub-branch 4b — C6-C9 + UI Integration
+  ├── bdba7a1 docs(operational): briefing input data TA 2026 untuk Sie Renbang
+  ├── 49535f9 docs(post-merge): Tier 4a MERGED status sync — HANDOVER + README + SESSION-START-HERE
+  └── abe193c feat(tier-4a): Validation Engine sub-branch 4a — C1-C5 + UI Integration
 
 feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
 feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup — 11 Mei 2026)
 feature/tier-4b-revisi-mechanism:        DELETED (post-squash-merge cleanup — 11 Mei 2026)
 
-feature/tier-4c-procedural-references:   TBD (next sub-branch — C10 SBM, C11 RPD, C12 Deadline)
+feature/tier-4c-procedural-references:   TBD (next sub-branch — C10 SBM, C11 RPD, C12 Deadline; foundation di main, implementation pending fresh AI session)
 feature/tier-5-audit-trail:              TBD (later — butuh Owner DDL untuk CREATE TABLE usulan_revisi)
 ```
 
@@ -58,7 +62,7 @@ feature/tier-5-audit-trail:              TBD (later — butuh Owner DDL untuk CR
 - Vitest 2.1.9 (devDep). Run: `npm test` / `npm run test:watch` / `npm run test:fixture`
 - Tests location: colocated `*.test.ts` next to source (mis. `utils/metadataRecommender.test.ts`)
 - Fixtures: `utils/fixtures/` (mis. `pagu-leaves-ta2025.json` = 38 leaves ground truth)
-- Baseline: **304 tests pass** post-Phase 2b complete (201 Tier 3 + 103 Tier 4a: C1 24 + C2 27 + C3 20 + C4 8 + C5 24)
+- Baseline: **392 tests pass** post Tier 4b merge (201 Tier 3 + 103 Tier 4a [C1 24 + C2 27 + C3 20 + C4 8 + C5 24] + 88 Tier 4b [C6 27 + C7 28 + C8 15 + C9 18]). Tier 4c implementation target: ~449 tests (392 + ~57).
 
 ---
 
