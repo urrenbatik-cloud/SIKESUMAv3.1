@@ -4,19 +4,19 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4b Phase 3 complete)
+> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4a + 4b MERGED to main)
 >
-> **Tier 4a MERGED** + **Tier 4b Phase 3 SELESAI** di `feature/tier-4b-revisi-mechanism`. 9 validators total (C1-C9) di production-ready state. UI integration full (12-card grid 9 live + 3 todo placeholder, inline indicators, bidirectional navigation, LHR APIP checkbox, Submit triple gating). 392 tests baseline + TS 8 maintained. Bundle ini originally generated **sebelum** Tier 4a/4b — keduanya sudah selesai sejak generate timestamp.
+> **Tier 4a MERGED** sebagai commit `abe193c` + **Tier 4b MERGED** sebagai commit `d13be80`. 9 validators total (C1-C9) di production. UI integration full (12-card grid 9 live + 3 todo placeholder C10-C12, inline indicators, bidirectional navigation, LHR APIP checkbox, Submit triple gating). 392 tests baseline + TS 8 maintained. Bundle ini originally generated **sebelum** Tier 4a/4b — keduanya sudah selesai sejak generate timestamp.
 >
 > **Untuk fresh AI session yang mengakses bundle ini:**
-> - Skip "Pending Work — Next Session Continuation" section di bawah (Tier 4a/4b sudah done)
-> - Lanjut ke **Phase 4 squash merge** Tier 4b (Owner Vercel preview E2E test → squash merge `feature/tier-4b-revisi-mechanism` → main)
-> - Sub-branch berikutnya: `feature/tier-4c-procedural-references` (C10 SBM, C11 RPD cross-tab, C12 deadline) sequential per Decision N2
-> - State authoritative: `HANDOVER.md` + `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`
+> - Skip "Pending Work — Next Session Continuation" section di bawah (Tier 4a/4b sudah merged)
+> - Lanjut ke **Sub-branch 4c** (`feature/tier-4c-procedural-references` — C10 SBM dictionary, C11 RPD cross-tab, C12 Deadline 27 Des) sequential per Decision N2
+> - C11 design note: cross-tab navigation harus support RPD tab 1.3 routing (BUKAN hanya Pagu 1.1) — adjust DetailPanel + onNavigateToPagu signature
+> - State authoritative: `HANDOVER.md` + `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4-DESIGN.md` §3.3 (Tier 4c spec)
 > - Riwayat detail: `devLog.ts` entries `log-2026-05-11-tier-4b-phase-3-complete` + predecessors
-> - Open items §0.10.4 carry forward (C10/C11/C12 untuk Tier 4c)
+> - Open items §0.10.4 carry forward (C10 SBM shape, C11 cross-tab, C12 deadline semantics)
 >
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b context (R1-R5 derivation, algoritma rationale, dll).
+> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context (R1-R5/S1-S6 derivation, UI design rationale, dll).
 
 ---
 

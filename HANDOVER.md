@@ -18,8 +18,8 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
 - **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration. Owner-tested + verified. 92.1% high confidence acceptance, 201 Vitest tests pass. Lihat `SSOT-REFACTOR-LOG.md §0.8`.
-- **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — Validation Engine sub-branch 4a: 5 validators (C1-C5) + UI integration full (dashboard "1.5 Validasi Revisi POK" + 12-card grid + inline indicators + bidirectional navigation + row-level scroll/highlight). Feature branch dihapus post-merge cleanup. 304 tests pass (201 Tier 3 + 103 Tier 4a). Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
-- **Tier 4b Phase 3 COMPLETE** di `feature/tier-4b-revisi-mechanism` — 4 validators (C6-C9) + UI integration full (cards transition live + LHR APIP checkbox NEW UX + Submit button triple gating). **392 total tests pass** (304 baseline + 88 Tier 4b). Ready Phase 4 (Owner E2E test → squash merge). Lihat `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`.
+- **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — Validation Engine sub-branch 4a: 5 validators (C1-C5) + UI integration full (dashboard "1.5 Validasi Revisi POK" + 12-card grid + inline indicators + bidirectional navigation + row-level scroll/highlight). Feature branch dihapus post-merge cleanup. Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
+- **Tier 4b MERGED TO MAIN** sebagai commit `d13be80` (11 Mei 2026) — Validation Engine sub-branch 4b: 4 validators (C6 Jenis Belanja, C7 Sumber Dana, C8 LHR APIP, C9 Akun Minus) + UI integration full (cards C6-C9 live + LHR APIP checkbox NEW UX + Submit button triple gating). Plus C1 violation message UX enhancement batched (DIPA Hal III pathway guidance). Feature branch dihapus post-merge cleanup. **392 tests pass** (201 Tier 3 + 103 Tier 4a + 88 Tier 4b). Lihat `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`.
 - **Tier 4b/4c pending** — `feature/tier-4b-revisi-mechanism` (C6-C9) + `feature/tier-4c-procedural-references` (C10-C12), sequential setelah 4a merged.
 - **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
 - TS baseline: **8 errors** (turun dari 11 post-devLog.ts cleanup 11 Mei 2026)
@@ -27,7 +27,8 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10` untuk full detail):**
 ```
-main:                                    bdba7a1 (briefing Sie Renbang TA 2026)
+main:                                    d13be80 (TIER-4B MERGED)
+  ├── d13be80 feat(tier-4b): Validation Engine 4b squash merge (C6-C9 + UI)
   ├── bdba7a1 docs(operational): briefing Sie Renbang TA 2026
   ├── 49535f9 docs(post-merge): Tier 4a status sync
   ├── abe193c feat(tier-4a): Validation Engine 4a squash merge (C1-C5 + UI)
@@ -36,19 +37,9 @@ main:                                    bdba7a1 (briefing Sie Renbang TA 2026)
 
 feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
 feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup — 11 Mei 2026)
-feature/tier-4b-revisi-mechanism:        (10 commits ahead of main, Phase 3 COMPLETE — ready squash merge)
-  ├── (HEAD) ec667fd feat phase 3c: LHR APIP checkbox NEW UX + Submit gating
-  ├── 0e3595a feat phase 3b: C6-C9 cards live transition
-  ├── 35d661f docs phase 3a: UI design delta
-  ├── 26b165d feat phase 2b Turn 4: C8 LHR APIP + 15 tests
-  ├── 08b7066 feat phase 2b Turn 3: C9 Akun Minus + 18 tests
-  ├── c2fcadb feat phase 2b Turn 2: C7 Sumber Dana + 28 tests
-  ├── 1660446 feat phase 2b Turn 1: C6 Jenis Belanja + 27 tests
-  ├── 105a7f0 feat phase 2a: fixture C6-C9 15 scenarios
-  ├── fd59031 feat phase 1.5: C1 enhancement + types + SSOT §0.10
-  └── 51fab33 docs phase 1: design document
+feature/tier-4b-revisi-mechanism:        DELETED (post-squash-merge cleanup — 11 Mei 2026)
 
-feature/tier-4c-procedural-references:   TBD (later — C10-C12 Procedural)
+feature/tier-4c-procedural-references:   TBD (next sub-branch — C10 SBM, C11 RPD, C12 Deadline)
 feature/tier-5-audit-trail:              TBD (later — butuh Owner DDL untuk CREATE TABLE usulan_revisi)
 ```
 
