@@ -821,7 +821,9 @@ Zero PaguRow field additions. Zero DDL. Pattern consistent dengan Tier 4a/4b min
 
 *§0.11 ditambahkan 11 Mei 2026 setelah Owner approve TIER-4C-DESIGN.md T1-T8 defaults batch. Foundation work + handover prep di-eksekusi current session. Implementation work split ke fresh AI session per Owner direction (avoid 2nd compaction). All foundation ✅ Done — branch `feature/tier-4c-procedural-references` belum di-create (handed off ke fresh session).*
 
-*§0.11 UPDATE 12 Mei 2026 (fresh AI session) — Phase 2 + Phase 3 IMPLEMENTATION COMPLETE. Owner approve T9 BARU (C11 strategy toggle) mid-Phase-2b. Squash-merge-ready state: 7 commits di-branch `feature/tier-4c-procedural-references` (foundation post `9c82265` → `7a1582e` Phase 2a → `1315914` C12 → `e4f1405` C10 → `edc8f15` C11 → `cb0435e` T9 toggle → `0e8853d` Phase 3a → `c440b29` Phase 3b → `4cf3341` Phase 3c). 94 tests Tier 4c added (target estimasi 57, +65% justified karena T9 scope addition). Test baseline 392 → 486 (TS 8 maintained). Ready Phase 4: Owner Vercel E2E test → squash merge ke main. Phase 3d docs sync = this commit pattern (HANDOVER + SSOT T9 + devLog + README + SESSION-START-HERE).*
+*§0.11 UPDATE 12 Mei 2026 (fresh AI session) — Phase 2 + Phase 3 IMPLEMENTATION COMPLETE. Owner approve T9 BARU (C11 strategy toggle) mid-Phase-2b. Squash-merge-ready state: 9 commits di-branch `feature/tier-4c-procedural-references`. 94 tests Tier 4c added. Test baseline 392 → 486 (TS 8 maintained).*
+
+*§0.11 FINAL 12 Mei 2026 — **Tier 4c MERGED to main** as squash commit `9174782`. Owner Vercel preview E2E test ✅ APPROVED sebelum authorize merge. Feature branch `feature/tier-4c-procedural-references` dihapus (remote + local). All 12 validators LIVE — Submit Revisi POK button ENABLES first time in project history (triple-gate: canSubmit AND lhrApipAcknowledged AND allImplemented). Ready Tier 5 (Audit Trail) — butuh Owner DDL action `CREATE TABLE usulan_revisi`.*
 
 ---
 

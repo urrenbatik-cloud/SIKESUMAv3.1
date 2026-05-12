@@ -4,33 +4,31 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c Phase 3)
+> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c MERGED)
 >
-> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c Foundation Phase COMPLETE** di main (`9c82265`) + **Tier 4c Phase 2 + 3 COMPLETE** di feature branch (12 Mei 2026, 9 commits ahead). All 12 validators LIVE (C1-C12, no more placeholders). UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating ENABLES, cross-tab navigation pagu↔rpd, C11 strategy toggle inline banner). **486 tests baseline** + **TS 8 maintained**. Ready Phase 4: Owner Vercel E2E test → squash merge ke main.
+> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c MERGED** `9174782` (12 Mei 2026, fresh AI session). All 12 validators (C1-C12) **LIVE in production**. UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating ENABLES, cross-tab navigation pagu↔rpd, C11 strategy toggle inline banner). **486 tests baseline** + **TS 8 maintained**. Owner Vercel preview E2E test ✅ APPROVED sebelum authorize merge.
 >
-> **TIER 4C PHASE 4 (PRE-MERGE STATE):**
-> - Branch state: `feature/tier-4c-procedural-references` @ Phase 3d docs-sync commit (this one)
-> - Phase 2b breakdown: C12 Turn 1 (17 tests) + C10 Turn 2 (32 tests, FIRST warn) + C11 Turn 3 (35 tests, cross-table) + T9 Toggle Turn 4 (10 tests + 2 fixture)
-> - Phase 3 breakdown: 3a UI design brief → 3b cards live + ctx wiring → 3c cross-tab nav refactor + C11 toggle UI absorbed → 3d docs sync (this)
-> - **94 Tier 4c tests added** (target estimasi 57; actual +65% justified karena T9 toggle scope addition Owner-direction 12 Mei 2026)
-> - Owner direction batched: Q1-Q5 Phase 3a defaults approve, Mode B execution pacing
+> **TIER 4 FULLY COMPLETE — Submit Revisi POK button UNLOCKED first time in project history.**
 >
-> **MANDATORY untuk fresh AI session post-merge (first 5 steps urut wajib):**
+> **NEXT SCOPE OPTIONS:**
+> - **Tier 5 (Audit Trail)** — `feature/tier-5-audit-trail` (butuh Owner DDL action: `CREATE TABLE usulan_revisi`)
+> - **Bug-fix / refinement** dari Sie Renbang feedback berdasarkan Tier 4c production use
+> - **LHR APIP persistence v2** (currently in-memory per Decision S6 — moves to Supabase di Tier 5 audit trail scope)
+> - **Submission deadline reminder** (email/notification 30 hari before C12 deadline)
+> - **C10 V2** — full SBM lookup table integration (currently V1 pragmatic via hargaSatuanAwal proxy)
+> - **C11 V2/V3** — numerical sum verification + remediation guide
+>
+> **MANDATORY untuk fresh AI session — first 5 steps (urut wajib):**
 > 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full text (terutama Addendum v1.1 + procedural rules)
 > 2. ☐ Read `HANDOVER.md` — current state authoritative
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
 > 4. ☐ Run git verification commands (lihat OWNER-POLICY Section B)
-> 5. ☐ Read `docs/TIER-4-DESIGN.md` (or future Tier 5+ design doc)
+> 5. ☐ Read relevant Tier 5+ design doc (akan dibuat saat scope di-decide)
 >
 > **🚨 MANDATORY workflow rule (BARU 12 Mei 2026 — Owner direction):**
 > **Paired commit→push action**: Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama. Tidak boleh "lupa" push. Pattern: commit + push = atomic action pair. Justifikasi: Owner mengandalkan GitHub state untuk visibility — local commit yang tidak di-push = invisible. AI session apa saja yang baca handover ini = wajib follow. Detail di HANDOVER.md "Workflow procedural rules".
 >
-> **HANYA setelah 5 langkah ini, baru lanjut substantive work:**
-> - Next likely scope: Tier 5 (Audit Trail) — butuh Owner DDL action `CREATE TABLE usulan_revisi`
-> - Atau bug-fix / refinement berdasarkan Sie Renbang feedback dari Tier 4c production use
-> - Tier 4 fully complete sejak Phase 3 — Submit Revisi POK button unlocked first time in project history
->
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b/4c (R1-R5/S1-S6/T1-T9 derivation, UI design rationale, dll).
+> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b/4c (R1-R5/S1-S6/T1-T9 derivation, UI design rationale, dll). Updated dynamically saat new tiers added.
 
 ---
 

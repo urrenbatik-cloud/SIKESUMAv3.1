@@ -284,6 +284,116 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // + §0.11 (Tier 4c) untuk full decision log.
 
   {
+    id:    'log-2026-05-12-tier-4c-merged-to-main',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 4c / Phase 4',
+    title: 'Tier 4c MERGED TO MAIN — All 12 Validators LIVE, Submit Button UNLOCKED',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 4c sub-branch \`feature/tier-4c-procedural-references\` **MERGED TO MAIN** sebagai squash commit \`9174782\`. Owner Vercel preview E2E test ✅ APPROVED 12 Mei 2026 sebelum authorize merge. Feature branch dihapus (remote + local cleanup).
+
+**Squash audit trail (9 commits → 1):**
+
+- \`7a1582e\` feat phase 2a: fixture validation-scenarios-4c.json (18 scenarios)
+- \`1315914\` feat phase 2b Turn 1: C12 Deadline validator + 17 tests
+- \`e4f1405\` feat phase 2b Turn 2: C10 SBM/SBK validator + 32 tests (FIRST warn severity)
+- \`edc8f15\` feat phase 2b Turn 3: C11 RPD validator + 35 tests (CROSS-TABLE)
+- \`cb0435e\` feat phase 2b Turn 4: T9 toggle architecture + 10 tests (BARU 12 Mei)
+- \`0e8853d\` docs phase 3a: UI integration design delta brief
+- \`c440b29\` feat phase 3b: cards C10/C11/C12 LIVE + ValidationContext wiring
+- \`4cf3341\` feat phase 3c: cross-tab nav refactor + C11 toggle UI absorbed
+- \`34a8bed\` docs phase 3d: triple-source sync — SSOT T9 + devLog + HANDOVER + README + SESSION-START-HERE
+
+**Final state post-merge:**
+
+- 12/12 validators LIVE (C1-C5 Tier 4a + C6-C9 Tier 4b + C10-C12 Tier 4c)
+- 486 tests pass (201 Tier 3 + 103 Tier 4a + 88 Tier 4b + 94 Tier 4c)
+- TS errors: 8 maintained (baseline)
+- Vite build: success ~7s
+- Submit Revisi POK button: **ENABLES first time** in project history
+  (triple-gate satisfied: canSubmit AND lhrApipAcknowledged AND allImplemented)
+
+**T9 BARU (12 Mei 2026 Owner-direction):**
+
+C11 strategy toggle — user-configurable validator mode \`permisif\` (default) / \`ketat\` (opt-in) untuk edge case "0 changed leaves + rpdsData undefined". Toggle banner UI in-context discoverability di top dashboard (Opsi A soft interpretation). Pattern "learning by doing" untuk Sie Renbang eksplorasi kedua mode + pilih preference akhirnya.
+
+**Cross-tab navigation refactor (T7):**
+
+\`onNavigate(target: 'pagu' | 'rpd', sectionId?, rowId?)\` signature baru. C11 violations punya dual nav button (→ Pagu emerald + → RPD blue). RPD.tsx implementasi scroll/highlight mirror PaguAnggaran Tier 4a Phase 3d pattern. Backward-compat \`onNavigateToPagu\` @deprecated marker (akan dihapus saat Tier 5+).
+
+**Branch cleanup confirmed:**
+
+- \`feature/tier-4c-procedural-references\` DELETED (remote ✓ + local ✓)
+- Local = Remote sync clean
+- Only \`main\` branch exists remote (semua feature branches deleted)
+
+**Cross-references:**
+
+- SSOT decisions log: \`SSOT-REFACTOR-LOG.md\` §0.11.1 T1-T8 + §0.11.1a T9 BARU + §0.11 closure FINAL
+- Predecessor milestone: \`log-2026-05-12-tier-4c-phase-3-complete\` (pre-merge state)
+- Tier 4b predecessor squash: \`d13be80\`
+- Tier 4a predecessor squash: \`abe193c\`
+- Tier 3 predecessor squash: \`6c8f640\`
+- Design docs: \`docs/TIER-4C-DESIGN.md\` (foundation) + \`docs/TIER-4C-PHASE-3-UI-DESIGN.md\` (delta brief)
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 + §3.5
+
+**Predecessor squash hashes (cumulative Tier 3 + Tier 4):**
+
+| Tier | Squash hash | Date | Validators |
+|---|---|---|---|
+| Tier 3 (Metadata) | \`6c8f640\` | 11 Mei | (foundation untuk validators) |
+| Tier 4a (Pagu Structure) | \`abe193c\` | 11 Mei | C1-C5 |
+| Tier 4b (Revisi Mechanism) | \`d13be80\` | 11 Mei | C6-C9 |
+| Tier 4c (Procedural & References) | \`9174782\` | 12 Mei | C10-C12 |
+
+**Procedural rule introduced (BARU 12 Mei 2026):**
+
+Paired commit→push action MANDATORY — setiap \`git commit\` WAJIB diikuti \`git push origin <branch>\` dalam turn yang sama. Justifikasi: Owner mengandalkan GitHub state untuk visibility. Pattern: commit + push = atomic action pair. Detail di HANDOVER.md "Workflow procedural rules".
+
+**Next milestones available:**
+
+1. **Tier 5 (Audit Trail)** — butuh Owner DDL action \`CREATE TABLE usulan_revisi\`
+2. **LHR APIP persistence v2** (currently in-memory per S6 — move to Supabase di Tier 5)
+3. **Submission deadline reminder** (email/notification 30 hari before C12 deadline)
+4. **C10 V2** — full SBM lookup table integration (currently V1 via hargaSatuanAwal proxy)
+5. **C11 V2/V3** — numerical sum verification + remediation guide
+6. **Bug-fix / refinement** berdasarkan Sie Renbang feedback Tier 4c production use
+
+Tier 4 fully complete. SIKESUMA validation engine = production-ready untuk Revisi POK kewenangan KPA workflow per Perdirjen Renhan 7/2025.`,
+    files: [
+      'utils/validators/c10.ts',
+      'utils/validators/c11.ts',
+      'utils/validators/c12.ts',
+      'utils/validators/runAllValidators.ts',
+      'utils/validators/types.ts',
+      'utils/fixtures/validation-scenarios-4c.json',
+      'components/ValidasiRevisiPOK.tsx',
+      'components/PaguAnggaran.tsx',
+      'components/RPD.tsx',
+      'App.tsx',
+      'docs/TIER-4C-PHASE-3-UI-DESIGN.md',
+      'HANDOVER.md',
+      'README.md',
+      'SESSION-START-HERE.md',
+      'SSOT-REFACTOR-LOG.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      '§Tier4c-T1', '§Tier4c-T2', '§Tier4c-T3', '§Tier4c-T4',
+      '§Tier4c-T5', '§Tier4c-T6', '§Tier4c-T7', '§Tier4c-T8',
+      '§Tier4c-T9 (BARU)',
+      '§Procedural-PairedCommitPush (BARU)',
+    ],
+    related: [
+      'log-2026-05-12-tier-4c-phase-3-complete',
+      'log-2026-05-12-c11-toggle-feature',
+      'log-2026-05-11-tier-4c-foundation-phase',
+      'log-2026-05-11-tier-4b-merged-to-main',
+    ],
+  },
+
+  {
     id:    'log-2026-05-12-tier-4c-phase-3-complete',
     date:  '2026-05-12',
     phase: 'SSOT Refactor / Tier 4c',
