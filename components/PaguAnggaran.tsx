@@ -14,6 +14,11 @@ import MetadataDetailRow from './MetadataDetailRow';
 import MetadataApplyModal from './MetadataApplyModal';
 import MetadataOverrideModal from './MetadataOverrideModal';
 import { toast } from './Toast';
+// [Konteks 1 TD Fix — Decision T8a, pre-Tier-4c flight]
+// Re-derive jumlahBiayaRevisi via Konteks 1 fallback semantic supaya UI
+// display consistent dengan validator semantics (hsr=0 fallback ke hsa,
+// per normative logic Angga Sprint D Item #1).
+import { getEffectiveValue } from '../utils/paguLookup';
 // [Tier 4a Phase 3c] Inline validation indicators (colored dot per row)
 import type { ConstraintId } from '../utils/validators/types';
 import { runAllValidators } from '../utils/validators/runAllValidators';
@@ -362,10 +367,17 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
           // Saat hargaSatuan{Awal,Revisi} atau volume berubah,
           // recompute jumlahBiaya{Awal,Revisi} = harga × volume.
           // Hanya untuk leaf row (yang tidak punya children).
+          //
+          // [Konteks 1 TD Fix — Decision T8a, 11 Mei 2026 pre-Tier-4c]
+          // jumlahBiayaRevisi pakai getEffectiveValue (Konteks 1 fallback
+          // semantic: hsr=0 → fallback ke hsa). Sebelumnya pakai raw
+          // hsr×vol yang menghasilkan 0 saat hsr=0 — inconsistent dengan
+          // validator effectiveRevisi semantic + display tampil 0
+          // padahal effective value adalah hsa×vol.
           if (field === 'hargaSatuanAwal' || field === 'hargaSatuanRevisi' || field === 'volume') {
             const vol = updated.volume || 0;
             updated.jumlahBiayaAwal = (updated.hargaSatuanAwal || 0) * vol;
-            updated.jumlahBiayaRevisi = (updated.hargaSatuanRevisi || 0) * vol;
+            updated.jumlahBiayaRevisi = getEffectiveValue(updated, 'REVISI');
           }
           
           return updated;
