@@ -284,6 +284,60 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // + §0.11 (Tier 4c) + §0.12 (Tier 5) untuk full decision log.
 
   {
+    id:    'log-2026-05-13-tier-5a-merged-to-main',
+    date:  '2026-05-13',
+    phase: 'SSOT Refactor / Tier 5a / Phase 4 — Squash Merge to Main',
+    title: 'Tier 5a MERGED TO MAIN — Audit Trail Backend Complete (squash commit d55f0d0)',
+    type:  'release',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 5a (Audit Trail Backend untuk Revisi POK kewenangan KPA) full stack merged ke main sebagai squash commit \`d55f0d0\`. Owner E2E test PASSED 13 Mei 2026 (4-check smoke: banner toggle / persisted state / uncheck persist / tied audit Submit) di Vercel Preview URL untuk feature/tier-5a-audit-trail-backend.
+
+**Scope merged (8 commits consolidated):**
+- Phase 1.5 DDL (3 tabel + RLS + R7c trigger LIVE di Supabase, commit \`b834415\` + \`06acf47\`)
+- Phase 2.1+2.2 Types + State machine (commit \`8ad4e40\`, 46 tests)
+- Phase 2.3 Service layer (commit \`4990059\`, 41 tests)
+- Phase 2.4 Submit flow UI integration (commit \`958e426\`, 25 tests)
+- Phase 2.5 LHR APIP R3c migration + Banner V1 (commit \`93d9155\`, 12 tests)
+- Plus 3 docs commits (\`05a4ac3\`, \`b7f4164\`, \`fedfca5\`, \`aa53c3e\`)
+
+**Baseline post-merge:**
+- main HEAD: \`d55f0d0\` (2 commits ahead of production)
+- Tests: **610 pass** (486 prior + 124 Tier 5a)
+- TS errors: 8/8 maintained (7 App.tsx + 1 PaguAnggaran.tsx — pre-existing, not regression)
+- Vite build: success ~8.8s, 1.6MB minified
+
+**Cleanup post-merge (pattern Tier 4a/4b/4c):**
+- ✅ feature/tier-5a-audit-trail-backend DELETED (local + remote, 13 Mei 2026)
+
+**Branches summary:**
+- main: \`d55f0d0\` (Tier 5a MERGED, Vercel Preview environment)
+- production: \`90a0278\` (Tier 4c, Vercel Production deployment — **belum ada Tier 5**, awaiting Owner promotion decision)
+
+**Next work candidates (Owner pilih sebelum AI mulai):**
+- (A) Production promotion main → production (Owner-driven, trivial 1-click via Vercel Dashboard)
+- (B) Tier 5b audit trail viewer UI tab (R8c partition 2, fresh AI session)
+- (C) Tier 6 Template SK Revisi POK generator (fresh AI session)
+- (D) TS error cleanup 8 → 0 (minor, 1-2 turns)`,
+    files: [
+      'main branch squash commit d55f0d0',
+      'HANDOVER.md',
+      'SESSION-START-HERE.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      'Tier 5a MERGED via squash merge (1 commit per tier per branching strategy)',
+      'Feature branch DELETED post-merge (cleanup pattern Tier 4a/4b/4c)',
+      'Production promotion DEFERRED — separate Owner-driven decision (v3.2 strategy)',
+      'Owner E2E test 4-check pattern proven — repeat untuk Tier 5b + Tier 6 future merges',
+    ],
+    related: [
+      'log-2026-05-13-tier-5a-phase-2.5-lhr-apip-r3c-complete',
+      'log-2026-05-12-tier-5a-phase-2.4-submit-flow-complete',
+    ],
+  },
+
+  {
     id:    'log-2026-05-13-tier-5a-phase-2.5-lhr-apip-r3c-complete',
     date:  '2026-05-13',
     phase: 'SSOT Refactor / Tier 5a / Phase 2.5 — LHR APIP R3c Migration',
