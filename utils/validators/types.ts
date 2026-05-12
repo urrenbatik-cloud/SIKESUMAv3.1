@@ -20,7 +20,7 @@
  * antar sub-branches. Validator FUNCTIONS implemented per-sub-branch sesuai
  * categorization.
  */
-import type { PaguSection, PaguRow } from '../../types';
+import type { PaguSection, PaguRow, RPDSection } from '../../types';
 
 // ────────────────────────────────────────────────────────────────────────
 // Constraint identifiers (canonical from vKoreksi v3 §3.3)
@@ -305,8 +305,12 @@ export interface ValidationContext {
   sections: PaguSection[];
   /** Optional: cross-year sections kalau validator butuh comparison */
   allSectionsByYear?: Record<number, PaguSection[]>;
-  /** Optional: rpds data untuk C11 cross-table check (Tier 4c) */
-  rpdsData?: unknown[]; // shape TBD di Tier 4c
+  /**
+   * Optional: rpds data untuk C11 cross-table check.
+   * [Phase 1.5 Tier 4c] Narrowed dari unknown[] ke RPDSection[] per
+   * Decision T5a (strict linkedPaguSectionId + kode matching).
+   */
+  rpdsData?: RPDSection[];
   /** Optional: LHR APIP acknowledgment untuk C8 (Tier 4b) */
   lhrApipAcknowledged?: boolean;
   /** Optional: SBM dictionary untuk C10 (Tier 4c) */
