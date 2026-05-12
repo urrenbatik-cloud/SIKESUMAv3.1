@@ -827,6 +827,87 @@ Zero PaguRow field additions. Zero DDL. Pattern consistent dengan Tier 4a/4b min
 
 ---
 
+### 0.12 Tier 5 Implementation Decisions Log (12 Mei 2026)
+
+Successor block untuk Tier 5 (Workflow Audit Trail + State Machine). Companion: `docs/TIER-5-DESIGN.md` (Phase 1 design with R1-R8 + R6+ override Owner-approved). **Foundation work** dikerjakan di session current (Phase 1 design + handover prep). **Implementation** (Phase 1.5 DDL + Phase 2-3 logic + UI) di-split ke **fresh AI session** untuk avoid context budget exhaustion + drift/bias.
+
+#### 0.12.1 Decisions Owner-Approved (Tier 5 R1-R8)
+
+Owner direction 12 Mei 2026 — **approve all R1-R8 defaults + R6 enhancement (R6+ manual override)** batch:
+
+- **R1c (Schema convention):** Hybrid — `status` + `tahun_anggaran` + `jenis` columned, rest JSONB `data` field. Balance PostgreSQL indexed performance untuk frequent query (status filters) + JSONB flexibility untuk future fields. Konsisten dengan AP-8 SIKESUMA envelope JSONB pattern.
+- **R2b (Snapshot scope):** Full POK snapshot per tanggal_efektif (BUKAN delta). Justifikasi: time-travel viewer butuh full state reconstruction.
+- **R3c (LHR APIP migration):** Both system_settings (global) + usulan_revisi.data (tied audit per submission). Best of both — global session state + audit trail per submission.
+- **R4a (Deadline reminder mechanism):** Banner V1 di dashboard H-7 sebelum hard deadline. R4b email/notification defer V2.
+- **R5a (Multi-user):** Single-user Sie Renbang act as proxy untuk Karumkit/KPA. R5b proper RBAC defer V2/Tier 6+.
+- **R6+ (State transitions BARU enhancement):** Permissive defaults `draft → ditolak`, `berlaku_efektif → ditolak` (post-fact) allowed. PLUS **manual override mechanism** untuk catch-all transition any→any state dengan mandatory reason + audit log entry `manual_override` flag. Owner direction: *"sistem tidak boleh stuck karena terlalu strict. SIKESUMA adalah project pengembangan breakthrough — pattern 'learning by doing'."*
+- **R7c (Snapshot immutability):** Both DB trigger (PostgreSQL function reject UPDATE) + app enforcement (no UPDATE endpoint exposed). Defense in depth.
+- **R8c (Partition):** Split Tier 5a (backend: schema + state machine + persistence + Submit integration) + Tier 5b (frontend: tab + modal + snapshot viewer + deadline banner). Natural backend/frontend separation untuk fresh session continuity.
+
+#### 0.12.2 Scope Additions Owner-Approved (12 Mei 2026)
+
+- **Tier 5+6 overlap β:** Forward-compat schema dengan field `template_sk_metadata` di `usulan_revisi.data`. Tier 6 SK Template generation defer ke separate sub-branch — schema TIDAK BERUBAH saat Tier 6 implement.
+- **Validation history audit β:** JSONB-embedded di `usulan_revisi.data.validation_attempts[]`. Each Submit attempt captured (timestamp + result + violations summary). Useful for Itjenad audit. V2 extract ke separate table kalau scale matures.
+
+#### 0.12.3 Phase Structure Per Sub-Branch 5
+
+**Session current (foundation + handover):**
+
+| Phase | Deliverable | Commit |
+|---|---|---|
+| Phase 1 Design | `docs/TIER-5-DESIGN.md` ~600 LOC comprehensive (R1-R8 + R6+ + Tier 5+6 + validation history) | (this commit batch) |
+| v3.2 Strategy | Production branch creation + OWNER-POLICY Addendum v1.2 | (this commit batch) |
+| Foundation prep | SSOT §0.12 + HANDOVER + SESSION-START-HERE + handover bundle ZIP | (this commit batch) |
+
+**Fresh AI session (implementation):**
+
+| Phase | Deliverable | Estimated |
+|---|---|---|
+| Phase 1.5 | DDL preparation + Owner execute (AI-auto-execute per Konteks 4) | 1-2 turn |
+| **Tier 5a** | Backend: types + state machine + persistence + Submit integration | 5-7 turn |
+| **Tier 5b** | Frontend: tab + modal + snapshot viewer + deadline banner | 5-7 turn |
+| Phase 4 | Owner E2E test → squash merges (5a separate, 5b separate) | 2 turn |
+| **TOTAL fresh session** | | **~13-18 turns** |
+
+#### 0.12.4 Procedural Rules (NEW from Owner direction 12 Mei 2026)
+
+- **Paired commit→push action** — REINFORCED dari incident Phase 3c (commit `4cf3341` lupa push). Codified di OWNER-POLICY Addendum v1.2 §J. Pattern: setiap commit WAJIB diikuti push dalam same turn.
+- **Supabase direct access policy** — Owner grant credentials. Read bebas, DDL butuh explicit per-operation Owner approval. AI-auto-execute DDL allowed untuk Tier 5 dengan audit safeguards. Codified di OWNER-POLICY Addendum v1.2 §H.
+- **v3.2 strategy** — Vercel production branch pattern (Opsi A Owner-approved). main = dev/preview, production = explicit promote. Codified di OWNER-POLICY Addendum v1.2 §I.
+
+#### 0.12.5 Foundation Status
+
+**Already in place dari session current:**
+- ✅ Tier 4c MERGED ke main (`9174782`)
+- ✅ Production branch created (`production` dari main HEAD `90a0278`)
+- ✅ Phase 1 design doc TIER-5-DESIGN.md (R1-R8 + R6+ Owner-approved)
+- ✅ OWNER-POLICY Addendum v1.2 (Supabase access + v3.2 + paired commit-push)
+- ✅ HANDOVER + SESSION-START-HERE updated untuk Tier 5 handover
+- ✅ Handover bundle `tier5-handover-bundle.zip` siap untuk fresh session
+
+**Yang fresh session perlu setup:**
+- Branch creation `feature/tier-5a-audit-trail-backend`
+- DDL execution (3 tables: usulan_revisi + usulan_revisi_perubahan + snapshot_pok)
+- TypeScript types + state machine logic + Supabase CRUD layer
+- Submit flow integration ke Tier 4c
+- UI implementation (Tier 5b separate branch)
+
+#### 0.12.6 Cross-References
+
+- Phase 1 design: `docs/TIER-5-DESIGN.md` (authoritative, R1-R8 + R6+ locked)
+- Original blueprint: `docs/TIER-3-PLUS-PLAN.md` §Tier-5 (updated with v1.2 supersedes note)
+- Owner Policy: `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.2
+- Predecessor squash hashes (Tier 3+4 heritage):
+  - Tier 3: `6c8f640`
+  - Tier 4a: `abe193c`
+  - Tier 4b: `d13be80`
+  - Tier 4c: `9174782`
+- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.6 + §6 + §13
+
+*§0.12 ditambahkan 12 Mei 2026 setelah Tier 4c MERGED + Owner approve R1-R8 + R6+ batch defaults. Foundation work + handover prep di-eksekusi current session. Implementation work split ke fresh AI session per Owner session-split policy (Konteks 14). All foundation ✅ Done — branch `feature/tier-5a-audit-trail-backend` belum di-create (handed off ke fresh session via tier5-handover-bundle.zip).*
+
+---
+
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
 | Item | Commit | Description |

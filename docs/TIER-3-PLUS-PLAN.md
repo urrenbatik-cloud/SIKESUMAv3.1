@@ -259,6 +259,18 @@ export function validateRevisiPOK(sections: PaguSection[]): ConstraintViolation[
 
 ## Tier 5 — Workflow Audit Trail
 
+> **⚠️ UPDATE 12 Mei 2026:** Blueprint section dibawah ini = original draft (11 Mei 2026 pre-Tier-4). **Detailed Phase 1 design** dengan **R1-R8 decisions Owner-approved + R6+ manual override mechanism** sekarang di **`docs/TIER-5-DESIGN.md`** (BARU 12 Mei 2026). Decisions per design doc supersede blueprint dibawah dimana berbeda. Specifically:
+> - **R1c hybrid schema** (typed columns + JSONB `data`) — supersedes pure relational schema dibawah
+> - **R2b full snapshot** — confirmed
+> - **R3c LHR APIP** — both system_settings + usulan_revisi tied
+> - **R4a banner V1** — email defer V2
+> - **R5a single-user proxy** — confirmed
+> - **R6+ permissive defaults + manual override** — NEW addition Owner-direction "sistem tidak boleh stuck karena terlalu strict"
+> - **R7c immutability** — DB trigger + app enforcement
+> - **R8c partition** — Tier 5a (backend) + Tier 5b (frontend) split
+> - **Tier 5+6 overlap β** — forward-compat schema (template_sk_metadata anticipated), implementation defer Tier 6
+> - **Validation history audit β** — JSONB-embedded di `usulan_revisi.data.validation_attempts[]`
+
 ### Goal
 State machine per pengajuan revisi POK (bukan per row). Audit trail lengkap dari Draft → Berlaku Efektif. Snapshot POK per tanggal penetapan KPA.
 

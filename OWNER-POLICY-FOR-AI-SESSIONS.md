@@ -347,13 +347,215 @@ T1-T8 di `SSOT-REFACTOR-LOG.md §0.11.1` + `docs/TIER-4C-DESIGN.md §3`. **DO NO
 
 ---
 
+*Addendum v1.1 added by AI Assistant pre-Tier-4c handover. Codifies pelajaran dari Tier 3/4a/4b implementation cycle. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*
+
+---
+
+# Addendum v1.2 — Tier 5 Handover + Supabase Access Policy + v3.2 Strategy
+
+**Added:** 12 Mei 2026 (post Tier 4c MERGED + pre Tier 5 implementation)
+
+**Context:** Tier 4 fully merged ke main (`9174782`). All 12 validators LIVE. Submit Revisi POK button enables. Owner direction transition ke Tier 5 (Audit Trail) dengan beberapa procedural updates yang perlu di-codify.
+
+---
+
+## H. Supabase Direct Access Policy (NEW)
+
+### H.1. Access Credentials
+
+Owner granted Supabase access ke AI session via `/mnt/user-data/uploads/temporary_GitHub_PAT.txt` line 2:
+```
+2. Supabase (Live Database) URL: https://qjijsftbytozcoyrtric.supabase.co
+Key: eyJhbGc***
+```
+
+JWT token (eyJ... format) — likely service_role key (bypass RLS, can execute DDL) atau anon key (restricted by RLS). AI session verify role saat use.
+
+### H.2. AI Usage Permissions
+
+**ALLOWED tanpa per-operation Owner approval:**
+- READ operations (SELECT queries) untuk schema introspection
+- Verify table existence (`information_schema.tables`)
+- Check row counts, table structure
+- Validate constraint patterns (envelope JSONB convention AP-8)
+
+**REQUIRES explicit per-operation Owner approval:**
+- WRITE operations (INSERT/UPDATE/DELETE on production tables)
+- DDL operations (CREATE TABLE, ALTER, DROP, CREATE TRIGGER)
+- RLS policy changes
+- Schema migrations
+
+**Per Konteks 4 (12 Mei 2026):** AI-auto-execute DDL allowed untuk Tier 5 migration scripts (faster iteration), TAPI dengan audit safeguards:
+1. Display SQL script ke Owner BEFORE execute
+2. Wait for Owner explicit "ya, run"
+3. Execute via psql / Supabase REST API
+4. Verify result via introspection query
+5. Log execution di SSOT-REFACTOR-LOG.md (script hash + timestamp + result)
+
+### H.3. PAT Hygiene (Existing — Reinforced)
+
+Same pattern dengan GitHub PAT (Addendum v1.1):
+- Set credentials di env variable / inline command only
+- Never persist di `.git/config` atau code
+- Verify "✅ clean" after each operation
+- Re-pull credentials dari file untuk each fresh session
+
+### H.4. Audit Trail untuk Supabase Operations
+
+**Every Supabase write/DDL operation MUST be logged**:
+- Operation type (DDL / DML)
+- Affected table(s)
+- Script hash atau full SQL
+- Owner approval reference (chat message timestamp)
+- Execution timestamp
+- Result (success / error)
+
+Logged di:
+- SSOT-REFACTOR-LOG.md (running log)
+- devLog.ts (milestone entries)
+- Git commit message (for traceability)
+
+---
+
+## I. v3.2 Parallel Development Strategy (NEW)
+
+### I.1. Context
+
+Tier 4c MERGED = production-ready state. Tier 5+ akan add significant new features (audit trail + state machine + UI). Risk: bug di Tier 5 development bisa break production (Sie Renbang field-testing Tier 4c).
+
+### I.2. Strategy: Vercel Production Branch Pattern (Opsi A — Owner-approved 12 Mei 2026)
+
+**Mechanism:**
+- Default branch (Git): `main` — all development commits, Vercel preview deployments only
+- Production branch (Vercel): `production` — gets explicitly promoted, Vercel production deployment
+- Production URL `https://sikesumav31.vercel.app` deploys from `production` branch
+
+**Workflow:**
+1. AI/dev work on `main` branch (atau feature branches off main)
+2. Vercel auto-deploys main → preview URLs (Sie Renbang field-test di preview)
+3. When stable + Owner approval → merge `main` → `production` branch
+4. Vercel auto-deploys production branch → production URL update
+
+**Setup steps (DONE 12 Mei 2026):**
+- ✅ `production` branch created dari `main` HEAD `90a0278` (Tier 4c MERGED state)
+- ⏳ Owner Vercel config: Settings → Git → Production Branch = `production` (pending)
+- ✅ Both branches at same commit initially (zero diff)
+
+### I.3. Promotion Procedure (Future Tier 5+ merge)
+
+After Tier 5 stable + field-tested:
+```bash
+git checkout production
+git merge main                      # fast-forward atau merge commit
+git push origin production           # triggers Vercel production deployment
+git checkout main                    # back to dev branch
+```
+
+**Alternative**: Vercel Dashboard → Deployments → latest "Preview" from main → "Promote to Production" button.
+
+### I.4. Rollback Procedure
+
+If production bug found post-promotion:
+1. Identify last known-good commit on production branch
+2. `git reset --hard <commit>` on production branch
+3. `git push --force origin production` (Vercel auto re-deploys)
+4. Fix bug on main, re-promote when ready
+
+---
+
+## J. Paired Commit→Push Action (REINFORCED from Addendum v1.1)
+
+### J.1. Rule
+
+**Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama.**
+
+Pattern: `commit + push = atomic action pair`. Tidak boleh "lupa" push.
+
+### J.2. Justification
+
+Owner mengandalkan GitHub state untuk visibility. Local commit yang tidak di-push = invisible to Owner.
+
+**Incident reference (12 Mei 2026):** Phase 3c commit `4cf3341` lupa push sampai turn berikutnya. Owner harus re-request "Lanjut Phase 3c" karena tidak lihat di repo. Rule formalisasi to prevent recurrence.
+
+### J.3. Implementation Pattern
+
+Saat commit + push, do it dalam single bash invocation:
+
+```bash
+git commit -m "..." && \
+PAT=$(grep -oE 'ghp_[A-Za-z0-9]+' /mnt/user-data/uploads/temporary_GitHub_PAT.txt | head -1) && \
+git remote set-url origin "https://x-access-token:${PAT}@github.com/..." && \
+git push origin <branch> && \
+git remote set-url origin "https://github.com/..." && \
+unset PAT && \
+grep -E "ghp_|x-access-token" .git/config && echo "❌ LEAKED" || echo "✅ PAT clean"
+```
+
+Atau split commit + push tapi DALAM SAME TURN:
+1. First bash call: commit
+2. Second bash call: push + PAT hygiene
+3. Don't end turn before push confirmed
+
+### J.4. AI Self-Check
+
+Sebelum end turn dengan "task complete" message, verify:
+- ✅ Latest commit pushed ke origin (`git log --oneline origin/<branch> | head -1` matches local)
+- ✅ PAT hygiene clean (no leaked credentials di `.git/config`)
+- ✅ Owner can see commit di GitHub
+
+If any of these fail, fix BEFORE end turn.
+
+---
+
+## K. Tier 5 Handover Bundle Pattern (NEW)
+
+### K.1. Context
+
+Tier 5 implementation = significant scope (~11-16 turn fresh session). Cannot fit di current session (budget exhausted). Owner direction (Konteks 14, 12 Mei 2026): split minor (this session) vs significant (fresh session).
+
+### K.2. Handover Bundle Composition
+
+Mirror successful pattern `tier4c-handover-bundle.zip`:
+
+```
+tier5-handover-bundle.zip
+├── BUNDLE-README.md                     (Bootstrap instructions)
+├── OWNER-POLICY-FOR-AI-SESSIONS.md     (latest, dengan v1.2 Addendum)
+├── HANDOVER.md                          (latest state — Tier 5 ready)
+├── SESSION-START-HERE.md                (revamped untuk Tier 5)
+├── SSOT-REFACTOR-LOG.md                 (latest, dengan §0.12 entry)
+├── README.md                            (current)
+├── docs/
+│   ├── TIER-5-DESIGN.md                (NEW Phase 1 design doc)
+│   ├── TIER-3-PLUS-PLAN.md             (updated Tier 5 section)
+│   ├── TIER-4C-DESIGN.md               (predecessor reference)
+│   ├── TIER-4C-PHASE-3-UI-DESIGN.md   (predecessor reference)
+│   ├── REVISI-POK-PAGU-vKoreksi.md    (master domain)
+│   └── glossary.md
+└── constants/devLog.ts                   (latest entries)
+```
+
+### K.3. Fresh AI Session Bootstrap
+
+5-step mandatory (mirror Tier 4c handover):
+1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (terutama Addendum v1.2)
+2. ☐ Read `HANDOVER.md` — current state authoritative
+3. ☐ Read `SESSION-START-HERE.md` — orientation
+4. ☐ Run git verification commands (Section B)
+5. ☐ Read `docs/TIER-5-DESIGN.md` — Phase 1 design dengan R1-R8 + R6+ locked
+
+After 5 steps complete, fresh AI session starts Tier 5 Phase 1.5 (DDL preparation).
+
+---
+
 ## G. Version History
 
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | 11 Mei 2026 | Initial creation by Owner — permission scope + PAT policy |
-| **1.1** | **11 Mei 2026 (post Tier 4b merge)** | **Addendum: lessons learned + Tier 4c handover protocols** |
+| 1.1 | 11 Mei 2026 (post Tier 4b merge) | Addendum: lessons learned + Tier 4c handover protocols |
+| **1.2** | **12 Mei 2026 (post Tier 4c MERGED)** | **Addendum: Supabase access policy + v3.2 strategy + paired commit→push reinforce + Tier 5 handover bundle pattern** |
 
 ---
 
-*Addendum v1.1 added by AI Assistant pre-Tier-4c handover. Codifies pelajaran dari Tier 3/4a/4b implementation cycle. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*
+*Addendum v1.2 added by AI Assistant post-Tier-4c-merge, pre-Tier-5 handover. Codifies new procedural rules (Supabase access, v3.2 strategy, paired commit-push) + handover bundle pattern untuk fresh session continuity. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*

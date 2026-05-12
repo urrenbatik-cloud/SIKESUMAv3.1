@@ -276,12 +276,127 @@ export const ROADMAP: RoadmapItem[] = [
 
 export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // ════════════════════════════════════════════════════════════════════════
-  // SSOT REFACTOR — Tier 3 + Tier 4 (11-12 Mei 2026)
+  // SSOT REFACTOR — Tier 3 + Tier 4 + Tier 5 (11-12 Mei 2026)
   // ════════════════════════════════════════════════════════════════════════
   // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
   // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
   // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4a) + §0.10 (Tier 4b)
-  // + §0.11 (Tier 4c) untuk full decision log.
+  // + §0.11 (Tier 4c) + §0.12 (Tier 5) untuk full decision log.
+
+  {
+    id:    'log-2026-05-12-tier-5-design-phase-1-ready',
+    date:  '2026-05-12',
+    phase: 'SSOT Refactor / Tier 5 / Phase 1 Design',
+    title: 'Tier 5 Phase 1 Design READY — R1-R8 + R6+ Manual Override + v3.2 Strategy',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Foundation work untuk Tier 5 (Workflow Audit Trail + State Machine) complete di main. Owner approve all R1-R8 defaults + R6 enhancement (R6+ manual override mechanism) batch. Implementation work (Phase 1.5 DDL + Phase 2-3 logic + UI) di-split ke **fresh AI session** untuk avoid context budget exhaustion + drift/bias.
+
+**Owner direction batched (Konteks 1-15, 12 Mei 2026):**
+
+R1c — Schema convention: Hybrid (status + tahun_anggaran + jenis columned, rest JSONB \`data\`)
+R2b — Snapshot scope: Full POK snapshot per tanggal_efektif
+R3c — LHR APIP: Both system_settings (global) + usulan_revisi tied
+R4a — Deadline reminder: Banner V1 (R4b email defer V2)
+R5a — Multi-user: Single-user Sie Renbang proxy
+R6+ — State transitions: Permissive + manual override mechanism (NEW Owner direction)
+R7c — Snapshot immutability: DB trigger + app enforcement
+R8c — Partition: Tier 5a (backend) + Tier 5b (frontend)
+
+**Scope additions Owner-approved:**
+- Tier 5+6 overlap β: forward-compat schema (template_sk_metadata), Tier 6 implementation defer
+- Validation history audit β: JSONB-embedded validation_attempts[] di usulan_revisi.data
+
+**R6+ Manual Override (NEW critical addition):**
+
+Owner direction "sistem tidak boleh stuck karena terlalu strict. SIKESUMA adalah project pengembangan breakthrough — pattern 'learning by doing'." Mechanism:
+- Setiap state transition normal punya validation rules
+- PLUS escape hatch "Override + reason" catch-all transition any → any
+- Audit: log entry dengan \`manual_override\` flag + actor + reason + timestamp
+- V1 permissions: anyone (R5a single-user), V2: role-based restrict
+
+**v3.2 Production Branch Strategy (Opsi A Owner-approved):**
+
+- Branch \`production\` created from main HEAD \`90a0278\` (Tier 4c MERGED state)
+- Owner Vercel config pending: Settings → Git → Production Branch = \`production\`
+- main = dev (Vercel preview deployments only)
+- production = explicit promote (Vercel production URL update)
+- Codified di OWNER-POLICY-FOR-AI-SESSIONS.md Addendum v1.2 §I
+
+**Procedural rules formalized (NEW):**
+
+- Paired commit→push action: setiap commit WAJIB diikuti push dalam same turn (REINFORCED dari Phase 3c incident commit \`4cf3341\` lupa push)
+- Supabase access policy: read bebas, DDL butuh explicit per-operation Owner approval, AI-auto-execute Tier 5 allowed dengan audit safeguards
+- Handover bundle pattern: ZIP self-contained mirror tier4c-handover-bundle.zip untuk fresh session continuity
+
+Codified di OWNER-POLICY-FOR-AI-SESSIONS.md Addendum v1.2.
+
+**Files created/modified (foundation):**
+
+Created (1):
+- docs/TIER-5-DESIGN.md (~600 LOC comprehensive Phase 1 design)
+
+Modified (5):
+- docs/TIER-3-PLUS-PLAN.md (Tier 5 section update with v1.2 supersedes note)
+- OWNER-POLICY-FOR-AI-SESSIONS.md (Addendum v1.2: Supabase + v3.2 + paired commit-push + Tier 5 handover)
+- HANDOVER.md (status: Tier 4c MERGED + Tier 5 Design Ready, branch tree dengan production branch)
+- SESSION-START-HERE.md (revamped untuk Tier 5 fresh session context)
+- SSOT-REFACTOR-LOG.md (§0.12 Tier 5 entries + decisions log)
+- constants/devLog.ts (this entry)
+
+**Handover bundle preparation:**
+- \`tier5-handover-bundle.zip\` siap untuk Owner download + attach saat fresh session
+- Self-contained dengan all required context (mirror tier4c-handover-bundle.zip pattern)
+- 5-step bootstrap untuk fresh AI session
+
+**Smoke test (docs + branch creation only):**
+- TS errors: 8 maintained (no code change)
+- Vitest: 486 maintained
+- Vite build: success
+- production branch: created + pushed (90a0278)
+
+**Next milestones (fresh AI session):**
+
+1. Bootstrap: Read handover bundle 5-step mandatory
+2. Branch create: \`feature/tier-5a-audit-trail-backend\`
+3. Phase 1.5: DDL preparation + Owner execute (3 tables + indexes + R7c trigger)
+4. Phase 2 Tier 5a: TypeScript types + state machine + Supabase CRUD + Submit integration
+5. Phase 3 Tier 5b (separate branch): UI tab + modal + snapshot viewer + deadline banner
+6. Phase 4: Squash merge 5a + 5b
+
+Estimasi 11-16 turn fresh session (split 5a ~5-7 turn + 5b ~5-7 turn).
+
+**Cross-references:**
+
+- Phase 1 design authoritative: \`docs/TIER-5-DESIGN.md\`
+- Original blueprint: \`docs/TIER-3-PLUS-PLAN.md\` §Tier-5 (with v1.2 supersedes note)
+- Owner Policy: \`OWNER-POLICY-FOR-AI-SESSIONS.md\` Addendum v1.2
+- Predecessor: \`log-2026-05-12-tier-4c-merged-to-main\`
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.6 + §6 + §13`,
+    files: [
+      'docs/TIER-5-DESIGN.md',
+      'docs/TIER-3-PLUS-PLAN.md',
+      'OWNER-POLICY-FOR-AI-SESSIONS.md',
+      'HANDOVER.md',
+      'SESSION-START-HERE.md',
+      'SSOT-REFACTOR-LOG.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      '§Tier5-R1c', '§Tier5-R2b', '§Tier5-R3c', '§Tier5-R4a',
+      '§Tier5-R5a', '§Tier5-R6+ (BARU manual override)', '§Tier5-R7c', '§Tier5-R8c',
+      '§Tier5-OverlapBeta', '§Tier5-ValidationHistoryBeta',
+      '§Procedural-SupabaseAccess (BARU)',
+      '§Procedural-v32Strategy (BARU)',
+      '§Procedural-PairedCommitPush (REINFORCED)',
+    ],
+    related: [
+      'log-2026-05-12-tier-4c-merged-to-main',
+      'log-2026-05-12-tier-4c-phase-3-complete',
+      'log-2026-05-12-c11-toggle-feature',
+    ],
+  },
 
   {
     id:    'log-2026-05-12-tier-4c-merged-to-main',

@@ -4,31 +4,42 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c MERGED)
+> ## ✅ STATUS UPDATE (12 Mei 2026, post Tier 4c MERGED + Tier 5 Phase 1 Design Ready)
 >
-> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c MERGED** `9174782` (12 Mei 2026, fresh AI session). All 12 validators (C1-C12) **LIVE in production**. UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating ENABLES, cross-tab navigation pagu↔rpd, C11 strategy toggle inline banner). **486 tests baseline** + **TS 8 maintained**. Owner Vercel preview E2E test ✅ APPROVED sebelum authorize merge.
+> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c MERGED** `9174782` (12 Mei 2026). All 12 validators (C1-C12) **LIVE in production**. UI integration full. **486 tests baseline** + **TS 8 maintained**.
 >
 > **TIER 4 FULLY COMPLETE — Submit Revisi POK button UNLOCKED first time in project history.**
 >
-> **NEXT SCOPE OPTIONS:**
-> - **Tier 5 (Audit Trail)** — `feature/tier-5-audit-trail` (butuh Owner DDL action: `CREATE TABLE usulan_revisi`)
-> - **Bug-fix / refinement** dari Sie Renbang feedback berdasarkan Tier 4c production use
-> - **LHR APIP persistence v2** (currently in-memory per Decision S6 — moves to Supabase di Tier 5 audit trail scope)
-> - **Submission deadline reminder** (email/notification 30 hari before C12 deadline)
-> - **C10 V2** — full SBM lookup table integration (currently V1 pragmatic via hargaSatuanAwal proxy)
-> - **C11 V2/V3** — numerical sum verification + remediation guide
+> **🆕 TIER 5 PHASE 1 DESIGN READY** (12 Mei 2026) — `docs/TIER-5-DESIGN.md` BARU dengan **R1-R8 + R6+ manual override** Owner-approved.
 >
-> **MANDATORY untuk fresh AI session — first 5 steps (urut wajib):**
-> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full text (terutama Addendum v1.1 + procedural rules)
+> **IMPLEMENTATION HANDED OFF KE FRESH AI SESSION** via `tier5-handover-bundle.zip` untuk avoid context budget exhaustion + drift/bias.
+>
+> **🆕 V3.2 PRODUCTION BRANCH STRATEGY** (12 Mei 2026 Owner-approved):
+> - Branch `production` di-create dari `main` HEAD `90a0278`
+> - main = dev branch (Vercel preview only)
+> - production = explicit promote (Vercel production deployment)
+> - Owner Vercel config pending — Settings → Git → Production Branch = `production`
+>
+> **MANDATORY untuk fresh AI session Tier 5 — first 5 steps (urut wajib):**
+> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (especially Addendum v1.2 — Supabase access + v3.2 + paired commit-push)
 > 2. ☐ Read `HANDOVER.md` — current state authoritative
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
-> 4. ☐ Run git verification commands (lihat OWNER-POLICY Section B)
-> 5. ☐ Read relevant Tier 5+ design doc (akan dibuat saat scope di-decide)
+> 4. ☐ Run git verification commands (per OWNER-POLICY Section B)
+> 5. ☐ Read `docs/TIER-5-DESIGN.md` — Phase 1 design dengan R1-R8 + R6+ override locked
 >
-> **🚨 MANDATORY workflow rule (BARU 12 Mei 2026 — Owner direction):**
-> **Paired commit→push action**: Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama. Tidak boleh "lupa" push. Pattern: commit + push = atomic action pair. Justifikasi: Owner mengandalkan GitHub state untuk visibility — local commit yang tidak di-push = invisible. AI session apa saja yang baca handover ini = wajib follow. Detail di HANDOVER.md "Workflow procedural rules".
+> **🚨 MANDATORY workflow rules (BARU dan REINFORCED 12 Mei 2026 — Owner direction):**
+> - **Paired commit→push action**: Setiap `git commit` WAJIB diikuti `git push origin <branch>` dalam turn yang sama. Detail di OWNER-POLICY Addendum v1.2 §J.
+> - **Supabase access policy**: Read operations bebas, DDL operations butuh explicit per-operation Owner approval. Detail di OWNER-POLICY Addendum v1.2 §H.
+> - **v3.2 strategy**: All dev di main → preview Vercel. Production promotion via merge main → production branch. Detail di OWNER-POLICY Addendum v1.2 §I.
 >
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b/4c (R1-R5/S1-S6/T1-T9 derivation, UI design rationale, dll). Updated dynamically saat new tiers added.
+> **HANYA setelah 5 langkah ini, baru lanjut substantive work:**
+> - Branch creation: `git checkout -b feature/tier-5a-audit-trail-backend` (R8c split — backend first)
+> - Implementation per `TIER-5-DESIGN.md` §8 — Phase 1.5 (DDL prep) → Phase 2 (state machine + persistence + Submit integration) → Phase 3 (UI: tab + modal + snapshot viewer + deadline banner)
+> - Expected ~11-16 fresh session turns total (5-8 turn Tier 5a + 5-7 turn Tier 5b)
+> - Test baseline target: ~520-540 tests (486 + 30-50 Tier 5)
+> - Implementation = SIGNIFICANT scope per session-split policy (avoid compaction risk)
+>
+> Bundle ini di-preserve sebagai self-contained handover dengan all required context untuk fresh session continuity (mirror successful `tier4c-handover-bundle.zip` pattern).
 
 ---
 

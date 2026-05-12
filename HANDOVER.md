@@ -14,40 +14,46 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 6. **[`README.md`](./README.md)** § "SSOT Lattice & IV Checks" + § "Key Decisions Log → SSOT Refactor" + § "Watchpoints".
 7. **[`SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md`](./SIKESUMA-Audit-BAS-Konformitas-CORRIGENDUM.md)** — 3 HB resolutions + Konteks 6.
 
-**Status singkat (per 12 Mei 2026, post-Tier-4c-MERGED):**
+**Status singkat (per 12 Mei 2026, post-Tier-4c-MERGED + Tier 5 Design Phase 1 ready):**
 - SSOT Refactor Sprint A → D Item #2 done
 - **Re-Architecture Tier 1+2 DONE** (master domain doc integrated, LaporanRevisi workflow corrected)
-- **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration. Owner-tested + verified. 92.1% high confidence acceptance, 201 Vitest tests pass. Lihat `SSOT-REFACTOR-LOG.md §0.8`.
-- **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — Validation Engine sub-branch 4a: 5 validators (C1-C5) + UI integration full (dashboard "1.5 Validasi Revisi POK" + 12-card grid + inline indicators + bidirectional navigation + row-level scroll/highlight). Feature branch dihapus post-merge cleanup. Lihat `SSOT-REFACTOR-LOG.md §0.9` + `docs/TIER-4-DESIGN.md` + `docs/TIER-4A-PHASE-3-UI-DESIGN.md`.
-- **Tier 4b MERGED TO MAIN** sebagai commit `d13be80` (11 Mei 2026) — Validation Engine sub-branch 4b: 4 validators (C6 Jenis Belanja, C7 Sumber Dana, C8 LHR APIP, C9 Akun Minus) + UI integration full (cards C6-C9 live + LHR APIP checkbox NEW UX + Submit button triple gating). Plus C1 violation message UX enhancement batched (DIPA Hal III pathway guidance). Feature branch dihapus post-merge cleanup. **392 tests pass** (201 Tier 3 + 103 Tier 4a + 88 Tier 4b). Lihat `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4B-DESIGN.md` + `docs/TIER-4B-PHASE-3-UI-DESIGN.md`.
-- **Tier 4c Foundation Phase COMPLETE** (11 Mei 2026, di main, pre-implementation): Design doc `230ba43` + Konteks 1 TD fix `303df65` + Phase 1.5 types narrow `857e98c` + governance docs sync `9c82265`. Owner approve all T1-T8 defaults. Implementation split ke fresh AI session per Owner session-split policy.
-- **Tier 4c MERGED TO MAIN** sebagai commit `9174782` (12 Mei 2026) — Validation Engine sub-branch 4c: 3 validators (C10 SBM/SBK first WARN, C11 RPD cross-table, C12 Deadline procedural) + T9 BARU (C11 strategy toggle permisif/ketat) + UI integration full (cards C10-C12 live + cross-tab navigation refactor pagu↔rpd + C11 toggle banner inline + RPD scroll/highlight mirror PaguAnggaran Tier 4a Phase 3d). Feature branch `feature/tier-4c-procedural-references` dihapus post-merge cleanup. **486 tests pass** (201 Tier 3 + 103 Tier 4a + 88 Tier 4b + 94 Tier 4c). TS 8 maintained. **All 12 validators LIVE** — Submit Revisi POK button ENABLES for first time in project history. Owner Vercel preview E2E test ✅ APPROVED sebelum authorize merge. Lihat `SSOT-REFACTOR-LOG.md §0.11.1a T9` + `docs/TIER-4C-PHASE-3-UI-DESIGN.md`.
-- **Tier 5-6 pending** — `feature/tier-5-audit-trail` (later, butuh Owner DDL action untuk CREATE TABLE usulan_revisi).
+- **Tier 3 MERGED TO MAIN** sebagai commit `6c8f640` (11 Mei 2026) — JSONB-native metadata schema + recommender + UI integration.
+- **Tier 4a MERGED TO MAIN** sebagai commit `abe193c` (11 Mei 2026) — 5 validators C1-C5 + UI integration.
+- **Tier 4b MERGED TO MAIN** sebagai commit `d13be80` (11 Mei 2026) — 4 validators C6-C9 + LHR APIP checkbox + Submit triple gating.
+- **Tier 4c MERGED TO MAIN** sebagai commit `9174782` (12 Mei 2026) — 3 validators C10/C11/C12 + T9 toggle + cross-tab nav. **All 12 validators LIVE — Submit Revisi POK button ENABLES first time**.
+- **Tier 5 Phase 1 Design Ready** (12 Mei 2026, di main, pre-implementation): `docs/TIER-5-DESIGN.md` BARU dengan **R1-R8 + R6+ manual override** Owner-approved. Schema R1c hybrid (typed columns + JSONB), R8c partition (5a backend + 5b frontend), Tier 5+6 overlap β forward-compat. Implementation di-handed-off ke **fresh AI session** via `tier5-handover-bundle.zip`. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.2.
+- **v3.2 Production Branch Strategy** (12 Mei 2026): Branch `production` di-create dari main HEAD `90a0278`. Vercel config update ke production branch = `production` (Owner action). main = dev preview only, production = explicit promote. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` §I.
+- **Tier 6-7 pending** — Template SK Revisi POK generation (anticipated di Tier 5 schema), Itjenad/BPK audit export, dll.
 - TS baseline: **8 errors** maintained sejak post-devLog.ts cleanup 11 Mei 2026
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
 
-**Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10 + §0.11` untuk full detail):**
+**Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10 + §0.11 + §0.12` untuk full detail):**
 ```
-main:                                    9174782 (TIER-4C MERGED)
-  ├── 9174782 feat(tier-4c): Validation Engine sub-branch 4c — C10/C11/C12 + UI Integration + T9 toggle
-  ├── 114ad4e docs(handover): sync branch state tree dengan main HEAD post Tier 4c foundation
-  ├── 9c82265 docs(tier-4c handover prep): SSOT §0.11 + governance + devLog + anti-drift triple-source sync
-  ├── 857e98c feat(tier-4c phase 1.5): types narrow rpdsData unknown[] → RPDSection[]
-  ├── 303df65 fix(konteks-1 TD): UI display jumlahBiayaRevisi pakai Konteks 1 fallback semantic
-  ├── 230ba43 docs(tier-4c phase 1): draft design document — C10/C11/C12 + Konteks 1 TD + decisions T1-T8
-  ├── 7f23ae0 docs(post-merge consistency sync): devLog Phase 4 milestone + SSOT §0.10 final state
-  ├── 882bb58 docs(post-merge): Tier 4b MERGED status sync — HANDOVER + README + SESSION-START-HERE
-  ├── d13be80 feat(tier-4b): Validation Engine sub-branch 4b — C6-C9 + UI Integration
-  ├── bdba7a1 docs(operational): briefing input data TA 2026 untuk Sie Renbang
-  ├── 49535f9 docs(post-merge): Tier 4a MERGED status sync — HANDOVER + README + SESSION-START-HERE
-  └── abe193c feat(tier-4a): Validation Engine sub-branch 4a — C1-C5 + UI Integration
+main:        90a0278 (TIER-4C MERGED + post-merge sync) — dev branch, Vercel preview only
+production:  90a0278 (= main HEAD post-Tier-4c) — Vercel production deployment source
+
+  Top-of-trunk commits (both branches at same hash):
+  ├── 90a0278 docs(post-merge): Tier 4c MERGED status sync
+  ├── 9174782 feat(tier-4c): Validation Engine sub-branch 4c — squash merge
+  ├── 114ad4e docs(handover): sync branch state tree
+  ├── 9c82265 docs(tier-4c handover prep): SSOT §0.11
+  ├── 857e98c feat(tier-4c phase 1.5): types narrow rpdsData
+  ├── 303df65 fix(konteks-1 TD): Konteks 1 fallback
+  ├── 230ba43 docs(tier-4c phase 1): design document T1-T8
+  ├── 7f23ae0 docs(post-merge consistency sync): Tier 4b devLog
+  ├── 882bb58 docs(post-merge): Tier 4b MERGED status sync
+  ├── d13be80 feat(tier-4b): Validation Engine sub-branch 4b
+  ├── bdba7a1 docs(operational): briefing Sie Renbang
+  ├── 49535f9 docs(post-merge): Tier 4a MERGED status sync
+  └── abe193c feat(tier-4a): Validation Engine sub-branch 4a
 
 feature/tier-3-metadata-schema:          DELETED (post-squash-merge cleanup)
-feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup — 11 Mei 2026)
-feature/tier-4b-revisi-mechanism:        DELETED (post-squash-merge cleanup — 11 Mei 2026)
+feature/tier-4a-pagu-structure:          DELETED (post-squash-merge cleanup)
+feature/tier-4b-revisi-mechanism:        DELETED (post-squash-merge cleanup)
 feature/tier-4c-procedural-references:   DELETED (post-squash-merge cleanup — 12 Mei 2026)
 
-feature/tier-5-audit-trail:              TBD (next sub-branch — butuh Owner DDL untuk CREATE TABLE usulan_revisi)
+feature/tier-5a-audit-trail-backend:     TBD (next sub-branch — fresh AI session, R8c part 1)
+feature/tier-5b-audit-trail-ui:          TBD (later — fresh AI session, R8c part 2)
 ```
 
 **Data policy (Konteks 4 dr Ferry, 11 Mei 2026):**
