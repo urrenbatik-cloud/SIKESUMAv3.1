@@ -284,6 +284,119 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // untuk full decision log.
 
   {
+    id:    'log-2026-05-11-tier-4b-merged-to-main',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4b',
+    title: 'Tier 4b MERGED TO MAIN — Phase 4 Squash Merge Complete',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Tier 4b sub-branch \`feature/tier-4b-revisi-mechanism\` **MERGED TO MAIN** sebagai squash commit \`d13be80\`. Post-merge docs sync sebagai \`882bb58\`. Feature branch dihapus (remote + local). Owner Vercel preview E2E test all 10 cases ✅ PASS sebelum authorize merge.
+
+**Merge state (verified post-compaction):**
+- Main HEAD: \`882bb58\` (post-merge docs sync)
+- Tier 4b squash commit: \`d13be80\`
+- Local = Remote sync clean
+- Only \`main\` branch exists remote (semua feature branches deleted)
+
+**Squash audit trail (11 commits → 1):**
+- \`51fab33\` docs phase 1: design document — C6-C9 algoritma + S1-S6
+- \`fd59031\` feat phase 1.5: C1 message enhancement + types + §0.10
+- \`105a7f0\` feat phase 2a: fixture 15 scenarios C6-C9
+- \`1660446\` feat phase 2b Turn 1: C6 Jenis Belanja + 27 tests
+- \`c2fcadb\` feat phase 2b Turn 2: C7 Sumber Dana + 28 tests
+- \`08b7066\` feat phase 2b Turn 3: C9 Akun Minus + 18 tests
+- \`26b165d\` feat phase 2b Turn 4: C8 LHR APIP + 15 tests
+- \`35d661f\` docs phase 3a: UI design delta
+- \`0e3595a\` feat phase 3b: C6-C9 cards live transition
+- \`ec667fd\` feat phase 3c: LHR APIP checkbox NEW UX + Submit gating
+- \`1e333cd\` docs phase 3d: docs sync Phase 3 COMPLETE
+
+**Squash result (\`d13be80\`):**
+- 21 files changed (+3,288 / -31 lines)
+- 4 validators delivered: C6 + C7 + C8 + C9 (88 new tests)
+- C1 violation message UX enhancement batched
+- ValidationContext.lhrApipAcknowledged field reused (forward-compat dari Tier 4a)
+- UI integration: cards C6-C9 live + LHR APIP checkbox + Submit triple gating
+
+**Owner Vercel preview E2E test results (11 Mei 2026):**
+1. ✅ Visual: 9 live cards (C1-C9) + 3 todo (C10-C12) — colored borders correct
+2. ✅ Counter chips reflect 3 todo + 9 implemented (75% progress bar)
+3. ✅ LHR APIP checkbox visible + interactive (amber → emerald)
+4. ✅ C8 state flip pending → pass saat checkbox checked
+5. ✅ Submit button triple gating verified
+6. ✅ Inline indicators di Pagu Anggaran kolom Kode
+7. ✅ Click validation dot → navigate Validasi tab + auto-expand detail
+8. ✅ "→ Pagu Anggaran" navigation back + scroll + 2s emerald glow
+9. ✅ Cross-year LHR state isolation (per-year Record)
+10. ✅ Browser DevTools console clean
+
+**Post-merge state cumulative:**
+
+| Tier | Tests | Squash commit |
+|---|---|---|
+| Tier 3 metadataRecommender | 201 | \`6c8f640\` |
+| Tier 4a C1-C5 + UI | 103 | \`abe193c\` |
+| Tier 4b C6-C9 + UI | 88 | \`d13be80\` |
+| **TOTAL** | **392 tests** | |
+
+Plus production state:
+- TS baseline: 8 errors maintained (pre-existing tech debt)
+- Vite build: success ~5.76s, ~1.53MB bundle
+- 9 of 12 validators functional production (C1-C9 live, C10-C12 todo placeholder)
+
+**Branch hygiene final state:**
+- main: \`882bb58\` ✓
+- feature/tier-3-metadata-schema: DELETED ✓
+- feature/tier-4a-pagu-structure: DELETED ✓
+- feature/tier-4b-revisi-mechanism: DELETED ✓ (this milestone)
+- feature/tier-4c-procedural-references: TBD (next sub-branch)
+- feature/tier-5-audit-trail: TBD (butuh Owner DDL CREATE TABLE usulan_revisi)
+
+**Architectural highlights yang preserve di permanent docs:**
+
+1. **Algorithm pattern diversity (4 patterns dari Tier 4b):**
+   - C6: Grouping with preprocessing (derive 2-digit kode_bas)
+   - C7: Grouping with direct field (no preprocessing)
+   - C9: Per-leaf direct check (BYPASS Konteks 1 fallback)
+   - C8: Procedural state check (no sections traversal, boolean only)
+
+2. **C9 critical bug catch + fix during dev** — Konteks 1 fallback semantic
+   divergence captured + documented permanent di c9.ts docblock. Initial
+   implementation pakai effectiveRevisi helper masked negative typo karena
+   condition \`hsr > 0 ? hsr : hsa\` fallback. Fix: row.jumlahBiayaRevisi
+   direct per spec literal. Semantic divergence: C9 BYPASS Konteks 1
+   fallback (intentional, untuk catch raw typo input).
+
+3. **Forward-compatible Tier 4a payoff** — Phase 1.5 zero structural type
+   changes karena lhrApipAcknowledged field sudah ada dari Phase 1 Tier 4a
+   sebagai forward-compat placeholder. Saved implementation effort.
+
+4. **C1 message UX enhancement batched** — DIPA Hal III pathway guidance
+   di FAIL violation message. Case study RS Batin Tikal 2025 (layanan
+   bedah saraf full operasional, add pagu Rp 1.7M → C1 FAIL correctly
+   flagged → DIPA Hal III correct pathway, NOT revisi POK kewenangan KPA).
+
+**Open items carry-forward (SSOT §0.10.4):**
+- C10 SBM dictionary shape (Tier 4c Phase 1 decision)
+- C11 cross-tab navigation — RPD tab 1.3 routing (Tier 4c implementation)
+- C12 deadline 27 Des semantics (Tier 4c Phase 1 decision)
+- Konteks 1 finding \`PaguAnggaran.tsx:50-51\` (UNRESOLVED pre-existing TD)
+
+**Cross-references:**
+- Squash commit hash: \`d13be80\`
+- Post-merge docs sync: \`882bb58\`
+- Design parent: \`docs/TIER-4B-DESIGN.md\` (Phase 1)
+- Phase 3 delta: \`docs/TIER-4B-PHASE-3-UI-DESIGN.md\`
+- SSOT decisions log: \`SSOT-REFACTOR-LOG.md\` §0.10.1-§0.10.5
+- Predecessor milestone: \`log-2026-05-11-tier-4b-phase-3-complete\`
+- Tier 4a predecessor squash: \`abe193c\`
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 + §3.5`,
+    decisions: ['§Tier4b-S1', '§Tier4b-S2', '§Tier4b-S3', '§Tier4b-S4', '§Tier4b-S5', '§Tier4b-S6'],
+    related: ['log-2026-05-11-tier-4b-phase-3-complete', 'log-2026-05-11-tier-4a-phase-3-complete', 'log-2026-05-11-tier-4-design'],
+  },
+
+  {
     id:    'log-2026-05-11-tier-4b-phase-3-complete',
     date:  '2026-05-11',
     phase: 'SSOT Refactor / Tier 4b',

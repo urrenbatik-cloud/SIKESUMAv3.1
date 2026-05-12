@@ -647,21 +647,27 @@ Owner direction 11 Mei 2026 — approve all defaults batch:
 **Plus enhancement batched:**
 - **§0.9.5 C1 violation message UX enhancement:** Batch dengan Tier 4b Phase 1.5. Append guidance text ke pathway DIPA Halaman III untuk help Sie Renbang identify correct mechanism. Implemented di `utils/validators/c1.ts` line 106-119 (multi-line concat).
 
-#### 0.10.2 Phase Structure Per Sub-Branch 4b
+#### 0.10.2 Phase Structure Per Sub-Branch 4b — COMPLETE
 
-Mirror Tier 4a pattern dengan estimated turns ~10 total:
+Tier 4b MERGED to main 11 Mei 2026. All phases ✅ Done dalam single session (~10 turns aktual sesuai estimate).
 
-| Phase | Deliverable | Status |
+| Phase | Deliverable | Commit |
 |---|---|---|
-| 1 Design | `docs/TIER-4B-DESIGN.md` design spec + S1-S6 decisions | ✅ Done (commit `51fab33`) |
-| 1.5 Types + C1 enhancement | ValidationContext field SUDAH ADA (no extension); C1 message enhancement batched | In progress |
-| 2a Fixture | `utils/fixtures/validation-scenarios-4b.json` ~15 scenarios | Pending |
-| 2b Turn 1 | C6 Jenis Belanja validator + tests | Pending |
-| 2b Turn 2 | C7 Sumber Dana validator + tests | Pending |
-| 2b Turn 3 | C9 Akun Minus validator + tests | Pending |
-| 2b Turn 4 | C8 LHR APIP validator + tests | Pending |
-| 3a-3d UI integration | Dashboard cards live transition + LHR APIP checkbox + wiring | Pending |
-| 4 Squash merge | Owner E2E test → squash ke main | Pending |
+| 1 Design | `docs/TIER-4B-DESIGN.md` design spec + S1-S6 decisions | ✅ Done `51fab33` |
+| 1.5 Types + C1 enhancement | ValidationContext field SUDAH ADA (no extension); C1 message enhancement batched | ✅ Done `fd59031` |
+| 2a Fixture | `utils/fixtures/validation-scenarios-4b.json` 15 scenarios | ✅ Done `105a7f0` |
+| 2b Turn 1 | C6 Jenis Belanja validator + 27 tests | ✅ Done `1660446` |
+| 2b Turn 2 | C7 Sumber Dana validator + 28 tests | ✅ Done `c2fcadb` |
+| 2b Turn 3 | C9 Akun Minus validator + 18 tests | ✅ Done `08b7066` |
+| 2b Turn 4 | C8 LHR APIP validator + 15 tests | ✅ Done `26b165d` |
+| 3a UI design | Brief delta dari Tier 4a UI baseline | ✅ Done `35d661f` |
+| 3b Cards live | `runAllValidators.ts` PENDING_CONSTRAINTS update C6-C9 → null | ✅ Done `0e3595a` |
+| 3c LHR checkbox | NEW UX element + Submit triple gating + App.tsx state | ✅ Done `ec667fd` |
+| 3d Docs sync | devLog Phase 3 entry + HANDOVER + README + SESSION-START-HERE | ✅ Done `1e333cd` |
+| **4 Squash merge** | **Owner Vercel preview E2E (10/10 pass) → squash ke main** | ✅ **Done `d13be80`** |
+| **Post-merge sync** | **HANDOVER + README + SESSION-START-HERE update** | ✅ **Done `882bb58`** |
+
+Cumulative deliverable: 21 files changed (+3,288 / -31 lines), 88 new tests, 4 validators C6-C9 functional, UI integration complete.
 
 #### 0.10.3 Field Coverage Map
 
@@ -690,15 +696,20 @@ Zero DDL impact. JSONB-native pattern (AP-8) preserved. All fields sudah typed d
 
 #### 0.10.5 Cross-References
 
+- **Squash commit:** `d13be80` (Tier 4b merged to main 11 Mei 2026)
+- **Post-merge docs sync:** `882bb58`
 - Design parent: `docs/TIER-4B-DESIGN.md` (Phase 1 commit `51fab33`)
+- Phase 3 UI delta: `docs/TIER-4B-PHASE-3-UI-DESIGN.md` (commit `35d661f`)
 - Architecture: `docs/TIER-4-DESIGN.md` §2 + §3.2
 - Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3 + §3.5
 - Predecessor squash: `abe193c` Tier 4a (main HEAD pre-4b)
 - Validator pattern reference: `utils/validators/c2.ts` (C6/C7 mirror)
+- Validator semantic divergence: `utils/validators/c9.ts` (C9 BYPASS Konteks 1 fallback)
+- devLog milestone: `log-2026-05-11-tier-4b-merged-to-main` (Phase 4) + `log-2026-05-11-tier-4b-phase-3-complete` (Phase 3)
 
 ---
 
-*§0.10 ditambahkan 11 Mei 2026 setelah Tier 4b Phase 1 design Owner-approved. S1-S6 defaults batch-approved + C1 enhancement batched. Updated saat checkpoint Phase 1.5 → 2a transition.*
+*§0.10 ditambahkan 11 Mei 2026 setelah Tier 4b Phase 1 design Owner-approved. S1-S6 defaults batch-approved + C1 enhancement batched. **Updated final state:** Tier 4b MERGED ke main via squash commit `d13be80` setelah Owner Vercel preview E2E test (10/10 pass) 11 Mei 2026. Post-merge sync `882bb58`. Feature branch `feature/tier-4b-revisi-mechanism` dihapus (remote + local). 392 tests baseline + TS 8 maintained. Ready Tier 4c (`feature/tier-4c-procedural-references`).*
 
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
