@@ -281,7 +281,82 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // Workstream paralel terhadap Step 3/5/6. Tier 3-6 fokus ke validasi
   // Revisi POK kewenangan KPA per Perdirjen Renhan Kemhan 7/2025. Lihat
   // SSOT-REFACTOR-LOG.md §0.8 (Tier 3) + §0.9 (Tier 4a) + §0.10 (Tier 4b)
-  // untuk full decision log.
+  // + §0.11 (Tier 4c) untuk full decision log.
+
+  {
+    id:    'log-2026-05-11-tier-4c-foundation-phase',
+    date:  '2026-05-11',
+    phase: 'SSOT Refactor / Tier 4c',
+    title: 'Tier 4c Foundation Phase — Design + Konteks 1 TD Fix + Phase 1.5 + Handover Prep',
+    type:  'milestone',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Foundation work untuk Tier 4c (final 3 of 12 constraints) — design + pre-flight + Phase 1.5 + handover prep complete di main. Owner approve all T1-T8 defaults batch. Implementation work (Phase 2a fixture + Phase 2b validators + Phase 3 UI + Phase 4 merge) di-split ke **fresh AI session** untuk avoid 2nd compaction risk per Owner policy (\`OWNER-POLICY-FOR-AI-SESSIONS.md\` Addendum v1.1).
+
+**Foundation commits (this session):**
+
+- \`230ba43\` docs(tier-4c phase 1): draft design doc \`docs/TIER-4C-DESIGN.md\` (~424 lines, 11 sections, T1-T8 decisions)
+- \`303df65\` fix(konteks-1 TD): UI display jumlahBiayaRevisi pakai Konteks 1 fallback semantic (T8a applied di PaguAnggaran.tsx line 368 via getEffectiveValue)
+- \`857e98c\` feat(tier-4c phase 1.5): types narrow rpdsData unknown[] → RPDSection[] untuk C11 cross-table check
+- (this commit) docs(tier-4c handover prep): SSOT §0.11 + HANDOVER + README + SESSION-START-HERE + OWNER-POLICY Addendum v1.1 + devLog
+
+**Decisions T1-T8 Owner-approved:**
+
+- T1 (C12 timezone): Client \`new Date()\` browser WIB
+- T2 (C10 SBM source): \`hargaSatuanAwal\` baseline proxy (v1 pragmatic)
+- T3 (C11 cross-table depth): V1 simplified — flag affected RPD rows
+- T4 (C10 thresholds): Warn 10%, Fail 25%
+- T5 (C11 link method): Strict \`linkedPaguSectionId\` + \`kode\` exact
+- T6 (C12 violation message): Full Pasal cite + TA+1 action guidance
+- T7 (Cross-tab nav signature): \`onNavigate(target: 'pagu' | 'rpd', sectionId, rowId)\`
+- T8 (Konteks 1 TD fix): T8a re-derive via \`getEffectiveValue\` ✅ APPLIED \`303df65\`
+
+**Architectural finding preserved:**
+\`RPDRow.monthly\` adalah SINGLE snapshot (per Sprint A2) — no Awal/Revisi separation. Simplifies C11 V1 algorithm: hanya detect "affected" RPD rows (via linkedPaguSectionId + kode match) tanpa numerical sum verification. V2 strict enhancement defer ke future Tier 5+ when audit trail tracks RPD update workflow.
+
+**Implementation work split ke fresh AI session:**
+
+| Phase | Deliverable | Estimated |
+|---|---|---|
+| Branch creation | \`feature/tier-4c-procedural-references\` | 0 turn |
+| Phase 2a | Fixture \`validation-scenarios-4c.json\` ~15 scenarios | 1 turn |
+| Phase 2b Turn 1 | C12 Deadline + ~12 tests | 1 turn |
+| Phase 2b Turn 2 | C10 SBM (first WARN severity) + ~20 tests | 1 turn |
+| Phase 2b Turn 3 | C11 RPD (cross-table) + ~25 tests | 1-2 turns |
+| Phase 3a-d | UI + cross-tab navigation refactor | 3-4 turns |
+| Phase 4 | Owner E2E test → squash merge | 1 turn |
+| **TOTAL fresh session** | | **~7-10 turns** |
+
+**Expected final state post Tier 4c implementation:**
+- All 12 validators live (C1-C12)
+- Test baseline: ~449 tests (392 + 57 Tier 4c)
+- Submit Revisi POK button FINALLY enables (12/12 implemented + LHR ack + canSubmit)
+- Tier 5 audit trail jadi clear next priority (butuh Owner DDL CREATE TABLE usulan_revisi)
+
+**Self-contained handover artifacts untuk fresh AI session:**
+- \`HANDOVER.md\` updated
+- \`SESSION-START-HERE.md\` banner directive
+- \`SSOT-REFACTOR-LOG.md §0.11\` decisions log
+- \`docs/TIER-4C-DESIGN.md\` the plan
+- \`OWNER-POLICY-FOR-AI-SESSIONS.md\` Addendum v1.1 (compaction-aware verification, session split protocol, Tier 4c specific guidance)
+- Zip bundle di \`/mnt/user-data/outputs/\` untuk Owner share ke fresh session
+
+**Verification baseline maintained:**
+- TS errors: 8 (zero regression dari Konteks 1 TD fix)
+- Vitest: 392 tests pass (no test changes — types narrow + bugfix tidak affect test count)
+- Vite build: success
+- Working tree clean post all commits
+
+**Cross-references:**
+- Tier 4c design: \`docs/TIER-4C-DESIGN.md\` (commit \`230ba43\`)
+- Konteks 1 TD fix: \`303df65\` (resolves §0.10.4 entry)
+- Phase 1.5 types: \`857e98c\`
+- Owner policy: \`OWNER-POLICY-FOR-AI-SESSIONS.md\` Addendum v1.1
+- Predecessor milestone: \`log-2026-05-11-tier-4b-merged-to-main\`
+- Master domain: \`docs/REVISI-POK-PAGU-vKoreksi.md\` §3.3 (C10-C12)`,
+    decisions: ['§Tier4c-T1', '§Tier4c-T2', '§Tier4c-T3', '§Tier4c-T4', '§Tier4c-T5', '§Tier4c-T6', '§Tier4c-T7', '§Tier4c-T8'],
+    related: ['log-2026-05-11-tier-4b-merged-to-main', 'log-2026-05-11-tier-4b-phase-3-complete', 'log-2026-05-11-tier-4-design'],
+  },
 
   {
     id:    'log-2026-05-11-tier-4b-merged-to-main',

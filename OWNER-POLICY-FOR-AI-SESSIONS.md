@@ -166,3 +166,194 @@ Diharapkan AI yang menerima dokumen ini di sesi baru menghormati permission scop
 
 *Ditulis oleh Owner dr Ferry, 11 Mei 2026.*
 *Dokumen ini di-include di handover ZIP + commit di project root SIKESUMAv3.1.*
+
+---
+
+# Addendum v1.1 — Lessons Learned + Tier 4c Handover Protocols
+
+**Tanggal:** 11 Mei 2026 (post Tier 4a + 4b merged ke main, pre-Tier-4c implementation)
+**Konteks:** Setelah dua siklus penuh Tier sub-branch (4a + 4b), Owner direction untuk codify lessons learned + handover protocols supaya fresh AI session untuk Tier 4c implementation tidak terjebak bias atau drift.
+
+---
+
+## A. Session Scope Management — Split Strategy
+
+### Mengapa split sesi?
+
+Long AI sessions berisiko **compaction otomatis** (conversation summary replaces detailed history). Compaction summary terkadang **inaccurate** — claims things sudah done padahal belum, atau mengubah urutan events. Lesson dari Tier 4b session (11 Mei 2026): compaction summary claim "merge already complete" padahal actual git state menunjukkan feature branch masih existed dan main masih HEAD lama.
+
+**Owner policy:** Split work untuk **avoid second compaction** di session yang sama. Foundation work (low token) di current session, implementation work (high token) di fresh session.
+
+### Kategorisasi
+
+| Aspek | **Minor** (continue current session) | **Significant** (split to fresh session) |
+|---|---|---|
+| File affected | 1-3 files | 5+ files |
+| Token cost estimate | Low (~5-10% remaining) | High (~30-50% remaining) |
+| Type | Documentation, single bugfix, types narrow, single validator | UI integration phase, multi-validator batch, cross-table refactor |
+| Risk if interrupted | Low | High (broken state) |
+
+### Self-assessment protocol
+
+**Before starting any task, AI MUST:**
+
+1. Estimate tokens needed (file edits × 500-1000 tokens each)
+2. Estimate turns to completion
+3. Risk of compaction mid-execution
+4. **If estimated cost > 30% remaining budget → declare significant, recommend split**
+
+---
+
+## B. Anti-Bias — Compaction-Aware Verification
+
+### Lesson dari Tier 4b post-compaction incident (11 Mei 2026)
+
+Compaction summary claimed Tier 4b "merged to main" but actual git state:
+- Main HEAD: `bdba7a1` (NOT `d13be80` as summary claimed)
+- Feature branch: still existed locally + remotely
+- Working tree: clean dengan changes yang belum committed
+
+Owner detection via konteks check → AI verified actual git state → reconciled before proceeding. **Without verification, AI could have executed merge twice atau missed work-in-progress state.**
+
+### Required verification protocol
+
+**Setiap session start (fresh OR post-compaction), AI MUST:**
+
+```bash
+cd /home/claude/sikesuma
+git branch --show-current
+git rev-parse --short HEAD
+git fetch origin
+git log --oneline -10
+git status --short
+npx vitest run 2>&1 | grep -E "Test Files|Tests"
+npx tsc --noEmit --skipLibCheck 2>&1 | grep -c "error TS"
+```
+
+**Compare actual state vs claimed state dari summary/handover.** Reconcile any discrepancy with Owner before proceeding to substantive work.
+
+### Triple-source consistency check
+
+Tiga dokumentasi MUST agree:
+
+| Source | Purpose |
+|---|---|
+| **HANDOVER.md** | State authoritative (branches, last commits, pending work) |
+| **SSOT-REFACTOR-LOG.md** | Decisions log + chronological reasoning |
+| **constants/devLog.ts** | Timeline view + milestone entries (renders di app UI) |
+
+**If sources disagree → STOP, surface to Owner, do not proceed.**
+
+---
+
+## C. Test Baseline Invariants (Post Tier 4b)
+
+| Metric | Baseline | Tolerance |
+|---|---|---|
+| Vitest tests pass | **392** | MUST INCREASE saat add tests, never decrease |
+| TS errors | **8** (7 App.tsx + 1 PaguAnggaran line 493) | MUST NOT INCREASE |
+| Vite build | Success ~5-6s, ~1.5MB bundle | Build must succeed |
+
+### Verification mantra (every commit)
+
+```bash
+npx tsc --noEmit --skipLibCheck 2>&1 | grep -c "error TS"  # = 8
+npx vitest run 2>&1 | grep "Tests"  # >= 392
+```
+
+---
+
+## D. Critical Code Semantics — DO NOT VIOLATE
+
+### Konteks 1 fallback semantic (Sprint D Item #1)
+
+**Rule:** `hargaSatuanRevisi = 0` means "belum direvisi, baseline tetap Semula" — BUKAN "drop to zero".
+
+**Pattern:** Use `getEffectiveValue(row, 'REVISI')` helper at consumption points.
+
+**Exception:** **C9 validator BYPASSES this fallback** — checks raw `jumlahBiayaRevisi` field untuk catch typo input. Documented di `utils/validators/c9.ts` docblock as "semantic divergence". **Future AI sessions: do NOT "fix" C9 to use helper — itu akan BREAK C9 typo detection.**
+
+### Helper functions (don't reinvent)
+
+| Helper | Behavior | Used by |
+|---|---|---|
+| `effectiveAwal(row)` | `vol * hsa` | C1 totals, C6/C7 grouping |
+| `effectiveRevisi(row)` | `vol * (hsr > 0 ? hsr : hsa)` Konteks 1 fallback | C1/C6/C7 grouping, displays |
+| `getEffectiveValue(row, mode)` | Same semantic, supports both modes | Display + storage write-time (post Konteks 1 TD fix) |
+| `row.jumlahBiayaRevisi` (raw) | Stored value (post-fix = effective by default) | **C9 ONLY** for typo detection |
+
+---
+
+## E. Tier 4c Implementation Guidance (untuk fresh session)
+
+### Branch creation
+
+```bash
+cd /home/claude/sikesuma
+git checkout main
+git pull origin main
+git log --oneline -5  # verify HEAD matches handover
+git checkout -b feature/tier-4c-procedural-references
+```
+
+### Implementation order (per `docs/TIER-4C-DESIGN.md` §6)
+
+1. **Phase 2a:** `validation-scenarios-4c.json` — 15 scenarios (C12 ~4, C10 ~5, C11 ~6)
+2. **Phase 2b Turn 1:** C12 Deadline (simplest first)
+3. **Phase 2b Turn 2:** C10 SBM (medium, **first WARN severity** — verify `result.warnCount` increment)
+4. **Phase 2b Turn 3:** C11 RPD (most complex, cross-table)
+5. **Phase 3a:** UI design delta brief doc
+6. **Phase 3b:** Cards C10-C12 live transition di `runAllValidators.ts`
+7. **Phase 3c:** **CRITICAL** — Cross-tab navigation refactor:
+   - Affected: `ValidasiRevisiPOK`, DetailPanel inline, `App.tsx`, `RPD.tsx`
+   - New signature: `onNavigate(target: 'pagu' | 'rpd', sectionId, rowId)`
+   - Reuse pattern: `pendingPaguRowHighlight` → `pendingRpdRowHighlight`
+   - RPD.tsx scroll/highlight mirror PaguAnggaran Tier 4a Phase 3d
+8. **Phase 3d:** Docs sync
+9. **Phase 4:** Owner Vercel preview E2E test → squash merge
+
+### Decisions reference (LOCKED)
+
+T1-T8 di `SSOT-REFACTOR-LOG.md §0.11.1` + `docs/TIER-4C-DESIGN.md §3`. **DO NOT re-litigate** unless Owner explicitly requests.
+
+### Expected test additions
+
+- C12: ~12 tests
+- C10: ~20 tests (first warn severity)
+- C11: ~25 tests (cross-table, link resolution)
+- **Total Tier 4c: ~57 tests**
+- **Final baseline post Tier 4c: ~449 tests** (392 + 57)
+
+### Foundation already in place (DO NOT redo)
+
+✅ Design doc: `docs/TIER-4C-DESIGN.md` (commit `230ba43`)
+✅ Konteks 1 TD fix: `PaguAnggaran.tsx` line 368 (commit `303df65`)
+✅ Phase 1.5 types narrow: `rpdsData: RPDSection[]` (commit `857e98c`)
+✅ Documentation sync: HANDOVER + README + SESSION-START-HERE + devLog + SSOT §0.11
+
+---
+
+## F. Fresh AI Session Bootstrap Checklist
+
+**FIRST 5 STEPS untuk any fresh AI session di SIKESUMA codebase:**
+
+1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` (this document) — full text
+2. ☐ Read `HANDOVER.md` — current state authoritative
+3. ☐ Read `SESSION-START-HERE.md` — orientation banner
+4. ☐ Run verification commands (Section B above) — confirm actual state matches docs
+5. ☐ Read relevant `docs/TIER-NC-DESIGN.md` untuk current tier work
+
+**HANYA setelah 5 langkah ini selesai, baru lanjut substantive work.**
+
+---
+
+## G. Version History
+
+| Version | Date | Changes |
+|---|---|---|
+| 1.0 | 11 Mei 2026 | Initial creation by Owner — permission scope + PAT policy |
+| **1.1** | **11 Mei 2026 (post Tier 4b merge)** | **Addendum: lessons learned + Tier 4c handover protocols** |
+
+---
+
+*Addendum v1.1 added by AI Assistant pre-Tier-4c handover. Codifies pelajaran dari Tier 3/4a/4b implementation cycle. Authoritative governance — overrides any conflicting guidance dari compaction summaries atau stale doc references.*

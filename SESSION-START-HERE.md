@@ -4,19 +4,31 @@
 **For:** Next AI session continuing Tier 4a Phase 2b
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4a + 4b MERGED to main)
+> ## ✅ STATUS UPDATE (11 Mei 2026, post Tier 4c Foundation Phase)
 >
-> **Tier 4a MERGED** sebagai commit `abe193c` + **Tier 4b MERGED** sebagai commit `d13be80`. 9 validators total (C1-C9) di production. UI integration full (12-card grid 9 live + 3 todo placeholder C10-C12, inline indicators, bidirectional navigation, LHR APIP checkbox, Submit triple gating). 392 tests baseline + TS 8 maintained. Bundle ini originally generated **sebelum** Tier 4a/4b — keduanya sudah selesai sejak generate timestamp.
+> **Tier 4a MERGED** `abe193c` + **Tier 4b MERGED** `d13be80` + **Tier 4c Foundation Phase COMPLETE** di main. 9 of 12 validators di production (C1-C9 live, C10-C12 todo placeholder). UI integration full (12-card grid, LHR APIP checkbox, Submit triple gating). **392 tests baseline** + **TS 8 maintained**. Bundle ini originally generated **sebelum** Tier 4a/4b/4c — ketiga sudah selesai sejak generate timestamp.
 >
-> **Untuk fresh AI session yang mengakses bundle ini:**
-> - Skip "Pending Work — Next Session Continuation" section di bawah (Tier 4a/4b sudah merged)
-> - Lanjut ke **Sub-branch 4c** (`feature/tier-4c-procedural-references` — C10 SBM dictionary, C11 RPD cross-tab, C12 Deadline 27 Des) sequential per Decision N2
-> - C11 design note: cross-tab navigation harus support RPD tab 1.3 routing (BUKAN hanya Pagu 1.1) — adjust DetailPanel + onNavigateToPagu signature
-> - State authoritative: `HANDOVER.md` + `SSOT-REFACTOR-LOG.md §0.10` + `docs/TIER-4-DESIGN.md` §3.3 (Tier 4c spec)
-> - Riwayat detail: `devLog.ts` entries `log-2026-05-11-tier-4b-phase-3-complete` + predecessors
-> - Open items §0.10.4 carry forward (C10 SBM shape, C11 cross-tab, C12 deadline semantics)
+> **TIER 4C IMPLEMENTATION READY FOR FRESH AI SESSION:**
+> - Foundation di main: design doc `230ba43`, Konteks 1 TD fix `303df65`, Phase 1.5 types narrow `857e98c`, governance updated
+> - Owner approve T1-T8 defaults (di SSOT §0.11.1)
+> - Pre-existing Konteks 1 TD RESOLVED (was `PaguAnggaran.tsx:50-51`, fixed at line 368 via T8a)
+> - Branch `feature/tier-4c-procedural-references` **belum di-create** (handed off ke fresh session)
 >
-> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context (R1-R5/S1-S6 derivation, UI design rationale, dll).
+> **MANDATORY untuk fresh AI session — first 5 steps (urut wajib):**
+> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full text (terutama Addendum v1.1)
+> 2. ☐ Read `HANDOVER.md` — current state authoritative
+> 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
+> 4. ☐ Run git verification commands (lihat OWNER-POLICY Section B)
+> 5. ☐ Read `docs/TIER-4C-DESIGN.md` — the plan dengan T1-T8 decisions locked
+>
+> **HANYA setelah 5 langkah ini, baru lanjut substantive work:**
+> - Branch creation: `git checkout -b feature/tier-4c-procedural-references`
+> - Implementation per `TIER-4C-DESIGN.md` §6 — Phase 2a → 2b Turn 1 (C12) → Turn 2 (C10) → Turn 3 (C11) → Phase 3a-d → Phase 4
+> - Expected ~7-10 fresh session turns total
+> - Final test baseline target: ~449 tests (392 + 57)
+> - Implementation = SIGNIFICANT scope per session-split policy (avoid 2nd compaction)
+>
+> Bundle bawah ini di-preserve sebagai historical artifact untuk Phase 2b/3 context dari Tier 4a/4b (R1-R5/S1-S6 derivation, UI design rationale, dll).
 
 ---
 

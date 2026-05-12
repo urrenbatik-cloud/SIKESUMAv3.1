@@ -711,6 +711,97 @@ Zero DDL impact. JSONB-native pattern (AP-8) preserved. All fields sudah typed d
 
 *§0.10 ditambahkan 11 Mei 2026 setelah Tier 4b Phase 1 design Owner-approved. S1-S6 defaults batch-approved + C1 enhancement batched. **Updated final state:** Tier 4b MERGED ke main via squash commit `d13be80` setelah Owner Vercel preview E2E test (10/10 pass) 11 Mei 2026. Post-merge sync `882bb58`. Feature branch `feature/tier-4b-revisi-mechanism` dihapus (remote + local). 392 tests baseline + TS 8 maintained. Ready Tier 4c (`feature/tier-4c-procedural-references`).*
 
+---
+
+### 0.11 Tier 4c Implementation Decisions Log (11 Mei 2026)
+
+Successor block untuk Tier 4c (final 3 of 12 constraints). Companion: `docs/TIER-4C-DESIGN.md` (Phase 1 design draft, commit `230ba43`). **Foundation work** dikerjakan di session current (Konteks 1 TD fix + Phase 1.5 types narrow + handover prep). **Implementation** (Phase 2a fixture + Phase 2b validators + Phase 3 UI) di-split ke **fresh AI session** untuk avoid context budget exhaustion.
+
+#### 0.11.1 Decisions Owner-Approved (Tier 4c T1-T8)
+
+Owner direction 11 Mei 2026 — **approve all T1-T8 defaults** batch:
+
+- **T1 (C12 timezone):** Client `new Date()` browser WIB. Simple v1 — Tier 5 audit trail nanti capture server timestamp UTC.
+- **T2 (C10 SBM source):** Use `hargaSatuanAwal` sebagai SBM baseline proxy. Pragmatic V1 leveraging existing data, BUKAN full PMK lookup table.
+- **T3 (C11 cross-table depth):** V1 simplified — flag affected RPD rows by linked match. NOT numerical sum verification.
+- **T4 (C10 thresholds):** Warn 10%, Fail 25%. Adjustable di types.ts kalau Sie Renbang feedback indicate too tight/loose.
+- **T5 (C11 link method):** Strict `linkedPaguSectionId` + `kode` exact match. NOT fuzzy prefix match.
+- **T6 (C12 violation message):** Full Pasal cite + action guidance "ajukan untuk TA berikutnya".
+- **T7 (Cross-tab nav signature):** Refactor `onNavigate(target: 'pagu' | 'rpd', sectionId, rowId)` baru. Affects ValidasiRevisiPOK + DetailPanel + App.tsx + RPD.tsx.
+- **T8 (Konteks 1 TD fix):** T8a re-derive via `getEffectiveValue` helper di write-time storage line 368. Standalone pre-flight commit BEFORE Tier 4c branch.
+
+#### 0.11.2 Phase Structure Per Sub-Branch 4c
+
+Split ke 2 fase session karena token budget:
+
+**Session current (foundation + handover):**
+
+| Phase | Deliverable | Commit |
+|---|---|---|
+| Design draft | `docs/TIER-4C-DESIGN.md` ~424 lines comprehensive | ✅ `230ba43` |
+| Pre-flight TD | Konteks 1 fix `PaguAnggaran.tsx` line 368 — T8a | ✅ `303df65` |
+| Phase 1.5 | Types narrow `rpdsData: unknown[]` → `RPDSection[]` | ✅ `857e98c` |
+| §0.11 + governance | SSOT §0.11 + HANDOVER + README + SESSION-START-HERE + devLog + OWNER-POLICY | (this commit) |
+
+**Fresh AI session (implementation):**
+
+| Phase | Deliverable | Estimated |
+|---|---|---|
+| Branch creation | `feature/tier-4c-procedural-references` dari main HEAD | 0 |
+| Phase 2a | Fixture `validation-scenarios-4c.json` ~15 scenarios | 1 turn |
+| Phase 2b Turn 1 | **C12 Deadline** + ~12 tests | 1 turn |
+| Phase 2b Turn 2 | **C10 SBM** (first WARN severity) + ~20 tests | 1 turn |
+| Phase 2b Turn 3 | **C11 RPD** (cross-table) + ~25 tests | 1-2 turns |
+| Phase 3a-d | UI integration + cross-tab navigation refactor | 3-4 turns |
+| Phase 4 | Owner E2E test → squash merge | 1 turn |
+| **TOTAL fresh session** | | **~7-10 turns** |
+
+#### 0.11.3 Foundation Status
+
+**Already in place dari session current:**
+- ✅ Design doc Owner-approved + decisions locked (T1-T8)
+- ✅ Pre-existing Konteks 1 TD fixed (T8a applied)
+- ✅ Types extension done (rpdsData narrow)
+- ✅ ValidationContext sudah punya semua fields needed (lhrApipAcknowledged dari Tier 4b, sbmDictionary placeholder untuk V2 future, rpdsData narrow, evaluatedAt untuk C12)
+- ✅ Helpers existing reusable (collectAllLeaves, collectChangedLeaves, effectiveRevisi, getEffectiveValue)
+- ✅ UI infrastructure ready (dashboard cards support 6 states termasuk WARN dari Tier 4a, inline indicators auto-supported, navigation handler base)
+
+**Yang fresh session perlu setup:**
+- Branch creation `feature/tier-4c-procedural-references`
+- Cross-tab navigation refactor (`onNavigate` signature)
+- RPD.tsx scroll/highlight (mirror PaguAnggaran Tier 4a Phase 3d pattern)
+
+#### 0.11.4 Field Coverage Map (post Phase 1.5)
+
+| Field | Source | Used By |
+|---|---|---|
+| `hargaSatuanAwal` + `hargaSatuanRevisi` + `volume` | PaguRow base | **C10 NEW (deviasi %)** |
+| `ctx.evaluatedAt` + `ctx.ta` | ValidationContext | **C12 NEW (date comparison)** |
+| `ctx.rpdsData: RPDSection[]` (Phase 1.5 narrow) | ValidationContext | **C11 NEW (cross-table)** |
+| `RPDSection.linkedPaguSectionId` | types.ts (Sprint B.5) | **C11 link resolution** |
+| `RPDRow.kode` + `RPDRow.monthly` | types.ts (Sprint A2) | **C11 + V2 future verification** |
+
+Zero PaguRow field additions. Zero DDL. Pattern consistent dengan Tier 4a/4b minimal-change approach.
+
+#### 0.11.5 Cross-References
+
+- Design parent: `docs/TIER-4C-DESIGN.md` (Phase 1 commit `230ba43`)
+- Predecessor squashes:
+  - `d13be80` Tier 4b (C6-C9 + UI)
+  - `abe193c` Tier 4a (C1-C5 + UI)
+  - `6c8f640` Tier 3 (metadata schema)
+- Pre-flight TD fix: `303df65` (Konteks 1 — T8a via getEffectiveValue)
+- Types narrow: `857e98c` (Phase 1.5 — rpdsData RPDSection[])
+- Helper reuse: `utils/paguLookup.ts` `getEffectiveValue` (Konteks 1 semantics)
+- Master domain: `docs/REVISI-POK-PAGU-vKoreksi.md` §3.3 (C10-C12 specs)
+- Governance: `OWNER-POLICY-FOR-AI-SESSIONS.md` (anti-drift + session split protocols)
+
+---
+
+*§0.11 ditambahkan 11 Mei 2026 setelah Owner approve TIER-4C-DESIGN.md T1-T8 defaults batch. Foundation work + handover prep di-eksekusi current session. Implementation work split ke fresh AI session per Owner direction (avoid 2nd compaction). All foundation ✅ Done — branch `feature/tier-4c-procedural-references` belum di-create (handed off ke fresh session).*
+
+---
+
 ## 1. Sprint A — Data Model Cleanup (3 commits)
 
 | Item | Commit | Description |
