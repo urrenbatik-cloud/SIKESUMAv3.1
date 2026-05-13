@@ -629,9 +629,12 @@ const App: React.FC = () => {
     try {
       // [F2.0 v2] PAGU: save SEMUA tahun dari dataByYear (bukan cuma current selected).
       // ID pattern: pagu-{year}-{slug}. Legacy 'sec-*' ids akan di-prefix dengan year.
+      // [TS-cleanup 13 Mei 2026] Cast Object.entries result — TS5 quirk: infer
+      // [string, unknown][] dari Record<number, V>. Pattern konsisten dengan
+      // line 303 + 661 (`Object.values(dataByYear) as PaguSection[][]`).
       currentEntity = 'pagu_sections';
       const allSections: { id: string; data: any }[] = [];
-      Object.entries(dataByYear).forEach(([yearStr, sections]) => {
+      (Object.entries(dataByYear) as [string, PaguSection[]][]).forEach(([yearStr, sections]) => {
         const year = parseInt(yearStr, 10);
         sections.forEach(s => {
           const idMatch = s.id.match(/^pagu-(\d{4})-/);
@@ -863,8 +866,11 @@ const App: React.FC = () => {
       // Note: actual file binary di Supabase Storage bucket 'jasa-verification'.
       // Tabel ini hanya simpan metadata (id, namaFile, tipe, size, url).
       // [F2.2 v2.1] Skip empty periods (semua 3 categories empty) untuk prevent ghost rows.
+      // [TS-cleanup 13 Mei 2026] Cast Object.entries result — TS5 quirk dengan
+      // index signature: infer [string, unknown] bukan [string, JvfPeriod].
       currentEntity = 'jasa_verification_files';
-      const jvfEntries = Object.entries(jasaVerificationFiles).filter(([_, files]) => 
+      type JvfPeriod = JasaVerificationFiles[string];
+      const jvfEntries = (Object.entries(jasaVerificationFiles) as [string, JvfPeriod][]).filter(([_, files]) => 
         (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) > 0
       );
       if (jvfEntries.length > 0) {
@@ -876,7 +882,7 @@ const App: React.FC = () => {
         if (jvfErr) throw jvfErr;
       }
       // [F2.2 v2.1] Cleanup ghost rows: DELETE periods yang sekarang empty di state
-      const emptyPeriodKeys = Object.entries(jasaVerificationFiles)
+      const emptyPeriodKeys = (Object.entries(jasaVerificationFiles) as [string, JvfPeriod][])
         .filter(([_, files]) => 
           (files.tks?.length || 0) + (files.nakes?.length || 0) + (files.pengelola?.length || 0) === 0
         )

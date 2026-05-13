@@ -505,7 +505,9 @@ const PaguAnggaran: React.FC<PaguAnggaranProps> = ({
             <div className="mb-3">
               <p className="text-xs font-bold text-amber-700 mb-2">Kode akun berikut muncul di lebih dari 1 section (menyebabkan double-count di RPD & LRA):</p>
               <div className="space-y-1">
-                {Object.entries(duplicateKodeWarnings).map(([kode, sectionNames]) => (
+                {/* [TS-cleanup 13 Mei 2026] Cast Object.entries — TS5 quirk dengan
+                    Record<string, string[]> infer [string, unknown]. */}
+                {(Object.entries(duplicateKodeWarnings) as [string, string[]][]).map(([kode, sectionNames]) => (
                   <p key={kode} className="text-xs font-mono bg-amber-100 rounded-lg px-3 py-1.5">
                     <span className="font-black text-amber-900">{kode}</span>
                     <span className="text-amber-600"> → </span>
