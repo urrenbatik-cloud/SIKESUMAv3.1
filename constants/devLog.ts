@@ -284,6 +284,70 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // + §0.11 (Tier 4c) + §0.12 (Tier 5) untuk full decision log.
 
   {
+    id:    'log-2026-05-13-simrs-spoke-introduction-handover',
+    date:  '2026-05-13',
+    phase: 'Cross-Project / SIMRS Batin Tikal Parallel Track Awareness',
+    title: 'SIMRS Spoke Read-Only Introduction Docs + OWNER-POLICY v1.5 Cross-Project Boundary',
+    type:  'docs',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Session wrap-up 13 Mei 2026 dini hari post Tier 5a MERGED + TS cleanup. Owner brief tentang parallel track SIMRS Batin Tikal: pembangunan SIMRS dari fondasi untuk RS Tk IV Batin Tikal, terkait Khanza spoke session (analytical reference). Three-workstream model per SIMRS-BATIN-TIKAL-ARCHITECTURE-BLUEPRINT.md v1.0 (di project SIMRS BT terpisah, bukan repo SIKESUMA).
+
+**Owner directives:**
+- SIKESUMA AI session tetap di track SIKESUMA (no SIMRS BT work di sesi ini)
+- Cross-project boundary codified — SIMRS spoke session read-only ke SIKESUMA
+- Create holistic introduction + access points docs untuk SIMRS spoke wawasan
+- GitHub docs updated (OWNER-POLICY v1.5, HANDOVER, SESSION-START, devLog)
+- Self-contained ZIP bundle untuk fresh SIKESUMA session berikutnya — prevent drift/bias
+
+**Deliverables session ini (7 items):**
+
+1. **NEW \`docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md\`** (~700 lines): Holistic introduction — domain konteks, tech stack, schema overview (JSONB envelope), validation engine C1-C12, audit trail Tier 5 state machine + R7c immutability, tier roadmap status, patterns proven, anti-patterns SIMRS BT sebaiknya hindari, deep-dive pointers.
+
+2. **NEW \`docs/SIMRS-SPOKE-READ-ACCESS.md\`** (~400 lines): Access points + credentials placeholder. GitHub URL (public), Supabase URL + anon JWT placeholder (Owner share separately), live app URL, schema introspection queries, boundary reminders, quick-start checklist.
+
+3. **OWNER-POLICY-FOR-AI-SESSIONS.md** EXTEND: Addendum v1.5 §S Cross-Project Boundary + SIMRS Spoke Session Pattern. §S.1 lateral peer status, §S.2 SIKESUMA stays on SIKESUMA, §S.3 SIMRS spoke MAY/MAY NOT lists, §S.4 eskalasi pattern (Owner = single source coordination), §S.5 SIKESUMA docs untuk SIMRS, §S.6 boundary check, §S.7 backward compat.
+
+4. **HANDOVER.md** UPDATE: status singkat tambah cross-project context paragraph.
+
+5. **SESSION-START-HERE.md** UPDATE: mandatory bootstrap 5-step → 6-step (added: read intro doc §Read-Only Boundary 2 menit), git log expected adjusted, cross-project boundary recap di bottom.
+
+6. **constants/devLog.ts** UPDATE: this entry.
+
+7. **Self-contained ZIP bundle** untuk fresh SIKESUMA session berikutnya — mirror pattern \`tier5a-phase2_5-pickup-bundle.zip\`, contain semua mandatory files + 2 SIMRS-facing docs + BUNDLE-README dengan reading order.
+
+**Tujuan strategic:** prevent drift + bias di fresh SIKESUMA session yang mungkin tidak aware SIMRS BT parallel track exists. Boundary explicit codified, single source of coordination (Owner) preserved.
+
+**Baseline (unchanged from prior commits today):**
+- main HEAD: b1239f4 → <docs-commit-pending>
+- Tests: 610 pass
+- TS errors: 0/0
+- Working tree: clean post-commit
+
+**SIKESUMA tier work tidak terdampak.** Pure governance + documentation layer additive. Tier 5b/6/7+ trajectory tetap same.`,
+    files: [
+      'docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md (NEW)',
+      'docs/SIMRS-SPOKE-READ-ACCESS.md (NEW)',
+      'OWNER-POLICY-FOR-AI-SESSIONS.md',
+      'HANDOVER.md',
+      'SESSION-START-HERE.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      'SIKESUMA + SIMRS BT = lateral peers (bukan parent-child)',
+      'SIMRS spoke session = read-only consumer ke SIKESUMA',
+      'Single source of cross-project coordination = Owner (no AI-to-AI direct touch)',
+      'SIKESUMA AI session stays on SIKESUMA track — no SIMRS BT work unless Owner brief explicit',
+      'OWNER-POLICY v1.5 added §S — backward compatible, purely additive governance',
+      'Bundle untuk fresh session berikutnya — prevent drift/bias dari kompetensi context loss',
+    ],
+    related: [
+      'log-2026-05-13-tier-5a-merged-to-main',
+      'log-2026-05-13-ts-baseline-cleanup',
+    ],
+  },
+
+  {
     id:    'log-2026-05-13-ts-baseline-cleanup',
     date:  '2026-05-13',
     phase: 'Maintenance / Type Baseline Cleanup',

@@ -909,3 +909,108 @@ Final post-Phase-2.5 target: **~607-611 tests pass** (598 + 9-13). TS 8/8 mainta
 ---
 
 *Addendum v1.4 added by AI Assistant mid-Phase-2.4-completion, post-Owner-correction-on-in-session-commit. Codifies (a) §P In-Session Commit Principle (Owner-direction 12 Mei 2026), (b) §Q Phase 2.4 Success Template, (c) §R Phase 2.4→2.5 Handoff Specifics + Strategy A vs B decision framing. Supersedes any guidance in older bundles that recommends "default split aggressively" without budget self-check protocol. Authoritative governance — overrides any conflicting guidance from compaction summaries.*
+
+---
+
+# Addendum v1.5 — Cross-Project Boundary + SIMRS Spoke Session Pattern
+
+Per Owner-direction 13 Mei 2026 (post Tier 5a MERGED + TS cleanup), SIKESUMA sekarang **bukan single-project**. Owner sedang menjalankan **parallel track**: SIMRS Batin Tikal (build SIMRS dari fondasi) + Khanza spoke session (analytical reference). Three-workstream model per `SIMRS-BATIN-TIKAL-ARCHITECTURE-BLUEPRINT.md` v1.0 (di project SIMRS BT terpisah).
+
+SIKESUMA AI session **stays on SIKESUMA track** — tidak switch ke SIMRS / Khanza work. Tapi SIKESUMA AI session **wajib aware** terhadap cross-project boundary.
+
+## §S. Cross-Project Read-Only Pattern
+
+### §S.1 Lateral Peer Status
+
+SIKESUMA dan SIMRS Batin Tikal adalah **lateral peers**, bukan parent-child. Tidak ada hierarchical dependency atau code reuse di waktu yang sama. Coexistence aman karena:
+
+- Setiap project punya AI session dedicated (focus prevent drift)
+- Single source of cross-project coordination: **Owner** (dr Ferry)
+- Read-only consumption antar project diperbolehkan, write tidak
+
+### §S.2 SIKESUMA AI Session Tetap di Track Sendiri
+
+SIKESUMA AI session **TIDAK** boleh:
+
+- Mulai work di SIMRS Batin Tikal codebase (separate project) di sesi SIKESUMA
+- Edit SIMRS BT artifacts, docs, atau database
+- Adopt SIMRS BT pattern unilateral ke SIKESUMA tanpa Owner brief explicit
+- Cross-reference SIMRS BT decision di SIKESUMA commit tanpa Owner sign-off
+
+Kalau Owner mau Tier-relevant adjustment di SIKESUMA berdasarkan insight dari SIMRS spoke / Khanza, **Owner brief eksplisit di sesi SIKESUMA** dulu — SIKESUMA AI session baru proceed.
+
+### §S.3 SIMRS Spoke Session Read-Only ke SIKESUMA
+
+SIMRS spoke session (Khanza analyst, atau future SIMRS BT Phase 2 sessions) **MAY**:
+
+- Clone repo SIKESUMA (public)
+- Run schema introspection queries di Supabase SIKESUMA (anon JWT read-only by RLS)
+- Browse live app `sikesumav31.vercel.app`
+- Baca docs: `docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` (primary), `docs/REVISI-POK-PAGU-vKoreksi.md`, `docs/TIER-5-DESIGN.md`, `SSOT-REFACTOR-LOG.md`, dll.
+- Adopt pattern ke SIMRS BT codebase (knowledge transfer adalah tujuan)
+
+SIMRS spoke session **MAY NOT**:
+
+- Push commit ke SIKESUMA repo
+- Buka PR ke SIKESUMA
+- Modify schema/data di Supabase SIKESUMA
+- Trigger Vercel deployment SIKESUMA
+- Edit SIKESUMA docs (`docs/`, `SSOT-REFACTOR-LOG.md`, `HANDOVER.md`, dll.)
+
+Boundary enforced by access pattern (read-only credentials) + cross-project policy (this addendum).
+
+### §S.4 Eskalasi Pattern — Single Source of Coordination
+
+```
+SIMRS spoke finds suggestion/issue       Owner brief async      SIKESUMA AI session
+        di SIKESUMA                                                  (separate session)
+              │                                  │                          │
+              │  feedback ke Owner               │                          │
+              │  via SIMRS spoke chat            │                          │
+              ├─────────────────────────────────►│                          │
+              │                                  │  Owner consolidate +     │
+              │                                  │  brief SIKESUMA session  │
+              │                                  ├─────────────────────────►│
+              │                                  │                          │  Implement
+              │                                  │                          │  kalau Owner sign-off
+              │                                  │                          │  + paired commit
+              │                                  │                          │
+              │                                  │  Owner brief SIMRS back  │
+              │  ◄───────────────────────────────┤  kalau perlu             │
+              │                                  │                          │
+```
+
+**No AI-to-AI direct cross-touch.** Owner adalah single source of coordination.
+
+### §S.5 SIKESUMA Docs untuk SIMRS Consumption
+
+Dua dokumen khusus dibuat 13 Mei 2026 (post Tier 5a) sebagai SIMRS-facing reference:
+
+| File | Purpose |
+|---|---|
+| `docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` | Holistic intro (~700 lines): tech stack, schema overview, validation engine, audit trail, tier roadmap, patterns, anti-patterns, deep-dive pointers |
+| `docs/SIMRS-SPOKE-READ-ACCESS.md` | Access points (~400 lines): GitHub URL, Supabase URL, anon JWT placeholder, schema introspection queries, boundary reminders, quick-start checklist |
+
+Update protocol untuk dokumen ini (versioning, ownership, lifecycle) sama dengan dokumen SIKESUMA lain — Owner-owned, SIKESUMA AI session maintained.
+
+### §S.6 Boundary Check di Setiap SIKESUMA Sesi
+
+Saat fresh AI session SIKESUMA bootstrap, **mandatory step tambahan** (post v1.4 bootstrap):
+
+- ☐ Read `docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` §"Read-Only Boundary" (singkat — 2 menit)
+- ☐ Aware bahwa SIMRS BT parallel track exists
+- ☐ Decline kalau Owner request ad-hoc minta touch SIMRS BT artifact — eskalasi ke fresh SIMRS BT session
+
+### §S.7 Backward Compatibility
+
+Tidak ada SIKESUMA tier work yang affected by v1.5 — purely additive governance layer. Existing Tier 5a-and-below decisions tetap valid.
+
+Future tier work (Tier 5b, 6, 7+) yang **bisa** affected:
+
+- Saat SIKESUMA build API contract ke SIMRS BT (kemungkinan Tier 7+) — Owner-driven decision, separate brief required
+- Saat schema SIKESUMA evolve in a way yang impact SIMRS BT integration plan — update `docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` paired
+
+---
+
+*Addendum v1.5 added by AI Assistant post-Tier-5a-MERGED + post-TS-cleanup, untuk codify cross-project boundary pasca SIMRS Batin Tikal parallel track Owner-initiated. Lateral peer model (per SIMRS Blueprint §4.5) terbawa ke SIKESUMA governance. SIKESUMA AI session stays on SIKESUMA track; SIMRS spoke session may read SIKESUMA read-only; cross-touch via Owner only. Authoritative governance — overrides any conflicting guidance from compaction summaries atau stale doc references.*
+

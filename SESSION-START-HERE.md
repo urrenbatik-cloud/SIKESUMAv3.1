@@ -73,13 +73,24 @@
 > - `production` (Vercel Production `sikesumav31.vercel.app`) ← saat ini di `90a0278` (Tier 4c, **belum ada Tier 5**)
 > - Promotion HANYA via explicit `main → production` merge (Owner-driven, Candidate A above)
 >
-> ## MANDATORY untuk fresh AI session — first 5 steps (urut wajib):
+> ## MANDATORY untuk fresh AI session — first 6 steps (urut wajib):
 >
-> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (Addendum v1.4 = paling baru — §P In-Session Commit Principle + §Q Phase 2.4 Success Template + §R Phase 2.5 Handoff)
-> 2. ☐ Read `HANDOVER.md` — current state authoritative (Tier 5a MERGED `d55f0d0` + TS cleanup `999a46f`)
+> 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (Addendum **v1.5** paling baru — §S Cross-Project Boundary + SIMRS Spoke Session Pattern)
+> 2. ☐ Read `HANDOVER.md` — current state authoritative (Tier 5a MERGED `d55f0d0` + TS cleanup `999a46f` + SIMRS parallel track awareness)
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
-> 4. ☐ Run git verification: `git log --oneline -4` di main (expect `999a46f → 1954db5 → d55f0d0 → 535085f`)
-> 5. ☐ Baca `SSOT-REFACTOR-LOG.md §0.12` (Tier 5 decisions log + execution logs §0.12.7 + §0.12.9 + §0.12.10 + §0.12.12)
+> 4. ☐ **🆕** Read `docs/SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` §"Read-Only Boundary" (2 menit — aware bahwa SIMRS BT parallel track exists, SIKESUMA stays on SIKESUMA track)
+> 5. ☐ Run git verification: `git log --oneline -5` di main (expect `<latest-docs-commit> → b1239f4 → 999a46f → 1954db5 → d55f0d0`)
+> 6. ☐ Baca `SSOT-REFACTOR-LOG.md §0.12` (Tier 5 decisions log + execution logs §0.12.7 + §0.12.9 + §0.12.10 + §0.12.12)
+>
+> **HANYA setelah 6 langkah ini, baru lanjut substantive work.**
+>
+> **First action recommended:** Tanya dr Ferry mau pilih Candidate A, B, atau C di atas sebelum mulai kerja apapun. Kalau Owner pernah brief tentang SIMRS spoke session feedback yang impact SIKESUMA tier scope, surface itu di first turn juga.
+>
+> **🆕 Cross-Project Boundary (per OWNER-POLICY v1.5 §S):**
+> - SIMRS Batin Tikal = parallel project (separate codebase, separate AI sessions)
+> - SIKESUMA AI session **tidak touch SIMRS BT artifacts** — Owner brief explicit kalau perlu
+> - SIMRS spoke session **may read** SIKESUMA via 2 docs di `docs/`: `SIKESUMA-INTRODUCTION-FOR-SIMRS-SPOKE.md` + `SIMRS-SPOKE-READ-ACCESS.md`
+> - Cross-touch via Owner only — no AI-to-AI direct coordination
 >
 > **HANYA setelah 5 langkah ini, baru lanjut substantive work.**
 >
