@@ -27,7 +27,7 @@ Sebelum mulai modify code, **wajib baca dokumen-dokumen berikut** agar tidak ter
 - **v3.2 Production Branch Strategy** (12 Mei 2026): ✅ **OPERATIONAL** — Vercel `Settings → Environments` (UI baru, replace lama `Settings → Git → Production Branch`) menunjukkan **Production environment tracking branch = `production`**. main = Preview environment, all unassigned branches = Preview. Foundation finding #2 (switch pending) → CLOSED 12 Mei 2026 via Owner screenshot verification. Lihat `OWNER-POLICY-FOR-AI-SESSIONS.md` Addendum v1.3.
 - **Tier 5b** (UI tab audit trail viewer, R8c partition 2): TBD — fresh AI session setelah production stable + Sie Renbang field feedback.
 - **Tier 6-7 pending** — Template SK Revisi POK generation (anticipated di Tier 5 schema, β forward-compat via `template_sk_metadata` field di `UsulanRevisiData`), Itjenad/BPK audit export, dll.
-- TS baseline: **8 errors** maintained sejak post-devLog.ts cleanup 11 Mei 2026
+- TS baseline: **0 errors** ✅ (post TS cleanup 13 Mei 2026, commit `999a46f` — Object.entries narrow cast pattern. Sebelumnya 8 errors maintained sejak 11 Mei 2026.)
 - TA 2025: data historis (TA closed, Rp 2.7M total). TA 2026: belum mulai, fresh state untuk re-architecture.
 
 **Active branch state (lihat `SSOT-REFACTOR-LOG.md §0.8 + §0.9 + §0.10 + §0.11 + §0.12` untuk full detail):**

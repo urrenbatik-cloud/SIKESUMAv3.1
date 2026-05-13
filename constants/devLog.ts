@@ -284,6 +284,53 @@ export const DEV_LOG_ENTRIES: DevLogEntry[] = [
   // + §0.11 (Tier 4c) + §0.12 (Tier 5) untuk full decision log.
 
   {
+    id:    'log-2026-05-13-ts-baseline-cleanup',
+    date:  '2026-05-13',
+    phase: 'Maintenance / Type Baseline Cleanup',
+    title: 'TS Baseline Cleanup — 8 errors → 0 (commit 999a46f)',
+    type:  'refactor',
+    author: 'AI Assistant (Successor Session)',
+    description:
+`Candidate D dari post-Tier-5a work candidates Owner-selected 13 Mei 2026 dini hari (Sie Renbang busy rikkes Secaba, Vercel dashboard sudah reaccess). Pure type-narrowing maintenance — NO runtime behavior change.
+
+**Root cause:** TS5 quirk dengan \`Object.entries()\` pada \`Record<K, V>\` types dan index signature types — infer \`[string, unknown][]\` alih-alih \`[string, V][]\`. Tidak terkait \`strict\` flag (tsconfig tidak punya). Pattern workaround sudah exist di codebase sejak Tier 4 era (App.tsx line 303 + 661 cast \`Object.values(dataByYear) as PaguSection[][]\`, line 894 destructure cast tks/nakes/pengelola).
+
+**Fix scope (2 files, 16 lines net):**
+
+| File | Site | Errors fixed | Cast applied |
+|---|---|---|---|
+| App.tsx | line 636 (\`sections.forEach\`) | 1 | \`as [string, PaguSection[]][]\` |
+| App.tsx | line 867 jvfEntries filter + line 879 emptyPeriodKeys filter | 6 (tks/nakes/pengelola × 2) | \`as [string, JvfPeriod][]\` dengan local type alias \`type JvfPeriod = JasaVerificationFiles[string]\` |
+| components/PaguAnggaran.tsx | line 512 \`sectionNames.join(' & ')\` | 1 | \`as [string, string[]][]\` |
+
+Inline cast pattern dipilih daripada helper function untuk konsistensi dengan existing convention di App.tsx. Comment marker \`[TS-cleanup 13 Mei 2026]\` di-attach untuk traceability di future audits.
+
+**Baseline:**
+- TS errors: **8 → 0** ✅ (target achieved)
+- Vitest: 610 pass (unchanged — pure type narrowing has zero runtime impact)
+- Vite build: success ~6s, bundle size identical 1.6MB minified
+- Working directly di main per OWNER-POLICY §B (low-risk cleanup, no schema/feature change)
+
+**Tidak ada follow-up needed.** Baseline 0 sekarang going-forward target — fresh AI session di Phase 5b/Tier 6 nanti harus preserve baseline 0 atau ada justifikasi explicit.`,
+    files: [
+      'App.tsx',
+      'components/PaguAnggaran.tsx',
+      'HANDOVER.md',
+      'SESSION-START-HERE.md',
+      'constants/devLog.ts',
+    ],
+    decisions: [
+      'Inline cast pattern (bukan helper function) untuk konsistensi codebase',
+      'Working directly di main (low-risk cleanup, NO feature branch needed)',
+      'Local type alias JvfPeriod = JasaVerificationFiles[string] untuk readability',
+      'Baseline 0 sekarang going-forward expectation — preserve di future tier work',
+    ],
+    related: [
+      'log-2026-05-13-tier-5a-merged-to-main',
+    ],
+  },
+
+  {
     id:    'log-2026-05-13-tier-5a-merged-to-main',
     date:  '2026-05-13',
     phase: 'SSOT Refactor / Tier 5a / Phase 4 — Squash Merge to Main',

@@ -1,24 +1,23 @@
 # SESSION-START-HERE — SIKESUMA Handover Bundle
 
-**Generated:** 13 Mei 2026 (post **Tier 5a MERGED TO MAIN** commit `d55f0d0`, feature branch deleted)
-**For:** Next AI session — beberapa kandidat work (lihat ✅ STATUS UPDATE below):
+**Generated:** 13 Mei 2026 (post **Tier 5a MERGED** `d55f0d0` + **TS cleanup** `999a46f` — baseline 0 errors)
+**For:** Next AI session — 3 kandidat work remaining (lihat ✅ STATUS UPDATE below):
   - (a) Production promotion `main → production` (Owner-driven decision)
   - (b) Tier 5b audit trail viewer (UI tab) — fresh session
   - (c) Tier 6 Template SK Revisi POK generator — fresh session
-  - (d) TS error cleanup baseline 8 → 0 (low-priority, cosmetic)
 **Owner:** dr Ferry (neurosurgeon background — prefers defaults + medical analogies)
 
-> ## ✅ STATUS UPDATE (13 Mei 2026, post **Tier 5a MERGED TO MAIN**)
+> ## ✅ STATUS UPDATE (13 Mei 2026, post **Tier 5a MERGED + TS cleanup**)
 >
-> **🎉 TIER 5a COMPLETE & MERGED.** Audit trail backend full stack live di `main`.
+> **🎉 TIER 5a COMPLETE & MERGED + TS BASELINE CLEAN.** Audit trail backend full stack live di `main`, plus baseline cleanup 8 → 0 errors.
 >
 > | Aspect | State |
 > |---|---|
-> | Main HEAD | `d55f0d0` (Tier 5a squash merge, 13 Mei 2026) |
+> | Main HEAD | `999a46f` (TS cleanup, 13 Mei 2026) — 3 commits ahead of production |
 > | Production HEAD | `90a0278` (Tier 4c, **belum ada Tier 5**) |
 > | Feature branch | `feature/tier-5a-audit-trail-backend` DELETED post-merge cleanup |
 > | Tests baseline | **610 pass** (486 prior + 124 Tier 5a) |
-> | TS errors | 8/8 maintained |
+> | TS errors | **0** ✅ (cleaned 13 Mei 2026 via `999a46f` — narrow Object.entries cast) |
 > | Owner E2E | ✅ PASSED 13 Mei 2026 — 4-check smoke test all verified |
 >
 > **5 sub-phases yang merged dalam squash `d55f0d0`:**
@@ -62,11 +61,9 @@
 > **Scope:** Generate dokumen SK Revisi POK (5 sub-templates per vKoreksi) dari `usulan_revisi` data. Forward-compat sudah preserved via `template_sk_metadata?: UsulanTemplateSkMetadata` field di types — Phase 1 design pasti consolidate dengan vKoreksi v3 templates.
 > **Gate:** Tier 5b stable (audit viewer membantu test Tier 6 output).
 >
-> ### Candidate D — **TS Error Cleanup** (baseline 8 → 0)
+> ### ~~Candidate D — TS Error Cleanup~~ ✅ **DONE 13 Mei 2026** (commit `999a46f`)
 >
-> **Effort:** Minor — 1-2 turn. Cosmetic, runtime tidak terdampak.
-> **Scope:** Fix 7 `App.tsx` errors (lines 636, 868, 881 — unknown-type narrowing untuk JsonValue payloads) + 1 `PaguAnggaran.tsx:512` error. Root cause: implicit `unknown` types dari Supabase JSONB returns. Pakai type guards atau narrow casts.
-> **Gate:** Tidak ada — bisa dikerjakan kapan saja sebagai cleanup task.
+> Baseline 8 → 0 cleaned via narrow Object.entries cast pattern di App.tsx (2 sites) + PaguAnggaran.tsx (1 site). Pure type narrowing, no runtime change. 610 tests preserved. Lihat devLog `log-2026-05-13-ts-baseline-cleanup` untuk detail.
 >
 > ---
 >
@@ -79,9 +76,9 @@
 > ## MANDATORY untuk fresh AI session — first 5 steps (urut wajib):
 >
 > 1. ☐ Read `OWNER-POLICY-FOR-AI-SESSIONS.md` full (Addendum v1.4 = paling baru — §P In-Session Commit Principle + §Q Phase 2.4 Success Template + §R Phase 2.5 Handoff)
-> 2. ☐ Read `HANDOVER.md` — current state authoritative (Tier 5a MERGED `d55f0d0`)
+> 2. ☐ Read `HANDOVER.md` — current state authoritative (Tier 5a MERGED `d55f0d0` + TS cleanup `999a46f`)
 > 3. ☐ Read this `SESSION-START-HERE.md` orientation banner
-> 4. ☐ Run git verification: `git log --oneline -3` di main (expect `d55f0d0 → 535085f → 90a0278`)
+> 4. ☐ Run git verification: `git log --oneline -4` di main (expect `999a46f → 1954db5 → d55f0d0 → 535085f`)
 > 5. ☐ Baca `SSOT-REFACTOR-LOG.md §0.12` (Tier 5 decisions log + execution logs §0.12.7 + §0.12.9 + §0.12.10 + §0.12.12)
 >
 > **HANYA setelah 5 langkah ini, baru lanjut substantive work.**
